@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>HTMLコードエディタ（CodeMirror版）_R1.06.07</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- CodeMirror 5 Local (libフォルダ参照) -->
+<link rel="stylesheet" href="./lib/codemirror.min.css">
+<link rel="stylesheet" href="./lib/theme/dracula.min.css">
+<script src="./lib/codemirror.min.js"></script>
+
+<!-- Modes -->
+<script src="./lib/mode/xml.min.js"></script>
+<script src="./lib/mode/javascript.min.js"></script>
+<script src="./lib/mode/css.min.js"></script>
+<script src="./lib/mode/htmlmixed.min.js"></script>
+
+<!-- 編集支援 -->
+<script src="./lib/addon/edit/closebrackets.min.js"></script>
+<script src="./lib/addon/edit/closetag.min.js"></script>
+<script src="./lib/addon/edit/matchbrackets.min.js"></script>
+<script src="./lib/addon/display/placeholder.min.js"></script>
+
+<!-- 検索・置換 -->
+<link rel="stylesheet" href="./lib/addon/dialog/dialog.min.css">
+<script src="./lib/addon/dialog/dialog.min.js"></script>
+<script src="./lib/addon/search/searchcursor.min.js"></script>
+<script src="./lib/addon/search/search.min.js"></script>
+
+<!-- 折り畳み -->
+<link rel="stylesheet" href="./lib/addon/fold/foldgutter.min.css">
+<script src="./lib/addon/fold/foldcode.min.js"></script>
+<script src="./lib/addon/fold/foldgutter.min.js"></script>
+<script src="./lib/addon/fold/brace-fold.min.js"></script>
+<script src="./lib/addon/fold/xml-fold.min.js"></script>
+<script src="./lib/addon/fold/comment-fold.min.js"></script>
+
+<style>
+  :root {
+    --left-bg: #1e1e1e;
+    --left-panel-bg: #252526;
+    --left-border: #3c3c3c;
+    --left-text: #f3f3f3;
+    --button-bg: #3a3d41;
+    --button-bg-disabled: #2a2d2f;
+    --button-border: #555;
+    --button-hover: #4b4f55;
+    --button-text: #f3f3f3;
+    --status-ok: #4caf50;
+    --status-text: #e0ffe0;
+    --preview-header-bg: #252526;
+    --preview-header-text: #f3f3f3;
+
+    /* ガター用色 */
+    --gutter-bg: #262626;
+    --gutter-border: #505050;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  body {
+    display: flex;
+    background: #111;
+  }
+
+  #container {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  #leftPane {
+    background: var(--left-bg);
+    color: var(--left-text);
+    width: 20%;
+    min-width: 200px;
+    max-width: 80%;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--left-border);
+  }
+
+  #rightPane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+  }
+
+  #divider {
+    width: 5px;
+    cursor: col-resize;
+    background: #444;
+  }
+  #divider:hover {
+    background: #666;
+  }
+
+  .left-inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .top-buttons {
+    padding: 8px;
+    border-bottom: 1px solid var(--left-border);
+    background: var(--left-panel-bg);
+  }
+
+  .top-buttons-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .top-buttons-row-1 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .top-left-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #btnToggleWrap {
+    min-width: 28px;
+    padding: 2px 8px;
+    font-size: 14px;
+  }
+    
+  button {
+    background: var(--button-bg);
+    color: var(--button-text);
+    border: 1px solid var(--button-border);
+    border-radius: 3px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  button:hover:not(:disabled) {
+    background: var(--button-hover);
+  }
+
+  button:disabled {
+    background: var(--button-bg-disabled);
+    color: #888;
+    cursor: default;
+  }
+
+  .editor-wrapper {
+    flex: 1;
+    border-top: 1px solid var(--left-border);
+    border-bottom: 1px solid var(--left-border);
+    background: var(--left-bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .CodeMirror {
+    height: 100%;
+    width: 100%;
+    font-size: 13px;
+  }
+
+  .CodeMirror-scroll {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+    
+  /* 選択範囲の背景色（明るい青） */
+  .CodeMirror-selected {
+    background-color: #3399ff !important;
+  }
+
+  /* フォーカス中の選択範囲（少しだけ濃く） */
+  .CodeMirror-focused .CodeMirror-selected {
+    background-color: #1e90ff !important;
+  }
+
+  /* 選択中の文字色を白にする */
+  .CodeMirror ::selection {
+    color: #ffffff;
+    background: #3399ff;
+  }
+
+  .CodeMirror ::-moz-selection {
+    color: #ffffff;
+    background: #3399ff;
+  }
+  /* ガター全体と境界線 */
+  .CodeMirror-gutters {
+    background: var(--gutter-bg);
+    border-right: 1px solid var(--gutter-border);
+  }
+
+  /* 行番号ガター */
+  .CodeMirror-linenumbers {
+    background: #2e2e2e;
+    color: #bbbbbb;
+  }
+
+  /* 折り畳みガター */
+  .CodeMirror-foldgutter {
+    background: #252525;
+    color: #aaaaaa;
+    width: 0.7em;
+  }
+  .CodeMirror-foldgutter-open,
+  .CodeMirror-foldgutter-folded {
+    cursor: pointer;
+  }
+
+  .cm-eol-marker {
+    color: rgba(216, 216, 216, 1);
+    font-size: 10px;
+    padding-left: 2px;
+  }
+
+  .bottom-bar {
+    padding: 6px 8px;
+    background: var(--left-panel-bg);
+    display: flex;
+    align-items: center;
+    border-top: 1px solid var(--left-border);
+  }
+
+  .bottom-left-buttons {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .bottom-right-buttons {
+    margin-left: auto;
+    display: flex;
+    gap: 6px;
+  }
+
+  .status-area {
+    margin-left: 8px;
+    font-size: 11px;
+    color: var(--status-text);
+  }
+
+  .status-ok {
+    color: var(--status-ok);
+  }
+
+  .preview-header {
+    background: var(--preview-header-bg);
+    color: var(--preview-header-text);
+    padding: 6px 10px;
+    font-size: 13px;
+    border-bottom: 1px solid #444;
+  }
+
+  .preview-body {
+    flex: 1;
+    border: none;
+    width: 100%;
+  }
+
+  iframe {
+    border: none;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* プレビューフッタ */
+  .preview-footer {
+    background: #f3f3f3;
+    color: #333;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-top: 1px solid #ccc;
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .modal {
+    background: #2d2d30;
+    color: #f3f3f3;
+    padding: 16px 20px;
+    border-radius: 4px;
+    min-width: 260px;
+    max-width: 90vw;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  }
+
+  .modal-message {
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+
+  .modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .modal button {
+    font-size: 13px;
+  }
+
+  /* コピー・保存メッセージ用 */
+  .copy-status,
+  .save-status {
+    margin-left: 6px;
+    font-size: 11px;
+    color: var(--status-ok);
+    white-space: nowrap;
+  }
+  
+  /* ファビコンの設定_スクリプトも記載必要 */
+  <link id="favicon" rel="icon" type="image/png" href="">
+</style>
+</head>
+<body>
+<div id="container">
+  <!-- 左側 -->
+  <div id="leftPane">
+    <div class="left-inner">
+      <div class="top-buttons">
+        <div class="top-buttons-row top-buttons-row-1">
+          <div class="top-left-group">
+            <button id="btnOpen">読込</button>
+            <button id="btnSaveOverwrite" disabled>上書保存</button>
+            <span id="saveStatus" class="save-status"></span>
+          </div>
+          <button id="btnToggleWrap" title="折り返し切替">↵</button>
+        </div>
+        <div class="top-buttons-row">
+          <button id="btnSaveTxt">保存(.txt)</button>
+          <button id="btnSaveHtml">保存(.html)</button>
+        </div>
+      </div>
+      <div class="editor-wrapper">
+        <textarea id="code" name="code"></textarea>
+      </div>
+
+      <div class="bottom-bar">
+        <div class="bottom-left-buttons">
+          <button id="btnClear">ｸﾘｱ</button>
+          <button id="btnPaste">ﾍﾟｰｽﾄ</button>
+          <button id="btnCopy">ｺﾋﾟｰ</button>
+          <!-- コピーボタン右側のメッセージ -->
+          <span id="copyStatus" class="copy-status"></span>
+        </div>
+        <div class="bottom-right-buttons">
+          <button id="btnLeft20">|←</button>
+          <button id="btnLeft50">→|</button>
+        </div>
+        <!-- 旧ステータスエリア（今は未使用だが残しておく） -->
+        <div class="status-area" id="statusArea"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- リサイズバー -->
+  <div id="divider"></div>
+
+  <!-- 右側 -->
+  <div id="rightPane">
+    <div class="preview-header" id="previewHeader">プレビュー：[Untitled]</div>
+    <div class="preview-body">
+      <iframe id="previewFrame" sandbox="allow-same-origin allow-scripts"></iframe>
+    </div>
+    <div class="preview-footer">
+      表示が崩れてしまう、ボタン操作できなくなるなどのときは、エディタのコードをコピーし、ページを再読み込み(F5)してからエディタにコードをペーストしなおすと正しく表示されることがあります
+    </div>
+  </div>
+</div>
+
+<!-- 確認ダイアログ -->
+<div class="modal-backdrop" id="confirmModal">
+  <div class="modal">
+    <div class="modal-message" id="confirmMessage"></div>
+    <div class="modal-buttons">
+      <button id="confirmNo">No</button>
+      <button id="confirmYes">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+    let isWrapEnabled = true; // 初期値はtrue
+    const btnToggleWrap = document.getElementById('btnToggleWrap');
+
+    function updateToggleWrapUI() {
+      btnToggleWrap.title = isWrapEnabled ? "折り返しを無効にする" : "折り返しを有効にする";
+      // ON/OFFで色を変えたい場合はクラス操作（任意）
+      // btnToggleWrap.classList.toggle('wrap-on', isWrapEnabled);
+    }
+
+    // --- CodeMirror初期化 ---
+    var editor = CodeMirror.fromTextArea(document.getElementById('code'), {
+      mode: 'htmlmixed',
+      theme: 'dracula',
+      lineNumbers: true,
+      lineWrapping: isWrapEnabled,
+      indentUnit: 4,
+      tabSize: 4,
+      indentWithTabs: false,
+      smartIndent: true,
+      autoCloseBrackets: true,
+      autoCloseTags: true,
+      matchBrackets: true,
+      foldGutter: true,
+      gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+      extraKeys: {
+        "Ctrl-F": "find",
+        "Ctrl-H": "replace",
+        "Shift-Ctrl-F": "findPersistent",
+        "Shift-Ctrl-R": "replaceAll",
+        "Shift-Ctrl-Down": function(cm) {
+          toggleWrap();
+        }
+      }
+    });
+
+    function toggleWrap() {
+      isWrapEnabled = !isWrapEnabled;
+      editor.setOption('lineWrapping', isWrapEnabled);
+      editor.refresh();
+      updateToggleWrapUI();
+    }
+    
+    btnToggleWrap.addEventListener('click', toggleWrap);
+    updateToggleWrapUI();
+    // Shift-Ctrl-Downをエディタ外でも有効に←一旦無効に…エディタ内操作と競合する
+    //window.addEventListener('keydown', function(e) {
+    //  if (e.ctrlKey && e.shiftKey && e.key === 'ArrowDown') {
+    //    e.preventDefault();
+    //    toggleWrap();
+    //  }
+	//});
+
+  // 改行マーク表示
+  editor.on("renderLine", function(cm, line, elt) {
+    var span = document.createElement("span");
+    span.className = "cm-eol-marker";
+    span.textContent = "↵";
+    elt.appendChild(span);
+  });
+  editor.refresh();
+
+  const previewFrame = document.getElementById('previewFrame');
+  const previewHeader = document.getElementById('previewHeader');
+  const statusArea = document.getElementById('statusArea');
+
+  const btnOpen = document.getElementById('btnOpen');
+  const btnSaveOverwrite = document.getElementById('btnSaveOverwrite');
+  const btnSaveTxt = document.getElementById('btnSaveTxt');
+  const btnSaveHtml = document.getElementById('btnSaveHtml');
+  const btnClear = document.getElementById('btnClear');
+  const btnPaste = document.getElementById('btnPaste');
+  const btnCopy = document.getElementById('btnCopy');
+  const btnLeft20 = document.getElementById('btnLeft20');
+  const btnLeft50 = document.getElementById('btnLeft50');
+
+  const leftPane = document.getElementById('leftPane');
+  const divider = document.getElementById('divider');
+  const container = document.getElementById('container');
+
+  const confirmModal = document.getElementById('confirmModal');
+  const confirmMessage = document.getElementById('confirmMessage');
+  const confirmYes = document.getElementById('confirmYes');
+  const confirmNo = document.getElementById('confirmNo');
+
+  const copyStatus = document.getElementById('copyStatus');
+  const saveStatus = document.getElementById('saveStatus');
+
+  let currentFileHandle = null;
+  let currentFileName = null;
+  let isDraggingDivider = false;
+
+  function showSaveStatus(msg) {
+    saveStatus.textContent = msg || "保存しました";
+    setTimeout(() => {
+      saveStatus.textContent = "";
+    }, 2000);
+  }
+    
+  function getLeftWidthPercent() {
+    const totalWidth = container.clientWidth;
+    const widthPx = leftPane.offsetWidth;
+    if (totalWidth === 0) return 50;
+    return Math.round(widthPx / totalWidth * 100);
+  }
+    
+  function setLeftWidthPercent(percent) {
+    const totalWidth = container.clientWidth;
+    if (totalWidth === 0) return;
+    // エディタ幅を計算
+    const px = Math.max(200, totalWidth * percent / 100);
+    leftPane.style.width = px + "px";
+    // プレビュー領域取得
+    const rightPane = document.getElementById("rightPane");
+    const divider = document.getElementById("divider");
+    if (percent >= 100) {
+      // エディタ100%表示。プレビューとdividerを隠す
+      rightPane.style.display = "none";
+      divider.style.display = "none";
+      // left側を100%占有
+      leftPane.style.width = "100%";
+      leftPane.style.maxWidth = "100%";
+      leftPane.style.minWidth = "0";
+    } else {
+      // 通常時。プレビュー等を出す
+      rightPane.style.display = "";
+      divider.style.display = "";
+      leftPane.style.maxWidth = "80%";
+      leftPane.style.minWidth = "200px";
+    }
+    editor.refresh();
+  }
+    
+  function getTitleFromHtml(html) {
+    const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    if (match && match[1]) {
+      return match[1].trim() || "Untitled";
+    }
+    return "Untitled";
+  }
+
+  function updatePreviewHeader() {
+    const html = editor.getValue();
+    const title = getTitleFromHtml(html);
+    const name = currentFileName || title;
+    previewHeader.textContent = "プレビュー：[" + name + "]";
+  }
+
+  function updatePreview() {
+    const html = editor.getValue();
+    const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+    doc.open();
+    doc.write(html);
+    doc.close();
+    updatePreviewHeader();
+  }
+
+  const initialHtml = [
+    "<!DOCTYPE html>",
+    "<html lang=\"ja\">",
+    "<head>",
+    "    <meta charset=\"UTF-8\">",
+    "    <title>タイトル：タブなどに表示されます</title>",
+    "    <!--styleでくくられたところはCSS…いわゆるデザイン関係です -->",
+    "    <style>",
+    "        /* ページ全体の基本設定 */",
+    "    	body {",
+    "      		font-family: \"Segoe UI\", \"Windows\", sans-serif;",
+    "      		background-color: #f5f5f5;  /* 薄いグレー */",
+    "      		color: #333333;             /* 少し薄めの黒 */",
+    "      		margin: 20px;",
+    "    	}",
+    "        /* h2設定 */",
+    "    	h2 {",
+    "      		font-size: 22px;",
+    "      		margin-top: 24px;",
+    "      		margin-bottom: 8px;",
+    "    	}",
+    "        /* リンク */",
+    "    	a {",
+    "      		color: #0066cc;",
+    "      		text-decoration: none;",
+    "    	}",
+    "    	a:hover {",
+    "      		text-decoration: underline;",
+    "    	}",
+    "        /* テーブル */",
+    "    	table {",
+    "      		border-collapse: collapse;  /* 枠線を1本にまとめる */",
+    "      		background-color: #ffffff;",
+    "      		margin-top: 8px;",
+    "    	}",
+    "    	th, td {",
+    "      		padding: 12px 12px;",
+    "      		border: 1px solid #cccccc;",
+    "    	}",
+    "	    th {",
+    "      		background-color: #eeeeee;",
+    "    	}",
+    "        table td:first-child {",
+    "    		text-align: center;",
+    "  		}",
+    "",
+    "        /* ここから個別======================================== */",
+    "        /* 段落pのデザイン */",
+    "      	.はじめに {",
+    "      		background-color: #ffffff;",
+    "      		border: 1px solid #dddddd;",
+    "			padding: 10px 20px;",
+    "      		border-radius: 4px;",
+    "      		margin-bottom: 20px;",
+    "      	}",
+    "        /* 目次リスト */",
+    "        .目次リスト {",
+    "      		background-color: #ffffff;",
+    "      		border: 1px solid #dddddd;",
+    "      		padding: 10px 20px;",
+    "      		width: 200px;",
+    "      		border-radius: 4px;",
+    "      		margin-bottom: 20px;",
+    "    	}",
+    "    	.目次リスト li {",
+    "      		margin-bottom: 0px;",
+    "    	}",
+    "        /* 注意事項リスト */",
+    "        .注意事項リスト {",
+    "      		background-color: #ffffff;",
+    "      		border: 1px solid #dddddd;",
+    "      		padding: 10px 20px;",
+    "      		border-radius: 4px;",
+    "      		margin-bottom: 0px;",
+    "    	}",
+    "    	.注意事項リスト li {",
+    "      		margin-bottom: 8px;",
+    "    	}",
+    "    </style>",
+    "    <!--CSSここまで -->",
+    "</head>",
+    "<body>",
+    "    <h1 id=\"top\">HTML プレビュー画面です</h1>",
+    "    <h2>はじめに</h2>",
+    "    <p class=\"はじめに\">",
+    "        <b>\"簡易\"HTMLエディタです</b><br>",
+    "        左側のコードエディタに HTMLコードを入力すると、ここにリアルタイムで表示されます（ただし難しい内容は正しく表示できないことがあります）<br>",
+    "        また、edgeでの使用を想定してるので、他のブラウザでは正しく作動しないかもしれません（他もChromium系ブラウザならいけるかも）<br>",
+    "        <span style=\"color: red;\">（本気でHTMLコードを書くならVSCodeや専用Webアプリなどの外部ツールの使用をお勧めします）</span>",
+    "    </p>",
+    "    <h2 id=\"title\">目次</h2>",
+    "  		<ol class=\"目次リスト\">",
+    "    		<li><a href=\"#button\">ボタンの説明</a></li>",
+    "    		<li><a href=\"#shortcut\">ショートカットキー</a></li>",
+    "    		<li><a href=\"#direction\">注意事項</a></li>",
+    "  		</ol>",
+    "    <h2 id=\"button\" class=\"ボタンの説明\">1. ボタンの説明</h2>",
+    "        ＜エディタ上部＞",
+    "        <table border=\"1\" style=\"width: 100%; border-collapse: collapse; margin-bottom: 20px;\">",
+    "            <colgroup>",
+    "    			<col style=\"width: 100px;\">  <!-- 左列だけ幅指定 -->",
+    "    			<col>                        <!-- 右列は自動（残り全部） -->",
+    " 			</colgroup>",
+    "            <tr>",
+    "                <th>ボタン名</th>",
+    "                <th>内容</th>",
+    "            </tr>",
+    "            <tr>",
+    "                <td>読込</td>",
+    "                <td>txt形式/html形式のファイルからHTMLコードを読込み、エディタに入力します</td>",
+    "            </tr>",
+    "            <tr>",
+    "                <td>保存</td>",
+    "                <td>txt形式/html形式のいずれか選択されたボタンの形式で新規に保存します</td>",
+    "            </tr>",
+    "            <tr>",
+    "                <td>上書保存</td>",
+    "                <td>起動時はグレーアウトして選択できませんが、「読込み」「保存」ボタンが押されると有効になり、読込み元/保存先ファイルに直接上書き保存します（Chromium系ブラウザのみ）<br>「Ctrl+S」でも作動するはずです<br>※ブラウザを再読み込みすると、再度グレーアウトして選択できなくなります</td>",
+    "            </tr>",
+    "            <tr>",
+    "                <td>↵</td>",
+    "                <td>エディタの右端での文字の折り返しを切り替えます（起動時は「折り返す」）<br>エディタ内でのみ、「Ctrl+Shift+↓」でも作動</td>",
+    "            </tr>",
+    "",
+    "    	</table>",
+    "        ＜エディタ下部＞",
+    "        <table border=\"1\" style=\"width: 100%; border-collapse: collapse;\">",
+    "            <colgroup>",
+    "    			<col style=\"width: 100px;\">  <!-- 左列だけ幅指定 -->",
+    "    			<col>                        <!-- 右列は自動（残り全部） -->",
+    " 			</colgroup>",
+    "            <tr>",
+    "                <th>ボタン名</th>",
+    "                <th>内容</th>",
+    "            </tr>",
+    "            <tr>",
+    "                <td>クリア</td>",
+    "                <td>エディタ内部のコードを消去します</td>",
+    "            </tr>",
+    "            <tr>",
+    "                <td>ペースト</td>",
+    "                <td>クリップボードからエディタにペーストしますが、仕様上警告が出てしまいます<br>ぶっちゃけ、エディタにカーソルを合わせて「Ctrl+A」→「Ctrl+V」の方が早いです</td>",
+    "            </tr>",
+    "            <tr>",
+    "                <td>コピー</td>",
+    "                <td>エディタに記載されているコードをクリップボードに保存します</td>",
+    "            </tr>",
+    "            <tr>",
+    "                <td>|←</td>",
+    "                <td>エディタの表示領域の幅を3段階に切替えます（小（起動時）←中←大（エディタ全画面））<br>「Ctrl+Shift+←」でも操作可能（起動時の幅は「小」です）</td>",
+    "            </tr>",
+    "            <tr>",
+    "                <td>→|</td>",
+    "                <td>エディタの表示領域の幅を3段階に切替えます（小（起動時）→中→大（エディタ全画面））<br>「Ctrl+Shift+→」でも操作可能</td>",
+    "            </tr>",
+    "",
+    "    	</table>",
+    "        <span style=\"color: blue;\">※なぜかエディタ下部のボタンだけ当たり判定が狭いことがありますが、頑張って下さい</span>（ディスプレイの拡大倍率による?）",
+    "        <a href=\"#title\" style=\"display: block; text-align: right;\">↑目次へ戻る</a>",
+    "",
+    "    <h2 id=\"shortcut\">2. ショートカットキー（把握している分のみ）</h2>",
+    "        <table border=\"1\" style=\"width: 100%; border-collapse: collapse;\">",
+    "            <colgroup>",
+    "    			<col style=\"width: 10px;\">  <!-- 左列だけ幅指定 -->",
+    "    			<col>                        <!-- 右列は自動（残り全部） -->",
+    " 			</colgroup>",
+    "            <tr>",
+    "                <th>キー入力</th>",
+    "                <th>内容</th>",
+    "            </tr>",
+    "            <tr>",
+    "                <td>Ctlr+F</td>",
+    "                <td>エディタ内の検索（1回のみ）※エディタ内でのみ作動</td>",
+    "            </tr>",
+    "            <tr>",
+    "                <td>Ctrl+Shift+F</td>",
+    "                <td>エディタ内の検索（連続）※エディタ内でのみ作動</td>",
+    "            </tr>",
+    "            <tr>",
+    "                <td>Ctrl+H</td>",
+    "                <td>置換 ※エディタ内でのみ作動</td>",
+    "            </tr>",
+    "            <tr>",
+    "                <td>Ctrl+Shift+↓</td>",
+    "                <td>エディタの右端での文字の折り返しを切り替え ※エディタ内でのみ作動</td>",
+    "            </tr>",
+    "            <tr>",
+    "                <td>Ctrl+S</td>",
+    "                <td>上書き保存（ボタン有効時のみ）</td>",
+    "            </tr>",
+    "            <tr>",
+    "                <td>Ctrl+Shift<br>+左右矢印</td>",
+    "                <td>エディタの表示領域を3段階に切替え（ただしエディタのカーソル移動と競合する）</td>",
+    "            </tr>",
+    "    	</table>",
+    "        <a href=\"#title\" style=\"display: block; text-align: right;\">↑目次へ戻る</a>",
+    "",
+    "    <h2 id=\"direction\">3. 注意事項</h2>",
+    "    <ul class=\"注意事項リスト\">",
+    "        <li>プレビューは、画像の表示やリンクへ飛ぶような動作は対応できないようです<br>",
+    "            <span style=\"color: red;\">始めは問題なくプレビュー表示できていたのに、コード編集中に表示が崩れてしまう、ボタン操作できなくなるなどの時は、",
+    "                一度エディタのコードをコピーし、ページを再読み込み(F5)してからエディタにコードをペーストしなおすと正しく表示されることがあります</span><br>",
+    "            <span style=\"color: blue;\">それでも無理な時は、このファイルはエディタ専用として使用し、編集対象のHTMLファイルは別ウインドで立ち上げ、",
+    "                「エディタでコードを書換えて上書き保存→編集対象のHTMLファイルをページを再読み込み(F5)」の流れでの確認がお勧め</span></li>",
+    "        <li>エディタとプレビューの境界の位置はカーソルでも調整できますが、カーソル移動ではエディタ全画面表示はできません（ボタンで操作ください）<br>",
+    "            また、ドラッグアンドドロップで境界を右側に移動する際は、カーソルがプレビュー画面に重なるとなぜか動かなくなったりします（仕様です）<br>",
+    "            プレビュー画面の上部ヘッダや下部フッタ部にカーソルを重ねれば回避できます</li>",
+    "        <li>edgeなどのChromium系ブラウザかつPCでしか使用できない機能もあると思いますのでご注意ください</li>",
+    "    </ul>",
+    "    <a href=\"#title\" style=\"display: block; text-align: right;\">↑目次へ戻る</a>",
+    "",
+    "</body>",
+    "</html>",
+  ].join("\n");
+
+  editor.setValue(initialHtml);
+  updatePreview();
+
+  editor.on("change", function() {
+    updatePreview();
+  });
+
+  const supportsFileSystemAccess = 'showOpenFilePicker' in window && 'showSaveFilePicker' in window;
+
+  async function openFile() {
+    if (!supportsFileSystemAccess) {
+      alert("このブラウザは File System Access API に対応していません。");
+      return;
+    }
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [
+          {
+            description: "HTML / Text",
+            accept: {
+              "text/html": [".html", ".htm"],
+              "text/plain": [".txt"]
+            }
+          }
+        ],
+        excludeAcceptAllOption: false,
+        multiple: false
+      });
+      const file = await handle.getFile();
+      const text = await file.text();
+      editor.setValue(text);
+      currentFileHandle = handle;
+      currentFileName = file.name;
+      btnSaveOverwrite.disabled = false;
+      updatePreview();
+    } catch (e) {
+      if (e.name !== "AbortError") {
+        console.error(e);
+        alert("ファイルの読込みに失敗しました。");
+      }
+    }
+  }
+
+  async function saveToHandle(handle) {
+    const writable = await handle.createWritable();
+    await writable.write(editor.getValue());
+    await writable.close();
+  }
+
+  async function saveOverwrite() {
+    if (!currentFileHandle) return;
+    try {
+      await saveToHandle(currentFileHandle);
+      showSaveStatus("上書き保存しました");
+    } catch (e) {
+      console.error(e);
+      alert("上書き保存に失敗しました。");
+    }
+  }
+
+  async function saveAs(ext) {
+    if (!supportsFileSystemAccess) {
+      alert("このブラウザは File System Access API に対応していません。");
+      return;
+    }
+    const html = editor.getValue();
+    const title = getTitleFromHtml(html);
+    const defaultName = title + ext;
+
+    let mime = "text/plain";
+    if (ext === ".html" || ext === ".htm") {
+      mime = "text/html";
+    }
+
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: defaultName,
+        types: [
+          {
+            description: ext === ".txt" ? "Text File" : "HTML File",
+            accept: {
+              [mime]: [ext]
+            }
+          }
+        ]
+      });
+      await saveToHandle(handle);
+      currentFileHandle = handle;
+      currentFileName = (await handle.getFile()).name;
+      btnSaveOverwrite.disabled = false;
+      showSaveStatus("保存しました");
+      updatePreviewHeader();
+    } catch (e) {
+      if (e.name !== "AbortError") {
+        console.error(e);
+        alert("保存に失敗しました。");
+      }
+    }
+  }
+
+  function showConfirm(message) {
+    return new Promise((resolve) => {
+      confirmMessage.textContent = message;
+      confirmModal.style.display = "flex";
+
+      function cleanup(result) {
+        confirmModal.style.display = "none";
+        confirmYes.removeEventListener("click", onYes);
+        confirmNo.removeEventListener("click", onNo);
+        resolve(result);
+      }
+
+      function onYes() { cleanup(true); }
+      function onNo() { cleanup(false); }
+
+      confirmYes.addEventListener("click", onYes);
+      confirmNo.addEventListener("click", onNo);
+    });
+  }
+
+  // --- クリア ---
+  btnClear.addEventListener('click', async () => {
+    if (!editor.getValue()) {
+      editor.setValue("");
+      updatePreview();
+      return;
+    }
+    const ok = await showConfirm("テキストボックスをクリアします");
+    if (ok) {
+      editor.setValue("");
+      currentFileHandle = null;
+      currentFileName = null;
+      btnSaveOverwrite.disabled = true;
+      updatePreview();
+    }
+  });
+
+  // --- ペースト（クリップボード → エディタ） ---
+  btnPaste.addEventListener('click', async () => {
+    if (!navigator.clipboard || !navigator.clipboard.readText) {
+      alert("このブラウザはクリップボードからのペーストに対応していません。");
+      return;
+    }
+
+    const currentText = editor.getValue();
+    if (currentText) {
+      const ok = await showConfirm("テキストボックスをクリアしてクリップボードからペーストします");
+      if (!ok) {
+        return;
+      }
+    }
+
+    try {
+      const text = await navigator.clipboard.readText();
+      editor.setValue(text);
+      // ファイルハンドルはリセット（新規テキスト扱い）
+      currentFileHandle = null;
+      currentFileName = null;
+      btnSaveOverwrite.disabled = true;
+      updatePreview();
+    } catch (e) {
+      console.error(e);
+      alert("クリップボードからのペーストに失敗しました。");
+    }
+  });
+
+  // --- コピー（エディタ → クリップボード） ---
+  btnCopy.addEventListener('click', async () => {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      alert("このブラウザはクリップボードへのコピーに対応していません。");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(editor.getValue());
+      copyStatus.textContent = "コピーしました";
+      setTimeout(() => {
+        copyStatus.textContent = "";
+      }, 2000);
+    } catch (e) {
+      console.error(e);
+      alert("クリップボードへのコピーに失敗しました。");
+    }
+  });
+
+  // --- レイアウト関連 ---
+  btnOpen.addEventListener('click', openFile);
+  btnSaveOverwrite.addEventListener('click', saveOverwrite);
+  btnSaveTxt.addEventListener('click', () => saveAs(".txt"));
+  btnSaveHtml.addEventListener('click', () => saveAs(".html"));
+
+  btnLeft20.addEventListener('click', () => {  // |←
+    const percent = getLeftWidthPercent();
+    if (percent <= 50) {
+      setLeftWidthPercent(20);
+    } else {
+      setLeftWidthPercent(50);
+    }
+  });
+
+  btnLeft50.addEventListener('click', () => {  // →|
+    const percent = getLeftWidthPercent();
+    if (percent <= 49) {
+      setLeftWidthPercent(50);
+    } else {
+      setLeftWidthPercent(100);
+    }
+  });
+
+  divider.addEventListener('mousedown', (e) => {
+    isDraggingDivider = true;
+    document.body.style.cursor = 'col-resize';
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isDraggingDivider) return;
+    const rect = container.getBoundingClientRect();
+    let newWidth = e.clientX - rect.left;
+    const minWidth = 200;
+    const maxWidth = rect.width * 0.8;
+    if (newWidth < minWidth) newWidth = minWidth;
+    if (newWidth > maxWidth) newWidth = maxWidth;
+    leftPane.style.width = newWidth + "px";
+    editor.refresh();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (isDraggingDivider) {
+      isDraggingDivider = false;
+      document.body.style.cursor = 'default';
+    }
+  });
+
+  
+  window.addEventListener('keydown', (e) => {
+    // Ctrl+S で上書き保存
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      if (!btnSaveOverwrite.disabled) {
+        saveOverwrite();
+      }
+    }
+    // 隠し: Ctrl+Shift+← で「|←」（btnLeft20）、Ctrl+Shift+→で「→|」（btnLeft50）
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey) {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        btnLeft20.click();
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        btnLeft50.click();
+      }
+    }
+  });
+    
+  updatePreviewHeader();
+  
+  // --- 動的ファビコン（CanvasでPNG生成） ---
+	  (function setDynamicFavicon() {
+	    const size = 32; // 推奨32px（必要なら64などもOK）
+	    const bg = '#1976d2'; // 青背景（あなたのCSS変数 --primary に近い色）
+	    const label = 'H';     // 表示文字（必要なら変更可）
+	    const font = 'bold 22px Segoe UI, Arial, "Noto Sans JP", sans-serif';
+	    // Canvas生成
+	    const c = document.createElement('canvas');
+	    c.width = size; c.height = size;
+	    const ctx = c.getContext('2d');
+	    // 角丸
+	    const radius = 6; // 角丸半径
+	    ctx.beginPath();
+	    ctx.moveTo(radius, 0);
+	    ctx.arcTo(size, 0, size, size, radius);
+	    ctx.arcTo(size, size, 0, size, radius);
+	    ctx.arcTo(0, size, 0, 0, radius);
+	    ctx.arcTo(0, 0, size, 0, radius);
+	    ctx.closePath();
+	    ctx.clip();
+	    // 背景
+	    ctx.fillStyle = bg;
+	    ctx.fillRect(0, 0, size, size);
+	    // 文字（中央揃え）
+	    ctx.fillStyle = '#fff';
+	    ctx.font = font;
+	    ctx.textAlign = 'center';
+	    ctx.textBaseline = 'middle';
+	    ctx.fillText(label, size / 2, size / 2);
+	    // データURL化して適用
+	    const url = c.toDataURL('image/png');
+	    let el = document.getElementById('favicon');
+	    if (!el) {
+	      el = document.createElement('link');
+	      el.id = 'favicon';
+	      el.rel = 'icon';
+	      el.type = 'image/png';
+	      document.head.appendChild(el);
+	    }
+	    el.setAttribute('href', url);
+	  })();
+</script>
+</body>
+</html>
