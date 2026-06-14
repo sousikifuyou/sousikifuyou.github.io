@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>方位・水準器（自動 絶対⇄相対／自動ロック防止／ホールド中は記録時のみ計測継続／30分記録／CSV／ゼロ点）</title>
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg:#111; --fg:#eee; --muted:#a9a9aa; --accent:#0a84ff; --ok:#34c759; --warn:#ff9f0a; --card:#2a2a2a;
+    --dial: 260px; /* 上限。実サイズはカード幅に自動フィット（JS） */
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#fff; --fg:#111; --muted:#666; --card:#e5e5e5; }
+  }
+  html,body{height:100%}
+  body{
+    margin:0; font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;
+    background:var(--bg); color:var(--fg);
+    padding-bottom:calc(76px + env(safe-area-inset-bottom));
+    touch-action: manipulation; /* ダブルタップズーム抑制に寄与 */
+  }
+  header{ padding:10px 14px; font-weight:800; font-size:18px; border-bottom:1px solid var(--card);
+          position:sticky; top:0; z-index:2; background:rgba(0,0,0,.06); }
+  main{ padding:10px 12px 20px; }
+
+  .row2{ display:grid; gap:10px; grid-template-columns: repeat(2, minmax(0,1fr)); align-items:start; }
+  .spacer{ height:10px; }
+
+  .card{ border:1px solid var(--card); border-radius:12px; padding:8px; background:transparent; overflow:hidden; }
+  .title{ font-size:14px; font-weight:700; margin:0 2px 2px; line-height:1.15; }
+  .meta{ font-size:11px; color:var(--muted); display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:2px 2px 0; }
+  .dot{ display:inline-block; width:8px; height:8px; border-radius:50%; }
+  .ok{ background:var(--ok); } .warn{ background:var(--warn); }
+
+  .dial{ display:block; margin:4px auto; } /* サイズはJSで決定（カード幅にフィット） */
+  .val{ font-variant-numeric: tabular-nums; font-size:22px; font-weight:700; text-align:center; margin:4px 0 0; }
+  .hint{ font-size:11px; color:var(--muted); text-align:center; margin:2px 0 0; }
+
+  .tablewrap{ max-height: 36vh; overflow:auto; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th,td{ border-bottom:1px solid var(--card); padding:6px; white-space:nowrap; text-align:right; }
+  th:first-child, td:first-child{ text-align:left; }
+
+  .bottombar{ position:fixed; left:0; right:0; bottom:0; z-index:3; border-top:1px solid var(--card);
+              background:rgba(0,0,0,.06); backdrop-filter: blur(6px);
+              padding:8px 10px calc(8px + env(safe-area-inset-bottom)); }
+  .btnrow{ display:flex; gap:8px; }
+  .btnrow>button{ flex:1 1 0; min-height:44px; }
+  button{ -webkit-tap-highlight-color:transparent; appearance:none; border:none; border-radius:10px; padding:10px 12px; font-weight:800; background:var(--accent); color:#fff; }
+  button.secondary{ background:#7777; color:var(--fg); }
+  button.warn{ background:var(--warn); color:#000; }
+  button:disabled{ opacity:.5; }
+</style>
+</head>
+<body>
+<header>方位・水準器</header>
+
+<main>
+  <!-- 上段：方位＋水準器 -->
+  <section class="row2">
+    <div class="card">
+      <div class="title">方位（<span id="ttlHeadingMode">絶対</span>）</div>
+      <div class="meta">
+        <span id="absFlag"><span class="dot"></span>absolute:-</span>
+        <span>精度:<span id="compAcc">-</span></span>
+      </div>
+      <canvas id="compass" class="dial" width="1" height="1" aria-label="コンパス"></canvas>
+      <div class="val" id="headingVal">-</div>
+    </div>
+
+    <div class="card">
+      <div class="title">水準器（<span id="ttlLevelMode">絶対</span>）</div>
+      <canvas id="level" class="dial" width="1" height="1" aria-label="水準器"></canvas>
+      <div class="val" id="levelVal">-</div>
+      <p class="hint">0°に近いほど水平</p>
+    </div>
+  </section>
+
+  <div class="spacer"></div>
+
+  <!-- 下段：ピッチ＋ロール -->
+  <section class="row2">
+    <div class="card">
+      <div class="title">ピッチ（<span id="ttlPitchMode">絶対</span>）</div>
+      <div class="val" id="pitchVal">-</div>
+      <p class="hint">DeviceOrientation: beta</p>
+    </div>
+    <div class="card">
+      <div class="title">ロール（<span id="ttlRollMode">絶対</span>）</div>
+      <div class="val" id="rollVal">-</div>
+      <p class="hint">DeviceOrientation: gamma</p>
+    </div>
+  </section>
+
+  <h3 style="margin:14px 0 6px; font-size:16px;">記録ログ（最新200件を表示・最大30分保持）
+    <span style="font-size:12px;color:var(--muted);" id="rateBadge">10 Hz</span>
+    <span style="font-size:12px;color:var(--muted);margin-left:10px;" id="recInfo"></span>
+  </h3>
+  <div class="card">
+    <div class="tablewrap">
+      <table id="logTable">
+        <thead><tr>
+          <th>時刻</th>
+          <th>方位</th><th>方位相対</th>
+          <th>ピッチ</th><th>ピッチ相対</th>
+          <th>ロール</th><th>ロール相対</th>
+          <th>水平量</th><th>水平量相対</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- 下端 -->
+<nav class="bottombar">
+  <div class="btnrow">
+    <button id="measureBtn">計測</button>
+    <button id="zeroBtn" class="secondary" disabled>ゼロ点 設定</button>
+    <button id="recBtn" class="secondary" disabled>記録開始</button>
+    <button id="csvBtn" class="secondary" disabled>CSV保存</button>
+  </div>
+</nav>
+
+<script>
+(()=> {
+  const $ = id => document.getElementById(id);
+  const el = {
+    compass: $('compass'), level: $('level'),
+    headingVal: $('headingVal'), levelVal: $('levelVal'), pitchVal: $('pitchVal'), rollVal: $('rollVal'),
+    ttlHeadingMode: $('ttlHeadingMode'), ttlLevelMode: $('ttlLevelMode'), ttlPitchMode: $('ttlPitchMode'), ttlRollMode: $('ttlRollMode'),
+    absFlag: $('absFlag'), compAcc: $('compAcc'),
+    tbody: $('logTable').querySelector('tbody'), rateBadge: $('rateBadge'), recInfo: $('recInfo'),
+    measure: $('measureBtn'), zero: $('zeroBtn'), rec: $('recBtn'), csv: $('csvBtn'),
+  };
+
+  // --- ダブルタップズーム無効（ピンチは維持） ---
+  (function disableDoubleTapZoom(){
+    let lastTouchEnd = 0;
+    document.addEventListener('dblclick', e => e.preventDefault(), { passive:false });
+    document.addEventListener('touchend', e => {
+      const now = Date.now();
+      if (e.touches.length === 0 && e.changedTouches.length === 1 && (now - lastTouchEnd) < 300){
+        e.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, { passive:false });
+  })();
+
+  // --- 画面の自動ロック防止（Wake Lock API、未対応なら何もしない） ---
+  let wakeLock = null;
+  const canWakeLock = 'wakeLock' in navigator;
+  async function keepAwakeOn(){
+    if (!canWakeLock || wakeLock) return;
+    try{
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', ()=>{ wakeLock=null; if (shouldKeepAwake()) keepAwakeOn(); });
+    }catch(e){ console.warn('WakeLock error:', e); wakeLock=null; }
+  }
+  async function keepAwakeOff(){
+    try{ if (wakeLock){ await wakeLock.release(); wakeLock=null; } }catch{}
+  }
+  function shouldKeepAwake(){
+    // 計測中 or （ホールド中かつ記録中）の間は防止
+    return (measureState==='running') || (measureState==='hold' && !!recTimer);
+  }
+  async function updateKeepAwake(){
+    if (shouldKeepAwake()) await keepAwakeOn(); else await keepAwakeOff();
+  }
+  document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState==='visible') updateKeepAwake(); });
+
+  // 状態
+  const state = { heading:null, headingAcc:null, isAbsolute:false, pitch:null, roll:null, lastTS:0 };
+  let lastDraw = { heading:0, pitch:0, roll:0 };
+
+  // 表示モード：ゼロ点がある間は相対
+  let zeroBase = null;
+  const usingAbs = ()=> !zeroBase;
+  const modeLabel = ()=> usingAbs()? '絶対' : '相対';
+  function updateModeTitles(){ [el.ttlHeadingMode, el.ttlLevelMode, el.ttlPitchMode, el.ttlRollMode].forEach(x=>x.textContent=modeLabel()); }
+  function updateZeroBtn(){ el.zero.textContent = zeroBase ? 'ゼロ点 クリア' : 'ゼロ点 設定'; }
+
+  // 記録（10Hz・30分）
+  const SAMPLE_HZ = 10, SAMPLE_MS = Math.round(1000/SAMPLE_HZ);
+  const MAX_SECONDS = 30*60, MAX_RECORDS = MAX_SECONDS * SAMPLE_HZ;
+  el.rateBadge.textContent = `${SAMPLE_HZ} Hz`;
+  const records = []; let recTimer = null, recStartT = null;
+
+  // 数学・整形
+  const norm360 = d => ((d%360)+360)%360;
+  const norm180 = d => { const x=norm360(d); return x>180? x-360 : x; };
+  const f2 = v => Number.isFinite(v)? v.toFixed(2) : '-';
+  const nstr = v => Number.isFinite(v)? v.toFixed(2) : '';
+
+  // カード幅にフィットする実描画サイズ
+  function getDialTargetSize(canvas){
+    const card = canvas.closest('.card') || canvas.parentElement;
+    const cardW = card ? card.clientWidth : (window.innerWidth || 360);
+    const cs = card ? getComputedStyle(card) : null;
+    const padX = cs ? (parseFloat(cs.paddingLeft)||0) + (parseFloat(cs.paddingRight)||0) : 0;
+    const maxByVar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--dial')) || 260;
+    const size = Math.max(160, Math.min(maxByVar, cardW - padX - 2)); // 枠線分で-2
+    return Math.floor(size);
+  }
+  function fitCanvas(canvas, cssSize){
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    canvas.style.width = cssSize + 'px';
+    canvas.style.height = cssSize + 'px';
+    canvas.width  = Math.round(cssSize * dpr);
+    canvas.height = Math.round(cssSize * dpr);
+    const g = canvas.getContext('2d');
+    if (g.setTransform) g.setTransform(dpr,0,0,dpr,0,0);
+    return g;
+  }
+  function getCS(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#111'; }
+  function isDark(hex){ const m=/^#([0-9a-f]{3,6})$/i.exec(hex||''); if(!m) return true; let h=m[1]; if(h.length===3) h=h.split('').map(c=>c+c).join(''); const r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16); return (0.299*r+0.587*g+0.114*b)<140; }
+  function lineCol(){ return isDark(getCS('--bg'))? '#fff3' : '#0003'; }
+
+  // 盤面描画
+  function drawCompass(deg){
+    const size = getDialTargetSize(el.compass);
+    const r=size/2, g=fitCanvas(el.compass,size), lc=lineCol();
+    g.clearRect(0,0,size,size); g.save(); g.translate(r,r);
+    g.beginPath(); g.arc(0,0,r-1,0,Math.PI*2); g.fillStyle=getCS('--bg'); g.fill(); g.lineWidth=1; g.strokeStyle=lc; g.stroke();
+    for(let a=0;a<360;a+=10){
+      const L = (a%90===0)? 14 : (a%30===0? 9 : 6);
+      g.save(); g.rotate((a-deg)*Math.PI/180);
+      g.beginPath(); g.moveTo(0,-(r-12-L)); g.lineTo(0,-(r-12));
+      g.strokeStyle = a%90===0? '#bbb' : '#888'; g.lineWidth = 1; g.stroke();
+      g.restore();
+    }
+    g.save(); g.rotate((-deg)*Math.PI/180);
+    g.fillStyle='#e74c3c'; g.font='bold 16px -apple-system,system-ui'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('N',0,-(r-26));
+    g.restore();
+    g.beginPath(); g.moveTo(0,-(r-16)); g.lineTo(9,14); g.lineTo(-9,14); g.closePath(); g.fillStyle='#e74c3c'; g.shadowColor='#0008'; g.shadowBlur=8; g.fill();
+    g.restore();
+  }
+  function drawLevel(pitch, roll){
+    const size = getDialTargetSize(el.level);
+    const r=size/2, R=r-4, g=fitCanvas(el.level,size), lc=lineCol();
+    g.clearRect(0,0,size,size); g.save(); g.translate(r,r);
+    g.beginPath(); g.arc(0,0,R,0,Math.PI*2); g.fillStyle=getCS('--bg'); g.fill(); g.lineWidth=1; g.strokeStyle=lc; g.stroke();
+    g.strokeStyle='#9996'; g.lineWidth=1;
+    for (let rr=12; rr<=R-12; rr+=(R-12)/3){ g.beginPath(); g.arc(0,0,rr,0,Math.PI*2); g.stroke(); }
+    g.beginPath(); g.moveTo(-R+10,0); g.lineTo(R-10,0); g.moveTo(0,-R+10); g.lineTo(0,R-10); g.stroke();
+    const maxDeg=45, x=Math.max(-1,Math.min(1, roll/maxDeg))*(R-16), y=Math.max(-1,Math.min(1,-pitch/maxDeg))*(R-16);
+    const grd=g.createRadialGradient(x-2,y-4,2,x,y,12); grd.addColorStop(0,'#fff8a8'); grd.addColorStop(0.6,'#ffe066'); grd.addColorStop(1,'#d1a800');
+    g.beginPath(); g.arc(x,y,10,0,Math.PI*2); g.fillStyle=grd; g.shadowColor='#0007'; g.shadowBlur=10; g.fill(); g.lineWidth=1; g.strokeStyle='#996'; g.stroke();
+    g.restore();
+  }
+
+  // UI更新
+  function updateUI(){
+    const hAbs = Number.isFinite(state.heading)? norm360(state.heading) : lastDraw.heading;
+    const pAbs = Number.isFinite(state.pitch)? state.pitch : lastDraw.pitch;
+    const rAbs = Number.isFinite(state.roll) ? state.roll  : lastDraw.roll;
+    lastDraw = { heading:hAbs, pitch:pAbs, roll:rAbs };
+
+    const hRel = zeroBase? norm180(hAbs - zeroBase.heading) : NaN;
+    const pRel = zeroBase? (pAbs - zeroBase.pitch) : NaN;
+    const rRel = zeroBase? (rAbs - zeroBase.roll)  : NaN;
+    const lvlAbs = Math.hypot(pAbs, rAbs);
+    const lvlRel = (zeroBase && Number.isFinite(pRel) && Number.isFinite(rRel)) ? Math.hypot(pRel,rRel) : NaN;
+
+    const abs = !zeroBase;
+    el.headingVal.textContent = abs? `${f2(hAbs)}°` : `${f2(hRel)}°`;
+    el.levelVal.textContent   = abs? `${f2(lvlAbs)}°` : `${f2(lvlRel)}°`;
+    el.pitchVal.textContent   = abs? `${f2(pAbs)}°`   : `${f2(pRel)}°`;
+    el.rollVal.textContent    = abs? `${f2(rAbs)}°`   : `${f2(rRel)}°`;
+
+    [el.ttlHeadingMode, el.ttlLevelMode, el.ttlPitchMode, el.ttlRollMode].forEach(x=>x.textContent = abs? '絶対':'相対');
+
+    const dotClass = state.isAbsolute? 'ok':'warn';
+    el.absFlag.innerHTML = `<span class="dot ${dotClass}"></span>absolute: ${state.isAbsolute?'true':'false'}`;
+    el.compAcc.textContent = state.headingAcc!=null? f2(state.headingAcc) : '-';
+
+    drawCompass(hAbs);
+    drawLevel(pAbs, rAbs);
+  }
+
+  // センサーのアタッチ/デタッチ
+  let sensorsOn = false;
+  function attachOrientationListeners(){
+    if (sensorsOn) return;
+    window.addEventListener('deviceorientation', onDeviceOrientation, true);
+    window.addEventListener('deviceorientationabsolute', onDeviceOrientation, true);
+    sensorsOn = true;
+  }
+  function detachOrientationListeners(){
+    if (!sensorsOn) return;
+    window.removeEventListener('deviceorientation', onDeviceOrientation, true);
+    window.removeEventListener('deviceorientationabsolute', onDeviceOrientation, true);
+    sensorsOn = false;
+  }
+
+  function onDeviceOrientation(e){
+    let heading=null, acc=null;
+    if (typeof e.webkitCompassHeading==='number' && !Number.isNaN(e.webkitCompassHeading)){
+      heading = e.webkitCompassHeading; acc = (typeof e.webkitCompassAccuracy==='number')? e.webkitCompassAccuracy : null; state.isAbsolute = true;
+    } else if (typeof e.alpha==='number' && !Number.isNaN(e.alpha)) {
+      heading = 360 - e.alpha; state.isAbsolute = !!e.absolute;
+    }
+    if (heading!=null) state.heading = norm360(heading);
+    if (acc!=null) state.headingAcc = acc;
+    if (typeof e.beta==='number') state.pitch = e.beta;
+    if (typeof e.gamma==='number') state.roll  = e.gamma;
+
+    const now=performance.now();
+    if (measureState==='running' && (now - state.lastTS > 40)){ updateUI(); state.lastTS = now; }
+  }
+
+  async function requestPermissionsIfNeeded(){
+    const needsM = (typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function');
+    const needsO = (typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function');
+    try{ if(needsM){ await DeviceMotionEvent.requestPermission().catch(()=>{}); } }catch(e){ console.warn(e); }
+    try{ if(needsO){ await DeviceOrientationEvent.requestPermission().catch(()=>{}); } }catch(e){ console.warn(e); }
+  }
+
+  function startSensors(){
+    attachOrientationListeners();
+    el.zero.disabled=false; el.rec.disabled=false; el.csv.disabled=false;
+    resizeDials(); lastDraw={heading:0,pitch:0,roll:0}; updateUI(); // 初期描画
+  }
+
+  // カード幅に合わせてリサイズ
+  function resizeDials(){
+    const s1 = getDialTargetSize(el.compass);
+    const s2 = getDialTargetSize(el.level);
+    fitCanvas(el.compass, s1);
+    fitCanvas(el.level,   s2);
+    const h = Number.isFinite(state.heading) ? norm360(state.heading) : 0;
+    const p = Number.isFinite(state.pitch)   ? state.pitch : 0;
+    const r = Number.isFinite(state.roll)    ? state.roll  : 0;
+    drawCompass(h); drawLevel(p, r);
+  }
+  window.addEventListener('resize', ()=>{ if(!document.hidden){ resizeDials(); updateUI(); } });
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ resizeDials(); updateUI(); } });
+
+  // 計測ボタン（idle → running → hold → running …）
+  let measureState = 'idle'; // 'idle' | 'running' | 'hold'
+  function refreshMeasureLabel(){
+    if (measureState==='idle') { el.measure.textContent='計測'; return; }
+    if (measureState==='running') { el.measure.textContent = recTimer ? 'ホールド' : '停止'; return; }
+    el.measure.textContent='再開'; // hold
+  }
+  function setMeasureState(ns){ measureState = ns; refreshMeasureLabel(); updateKeepAwake(); }
+
+  el.measure.addEventListener('click', async ()=>{
+    if (measureState==='idle'){
+      await requestPermissionsIfNeeded(); startSensors(); setMeasureState('running');
+    } else if (measureState==='running'){
+      // 記録中ならセンサー継続、未記録なら停止
+      if (!recTimer) detachOrientationListeners();
+      setMeasureState('hold'); // 画面更新は停止
+    } else {
+      // 再開
+      if (!sensorsOn) startSensors();
+      setMeasureState('running'); updateUI();
+    }
+  });
+
+  // ゼロ点（設定中は相対表示）
+  function toggleZero(){
+    if (!zeroBase){
+      if (!Number.isFinite(state.heading)||!Number.isFinite(state.pitch)||!Number.isFinite(state.roll)) return;
+      zeroBase = { heading:norm360(state.heading), pitch:state.pitch, roll:state.roll };
+    } else { zeroBase = null; }
+    updateZeroBtn(); updateUI();
+  }
+  el.zero.addEventListener('click', toggleZero);
+
+  // 記録（ホールド中でも記録中はセンサーON。開始/停止時にWakeLockも更新）
+  const MAX_ROWS_VIEW = 200;
+  function nowJST(){ try{ return new Date().toLocaleString('ja-JP',{timeZone:'Asia/Tokyo',hour12:false}); }catch{ return new Date().toISOString(); } }
+  function sampleOnce(){
+    const hAbs = Number.isFinite(state.heading)? norm360(state.heading): lastDraw.heading;
+    const pAbs = Number.isFinite(state.pitch)? state.pitch : lastDraw.pitch;
+    const rAbs = Number.isFinite(state.roll) ? state.roll  : lastDraw.roll;
+    const hRel = zeroBase? norm180(hAbs - zeroBase.heading) : NaN;
+    const pRel = zeroBase? (pAbs - zeroBase.pitch) : NaN;
+    const rRel = zeroBase? (rAbs - zeroBase.roll)  : NaN;
+    const lvlAbs = Math.hypot(pAbs, rAbs);
+    const lvlRel = (zeroBase && Number.isFinite(pRel) && Number.isFinite(rRel)) ? Math.hypot(pRel,rRel) : NaN;
+
+    const row = { time: nowJST(), hAbs,pAbs,rAbs,hRel,pRel,rRel,lvlAbs,lvlRel };
+    records.push(row);
+    if (records.length > MAX_RECORDS) records.splice(0, records.length - MAX_RECORDS);
+
+    const tr=document.createElement('tr');
+    [row.time, f2(hAbs), f2(hRel), f2(pAbs), f2(pRel), f2(rAbs), f2(rRel), f2(lvlAbs), f2(lvlRel)]
+      .forEach((txt,i)=>{ const td=document.createElement('td'); td.textContent=txt; if(i===0) td.style.textAlign='left'; tr.appendChild(td); });
+    el.tbody.appendChild(tr);
+    while(el.tbody.rows.length>MAX_ROWS_VIEW) el.tbody.deleteRow(0);
+
+    const sec=Math.min(Math.floor((Date.now()-recStartT)/1000), MAX_SECONDS);
+    const mm=String(Math.floor(sec/60)).padStart(2,'0'), ss=String(sec%60).padStart(2,'0');
+    el.recInfo.textContent=`経過 ${mm}:${ss} / 30:00${(measureState==='hold' && recTimer)?'（ホールド中も記録）':''}`;
+  }
+  function startRec(){
+    if(recTimer) return;
+    if (!sensorsOn) attachOrientationListeners(); // ホールド中から開始でも計測できるように
+    recStartT=Date.now();
+    recTimer=setInterval(sampleOnce, SAMPLE_MS);
+    el.rec.textContent='記録停止'; el.rec.classList.remove('secondary'); el.rec.classList.add('warn'); el.recInfo.textContent='経過 00:00 / 30:00';
+    refreshMeasureLabel(); updateKeepAwake();
+  }
+  function stopRec(){
+    if(!recTimer) return;
+    clearInterval(recTimer); recTimer=null;
+    el.rec.textContent='記録開始'; el.rec.classList.add('secondary'); el.rec.classList.remove('warn');
+    if (measureState==='hold') detachOrientationListeners(); // ホールド中に記録停止したら計測も停止
+    refreshMeasureLabel(); updateKeepAwake();
+  }
+  el.rec.addEventListener('click', ()=> recTimer? stopRec() : startRec());
+
+  // CSV
+  function exportCSV(){
+    if(!records.length){ alert('記録がありません'); return; }
+    const header=['time','heading_deg','heading_rel_deg','pitch_deg','pitch_rel_deg','roll_deg','roll_rel_deg','level_mag_deg','level_mag_rel_deg','sample_hz'];
+    const lines=[header.join(',')];
+    for(const r of records){
+      lines.push([r.time,nstr(r.hAbs),nstr(r.hRel),nstr(r.pAbs),nstr(r.pRel),nstr(r.rAbs),nstr(r.rRel),nstr(r.lvlAbs),nstr(r.lvlRel),SAMPLE_HZ].join(','));
+    }
+    const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'});
+    const url=URL.createObjectURL(blob); const a=document.createElement('a');
+    const ts=new Date().toISOString().replace(/[:T]/g,'-').slice(0,19);
+    a.href=url; a.download=`sensors_30min_${ts}.csv`; document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },1500);
+  }
+  el.csv.addEventListener('click', exportCSV);
+
+  // 初期化
+  (function init(){
+    resizeDials();             // カード幅にフィット
+    drawCompass(0); drawLevel(0,0);
+    updateZeroBtn(); updateModeTitles();
+    setMeasureState('idle');
+  })();
+})();
+</script>
+</body>
+</html>
