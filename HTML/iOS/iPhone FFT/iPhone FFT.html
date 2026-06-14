@@ -3,14 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>iPhone/iPad 1画面 FFT解析（固定情報バー・サブカーソル）</title>
+<title>iPhone/iPad 1画面 FFT解析（情報欄省略・ボタン保護）</title>
 <style>
   :root{
     --bg:#0e1116; --panel:#141922; --text:#e6edf3; --muted:#93a1b3; --accent:#4ea1ff; --line:#1e2634;
     --fs:14px; --r:12px;
   }
-  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,system-ui,Segoe UI,Roboto,"Hiragino Sans",sans-serif}
-  /* 100vh→100svhで上書き（iOS/iPadOSバー対策）＋Safe Area下余白 */
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,system-ui,Segoe UI,Roboto,"Hiragino Sans",sans-serif;overflow-x:hidden}
+
+  /* 100vh→100svhで上書き（iOS/iPadOSのバー対策）＋Safe Area下余白 */
   #app{
     height:100vh; display:grid; grid-template-rows:auto 1fr auto; gap:8px; padding:8px; box-sizing:border-box; overflow:hidden;
     padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));
@@ -33,27 +34,38 @@
   .tabs input:checked+label{background:#2a3446;color:#dbe6f7}
   canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
   #plot,#gram{background:#0a0d12}
-  /* HUD（カーソル情報は情報バーではなくグラフ上に表示） */
+
+  /* HUD（サブカーソル情報） */
   #hud{
     position:absolute;left:8px;bottom:8px;z-index:4;display:none;
     background:rgba(20,24,32,0.85);border:1px solid #2b3546;border-radius:8px;
     color:#dbe6f7;font:12px ui-monospace,monospace;padding:4px 8px;pointer-events:none;
   }
 
-  /* 下部情報バー：1行固定高＋省略表示。ボタンも固定高 */
+  /* 下部情報バー：2カラムグリッド（左=1fr/右=内容幅）で右ボタンを常に表示 */
   #info{
-    display:flex;gap:10px;align-items:center;justify-content:space-between;
+    display:grid; grid-template-columns: minmax(0,1fr) auto; align-items:center; gap:8px;
     min-height:40px; padding-bottom:env(safe-area-inset-bottom,0px);
   }
   #info .kv{
-    flex:1 1 auto; min-width:0;
-    font-size:12px; color:#9fb0c7;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    font-size:12px; color:#9fb0c7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    font-variant-numeric: tabular-nums;
   }
-  #info .btns{display:flex;gap:6px;flex:0 0 auto}
+  #info .btns{
+    display:flex; gap:6px; align-items:center; justify-content:flex-end;
+    flex:0 0 auto; overflow:hidden;
+  }
   #info .btns > button{
     height:34px; line-height:34px; padding:0 10px;
     font-size:13px; white-space:nowrap;
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  #info .btns svg{ width:16px; height:16px; display:block }
+
+  /* 横幅が狭いときはボタンのラベル非表示（アイコンのみ）で幅節約 */
+  @media (max-width: 380px){
+    #info .btns > button{ padding:0 8px; }
+    #info .btns .lbl{ display:none; }
   }
   @media (min-width:768px){
     #info{ min-height:44px; }
@@ -104,12 +116,18 @@
     <div id="hud"></div>
   </div>
 
-  <!-- 下段情報（固定高） -->
+  <!-- 下段情報（2カラム：左=省略/右=ボタン） -->
   <div id="info">
-    <div class="kv">SR: <span id="iRate">-</span> / 区間: <span id="iLen">-</span> / ピーク: <span id="iPeak">-</span></div>
+    <div class="kv">SR <span id="iRate">-</span> | <span id="iLen">-</span> | Pk <span id="iPeak">-</span></div>
     <div class="btns">
-      <button id="btnPeaks" class="ghost">ピーク一覧</button>
-      <button id="btnCsv" class="ghost">CSV</button>
+      <button id="btnPeaks" class="ghost" title="ピーク一覧">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 15l4-6 4 5 4-8 4 10" stroke="#cfe0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="lbl">ピーク一覧</span>
+      </button>
+      <button id="btnCsv" class="ghost" title="CSV">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M8 17h8M8 13h8M8 9h4M4 3h10l6 6v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke="#cfe0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="lbl">CSV</span>
+      </button>
     </div>
   </div>
 </div>
@@ -209,7 +227,7 @@
   }
   ['tabWave','tabSpec','tabGram'].forEach(id=>$(id).addEventListener('change', syncTabs));
 
-  // 描画系
+  // 描画
   function drawGrid(ctx,w,h){
     ctx.strokeStyle='#1b2230'; ctx.lineWidth=1;
     ctx.beginPath();
@@ -255,9 +273,8 @@
 
       const idx=Math.round((x/w)*(magDb.length-1));
       const f=freqs[idx], m=magDb[idx];
-      const label=`${f<1000? f.toFixed(1)+' Hz' : (f/1000).toFixed(2)+' kHz'} / ${isFinite(m)?m.toFixed(1):'-'} dB`;
+      const label=`${f<1000? f.toFixed(0)+' Hz' : (f/1000).toFixed(2)+' kHz'} / ${isFinite(m)?m.toFixed(1):'-'} dB`;
 
-      // HUDに表示（情報バーは固定長のまま）
       hud.style.display='block';
       hud.textContent=label;
     }
@@ -274,7 +291,7 @@
     if($('tabSpec').checked && lastSpec&&lastFreqs) drawSpec(lastFreqs,lastSpec,lastPeak);
   }
 
-  // サブカーソル用イベント
+  // ポインタ（サブカーソル）
   function onPointer(e){
     if(!$('tabSpec').checked || !lastFreqs || !lastSpec) return;
     const rect=plot.getBoundingClientRect();
@@ -354,8 +371,12 @@
     const idx=[]; for(let i=1;i<magDb.length-1;i++) if(magDb[i]>magDb[i-1] && magDb[i]>magDb[i+1]) idx.push(i);
     idx.sort((a,b)=>magDb[b]-magDb[a]);
     const sel=[]; for(const i of idx){ if(sel.every(j=>Math.abs(freqs[j]-freqs[i])>=minSep)) sel.push(i); if(sel.length>=topN) break; }
-    return sel.map(i=>({f:freqs[i],db:magDb[i]})).sort((a,b)=>b.db-a.b);
+    return sel.map(i=>({f:freqs[i],db:magDb[i]})).sort((a,b)=>b.db-a.db);
   }
+
+  // 短縮表記
+  function rateShort(sr){ return sr>=1000 ? ((sr/1000) % 1 === 0 ? (sr/1000).toFixed(0) : (sr/1000).toFixed(1))+'k' : String(sr); }
+  function hzShort(f){ return f<1000 ? f.toFixed(0)+'Hz' : (f/1000).toFixed(2)+'kHz'; }
 
   // WebAudio
   let audioCtx=null, mainGain=null;
@@ -414,9 +435,9 @@
       lastFreqs=binsFreq; lastSpec=fr; lastPeak={freq:binsFreq[pbin], db:pk};
       if($('tabSpec').checked) drawSpec(lastFreqs,lastSpec,lastPeak);
       else if($('tabWave').checked) drawWave(lastWave,lastWaveSR);
-      $('iRate').textContent = `${audioCtx.sampleRate} Hz`;
-      $('iLen').textContent  = `${(td.length/audioCtx.sampleRate).toFixed(2)} s`;
-      $('iPeak').textContent = `${lastPeak.freq<1000 ? lastPeak.freq.toFixed(1)+' Hz' : (lastPeak.freq/1000).toFixed(2)+' kHz'} / ${lastPeak.db.toFixed(1)} dB`;
+      $('iRate').textContent = rateShort(audioCtx.sampleRate);
+      $('iLen').textContent  = `${(td.length/audioCtx.sampleRate).toFixed(2)}s`;
+      $('iPeak').textContent = `${hzShort(lastPeak.freq)} ${lastPeak.db.toFixed(1)}dB`;
       micRAF=requestAnimationFrame(draw);
     };
     draw();
@@ -511,11 +532,9 @@
 
   // 情報・CSV・ピーク
   function updateInfo(sr,len,peak){
-    $('iRate').textContent=sr?`${sr} Hz`:'-';
-    $('iLen').textContent=isFinite(len)?`${len.toFixed(2)} s`:'-';
-    $('iPeak').textContent=(peak&&isFinite(peak.freq))
-      ? `${peak.freq<1000 ? peak.freq.toFixed(1)+' Hz' : (peak.freq/1000).toFixed(2)+' kHz'} / ${peak.db.toFixed(1)} dB`
-      : '-';
+    $('iRate').textContent=rateShort(sr);
+    $('iLen').textContent=isFinite(len)?`${len.toFixed(2)}s`:'-';
+    $('iPeak').textContent=(peak&&isFinite(peak.freq)) ? `${hzShort(peak.freq)} ${peak.db.toFixed(1)}dB` : '-';
     window.__lastPeaks=(lastFreqs&&lastSpec)?listPeaks(lastFreqs,lastSpec):[];
   }
   $('btnCsv').addEventListener('click', ()=>{
@@ -525,7 +544,7 @@
   });
   $('btnPeaks').addEventListener('click', ()=>{
     const pre=document.createElement('pre'); pre.style='white-space:pre-wrap;font:12px ui-monospace,monospace;color:#cfe0ff';
-    const rows=(window.__lastPeaks||[]).map(p=>`${p.f<1000? p.f.toFixed(1)+' Hz' : (p.f/1000).toFixed(2)+' kHz'}  |  ${p.db.toFixed(1)} dB`).join('\n') || '-';
+    const rows=(window.__lastPeaks||[]).map(p=>`${hzShort(p.f)}  |  ${p.db.toFixed(1)} dB`).join('\n') || '-';
     pre.textContent=rows; openModal('ピーク一覧（上位）', pre);
   });
 
