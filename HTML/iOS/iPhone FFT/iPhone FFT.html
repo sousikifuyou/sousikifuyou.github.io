@@ -266,17 +266,37 @@
       ctx.fillStyle='#ffcf5a'; ctx.beginPath(); ctx.arc(x,y,3.6*dpr,0,Math.PI*2); ctx.fill();
     }
     // サブカーソル
-    if(cursorActive){
-      const x=clamp(cursorX,0,w-1);
-      ctx.strokeStyle='#ffd36b'; ctx.lineWidth=1*dpr; ctx.setLineDash([4*dpr,3*dpr]);
-      ctx.beginPath(); ctx.moveTo(x+0.5,0); ctx.lineTo(x+0.5,h); ctx.stroke(); ctx.setLineDash([]);
-
-      const idx=Math.round((x/w)*(magDb.length-1));
-      const f=freqs[idx], m=magDb[idx];
-      const label=`${f<1000? f.toFixed(0)+' Hz' : (f/1000).toFixed(2)+' kHz'} / ${isFinite(m)?m.toFixed(1):'-'} dB`;
-
-      hud.style.display='block';
-      hud.textContent=label;
+    if (cursorActive){
+      const x = clamp(cursorX, 0, w-1);
+      // 縦カーソル線
+      ctx.strokeStyle = '#ffd36b';
+      ctx.lineWidth = 1*dpr;
+      ctx.setLineDash([4*dpr,3*dpr]);
+      ctx.beginPath(); ctx.moveTo(x+0.5, 0); ctx.lineTo(x+0.5, h); ctx.stroke();
+      ctx.setLineDash([]);
+      // 曲線との交点（x位置で周波数/レベルを線形補間）
+      const pos = (x / w) * (magDb.length - 1);
+      const i0 = Math.floor(pos);
+      const i1 = Math.min(magDb.length - 1, i0 + 1);
+      const t  = pos - i0;
+      const f = freqs[i0]*(1-t) + freqs[i1]*t;
+      const m = magDb[i0]*(1-t) + magDb[i1]*t;
+      // 交点マーカー ●（ピーク黄色とは別色）
+      const y = (1 - (m - minDb) / (maxDb - minDb)) * h;
+      ctx.save();
+      ctx.fillStyle   = '#72f1b8';   // サブカーソル点の色（ミント）
+      ctx.strokeStyle = '#0a0d12';   // 縁取りで視認性UP
+      ctx.lineWidth   = 1*dpr;
+      ctx.beginPath();
+      ctx.arc(x+0.5, y, 3.6*dpr, 0, Math.PI*2);
+      ctx.fill(); ctx.stroke();
+      ctx.restore();
+      // ラベル（HUD）
+      const label = `${f<1000? f.toFixed(0)+' Hz' : (f/1000).toFixed(2)+' kHz'} / ${isFinite(m)?m.toFixed(1):'-'} dB`;
+      hud.style.display = 'block';
+      hud.textContent   = label;
+    } else {
+      hud.style.display = 'none';
     }
   }
   function clearGram(){
