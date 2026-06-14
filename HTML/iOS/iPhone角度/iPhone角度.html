@@ -1,33 +1,58 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<meta name="theme-color" content="#0d0f12">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>方位・水準器（自動 絶対⇄相対／自動ロック防止／ホールド中は記録時のみ計測継続／30分記録／CSV／ゼロ点）</title>
 <style>
   :root{
-    color-scheme: light dark;
-    --bg:#111; --fg:#eee; --muted:#a9a9aa; --accent:#0a84ff; --ok:#34c759; --warn:#ff9f0a; --card:#2a2a2a;
-    --dial: 260px; /* 上限。実サイズはカード幅に自動フィット（JS） */
+    color-scheme: dark; /* ダーク固定 */
+    --bg:#0d0f12;      /* 背景 */
+    --fg:#e8e8ea;      /* 文字 */
+    --muted:#9aa0a6;   /* 補助テキスト */
+    --accent:#0a84ff;  /* 強調 */
+    --ok:#34c759; 
+    --warn:#ffb020;
+    --card:#1a1c20;    /* 面色（カード） */
+    --border:#2a2e34;  /* 枠線/罫線 */
+    --overlay:rgba(255,255,255,.06); /* 透明バー用の薄い白膜 */
+    --dial:260px;      /* 上限。実サイズはJSで自動フィット */
   }
-  @media (prefers-color-scheme: light){
-    :root{ --bg:#fff; --fg:#111; --muted:#666; --card:#e5e5e5; }
-  }
+
   html,body{height:100%}
   body{
-    margin:0; font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;
-    background:var(--bg); color:var(--fg);
+    margin:0;
+    font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;
+    background:var(--bg);
+    color:var(--fg);
     padding-bottom:calc(76px + env(safe-area-inset-bottom));
-    touch-action: manipulation; /* ダブルタップズーム抑制に寄与 */
+    touch-action: manipulation;
   }
-  header{ padding:10px 14px; font-weight:800; font-size:18px; border-bottom:1px solid var(--card);
-          position:sticky; top:0; z-index:2; background:rgba(0,0,0,.06); }
+
+  header{
+    padding:10px 14px;
+    font-weight:800;
+    font-size:18px;
+    border-bottom:1px solid var(--border);
+    position:sticky; top:0; z-index:2;
+    background:var(--overlay);
+    backdrop-filter: blur(8px);
+  }
+
   main{ padding:10px 12px 20px; }
 
   .row2{ display:grid; gap:10px; grid-template-columns: repeat(2, minmax(0,1fr)); align-items:start; }
   .spacer{ height:10px; }
 
-  .card{ border:1px solid var(--card); border-radius:12px; padding:8px; background:transparent; overflow:hidden; }
+  .card{
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:8px;
+    background:var(--card); /* 透明→面色 */
+    overflow:hidden;
+  }
+
   .title{ font-size:14px; font-weight:700; margin:0 2px 2px; line-height:1.15; }
   .meta{ font-size:11px; color:var(--muted); display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:2px 2px 0; }
   .dot{ display:inline-block; width:8px; height:8px; border-radius:50%; }
@@ -39,18 +64,35 @@
 
   .tablewrap{ max-height: 36vh; overflow:auto; }
   table{ width:100%; border-collapse:collapse; font-size:13px; }
-  th,td{ border-bottom:1px solid var(--card); padding:6px; white-space:nowrap; text-align:right; }
+  th,td{ border-bottom:1px solid var(--border); padding:6px; white-space:nowrap; text-align:right; }
   th:first-child, td:first-child{ text-align:left; }
 
-  .bottombar{ position:fixed; left:0; right:0; bottom:0; z-index:3; border-top:1px solid var(--card);
-              background:rgba(0,0,0,.06); backdrop-filter: blur(6px);
-              padding:8px 10px calc(8px + env(safe-area-inset-bottom)); }
+  .bottombar{
+    position:fixed; left:0; right:0; bottom:0; z-index:3;
+    border-top:1px solid var(--border);
+    background:var(--overlay);
+    backdrop-filter: blur(8px);
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+  }
   .btnrow{ display:flex; gap:8px; }
   .btnrow>button{ flex:1 1 0; min-height:44px; }
-  button{ -webkit-tap-highlight-color:transparent; appearance:none; border:none; border-radius:10px; padding:10px 12px; font-weight:800; background:var(--accent); color:#fff; }
-  button.secondary{ background:#7777; color:var(--fg); }
-  button.warn{ background:var(--warn); color:#000; }
+
+  button{
+    -webkit-tap-highlight-color:transparent;
+    appearance:none; border:none; border-radius:10px; padding:10px 12px;
+    font-weight:800;
+    background:var(--accent); color:#fff;
+  }
+  button.secondary{ background:#2a2e34; color:var(--fg); } /* コントラストUP */
+  button.warn{ background:var(--warn); color:#111; }
   button:disabled{ opacity:.5; }
+  button:focus-visible{ outline:2px solid rgba(10,132,255,.7); outline-offset:2px; }
+
+  /* ダーク用スクロールバー（対応ブラウザのみ） */
+  *{ scrollbar-color:#4b5563 var(--bg); }
+  ::-webkit-scrollbar{ width:12px; height:12px; }
+  ::-webkit-scrollbar-thumb{ background:#4b5563; border-radius:20px; border:3px solid var(--bg); }
+  ::-webkit-scrollbar-track{ background:transparent; }
 </style>
 </head>
 <body>
