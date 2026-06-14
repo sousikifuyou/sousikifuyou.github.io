@@ -3,32 +3,40 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>iPhone FFT解析</title>
+<title>iPhone/iPad 1画面 FFT解析（スペクトル既定・サブカーソル対応）</title>
 <style>
   :root{
     --bg:#0e1116; --panel:#141922; --text:#e6edf3; --muted:#93a1b3; --accent:#4ea1ff; --line:#1e2634;
     --fs:14px; --r:12px;
   }
   html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,system-ui,Segoe UI,Roboto,"Hiragino Sans",sans-serif}
-  #app{height:100dvh;display:grid;grid-template-rows:auto 1fr auto;gap:8px;padding:8px;box-sizing:border-box;overflow:hidden}
+  /* まず100vhを指定し、対応端末では100svhで上書き（iOS/iPadOSのツールバー対策） */
+  #app{height:100vh;display:grid;grid-template-rows:auto 1fr auto;gap:8px;padding:8px;box-sizing:border-box;overflow:hidden;
+       padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));}
+  @supports (height: 100svh){ #app{height:100svh;} }
+
   /* 上部バー */
   .bar{display:flex;align-items:center;gap:8px}
   .title{font-weight:600;font-size:16px;flex:1;text-align:center}
-  .iconbtn{width:36px;height:36px;display:inline-grid;place-items:center;border:1px solid var(--line);border-radius:8px;background:#0f131b;color:var(--text)}
+  .iconbtn{width:36px;height:36px;display:inline-grid;place-items:center;border:1px solid var(--line);border-radius:8px;background:#0f131b;color:#cfe0ff}
   .primary{background:var(--accent);color:#07223d;border:none}
   .ghost{background:#0f131b;border:1px solid var(--line);color:#cfe0ff}
   button,select,input{font-size:var(--fs);padding:8px;border-radius:8px}
+
   /* ビュー領域 */
   #view{position:relative;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);overflow:hidden}
   .tabs{position:absolute;top:6px;left:6px;z-index:3}
   .tabs input{display:none}
-  .tabs label{padding:5px 8px;font-size:12px;background:#0f131b;color:var(--muted);border:1px solid var(--line);border-radius:6px;margin-right:4px}
+  .tabs label{padding:5px 8px;font-size:12px;background:#0f131b;color:#c9d4e6;border:1px solid var(--line);border-radius:6px;margin-right:4px}
   .tabs input:checked+label{background:#2a3446;color:#dbe6f7}
-  canvas{position:absolute;inset:0;width:100%;height:100%}
+  canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none} /* touch-action:none でドラッグ操作を取り込む */
   #plot,#gram{background:#0a0d12}
-  /* 下部情報バー */
-  #info{display:flex;gap:10px;align-items:center;justify-content:space-between}
+
+  /* 下部情報バー（Safe Areaぶん下余白を確保） */
+  #info{display:flex;gap:10px;align-items:center;justify-content:space-between;
+        padding-bottom:env(safe-area-inset-bottom,0px)}
   .kv{font-size:12px;color:#9fb0c7}
+
   /* 左ドロワー（ハンバーガー） */
   #drawer{position:fixed;inset:0 0 0 0;display:none;z-index:10}
   #drawer.open{display:block}
@@ -39,8 +47,9 @@
   .radio{display:flex;gap:8px}
   .radio input{margin-right:4px}
   .tag{font-size:12px;color:var(--muted)}
-  input[type="number"]{width:90px;background:#0f131b;color:var(--text);border:1px solid var(--line)}
-  select{background:#0f131b;color:var(--text);border:1px solid var(--line)}
+  input[type="number"]{width:90px;background:#0f131b;color:#e6edf3;border:1px solid var(--line)}
+  select{background:#0f131b;color:#e6edf3;border:1px solid var(--line)}
+
   /* モーダル（プレビュー/ピーク） */
   #modal{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:11}
   .modal-body{width:min(560px,92vw);max-height:86vh;background:#0f131b;border:1px solid var(--line);border-radius:12px;padding:10px;overflow:auto}
@@ -63,8 +72,8 @@
   <!-- 表示（タブで1面のみ） -->
   <div id="view">
     <div class="tabs">
-      <input type="radio" id="tabWave" name="tab" checked><label for="tabWave">波形</label>
-      <input type="radio" id="tabSpec" name="tab"><label for="tabSpec">スペクトル</label>
+      <input type="radio" id="tabWave" name="tab"><label for="tabWave">波形</label>
+      <input type="radio" id="tabSpec" name="tab" checked><label for="tabSpec">スペクトル</label>
       <input type="radio" id="tabGram" name="tab"><label for="tabGram">スペクトログラム</label>
     </div>
     <canvas id="plot"></canvas>
@@ -73,7 +82,10 @@
 
   <!-- 下段情報 -->
   <div id="info">
-    <div class="kv">SR: <span id="iRate">-</span> / 区間: <span id="iLen">-</span> / ピーク: <span id="iPeak">-</span></div>
+    <div class="kv">
+      SR: <span id="iRate">-</span> / 区間: <span id="iLen">-</span> / ピーク: <span id="iPeak">-</span>
+      <span id="cursorInfo" style="margin-left:10px;color:#cfe0ff"></span>
+    </div>
     <div style="display:flex;gap:6px">
       <button id="btnPeaks" class="ghost">ピーク一覧</button>
       <button id="btnCsv" class="ghost">CSV</button>
@@ -155,6 +167,9 @@
   const plot=$('plot'), gram=$('gram'), view=$('view');
   let lastWave=null, lastWaveSR=0, lastSpec=null, lastFreqs=null, lastPeak=null;
 
+  // サブカーソル状態
+  let cursorActive=false, cursorX=0;
+
   // レイアウト
   function resizeCanvas(){
     const r=view.getBoundingClientRect();
@@ -173,6 +188,8 @@
     const g=$('tabGram').checked;
     plot.style.display=g?'none':'block';
     gram.style.display=g?'block':'none';
+    // スペクトル以外ではサブカーソルを消す
+    if(!$('tabSpec').checked){ cursorActive=false; $('cursorInfo').textContent=''; }
     redraw();
   }
   ['tabWave','tabSpec','tabGram'].forEach(id=>$(id).addEventListener('change', syncTabs));
@@ -213,7 +230,28 @@
     if(peak&&isFinite(peak.freq)){
       const x=peak.freq/freqs[freqs.length-1]*w+0.5;
       const y=(1-(peak.db-minDb)/(maxDb-minDb))*h;
-      const ctx2=ctx; ctx2.fillStyle='#ffcf5a'; ctx2.beginPath(); ctx2.arc(x,y,3.6*dpr,0,Math.PI*2); ctx2.fill();
+      ctx.fillStyle='#ffcf5a'; ctx.beginPath(); ctx.arc(x,y,3.6*dpr,0,Math.PI*2); ctx.fill();
+    }
+    // サブカーソル
+    if(cursorActive){
+      const x=clamp(cursorX,0,w-1);
+      // 垂直線
+      ctx.strokeStyle='#ffd36b'; ctx.lineWidth=1*dpr; ctx.setLineDash([4*dpr,3*dpr]); ctx.beginPath();
+      ctx.moveTo(x+0.5,0); ctx.lineTo(x+0.5,h); ctx.stroke(); ctx.setLineDash([]);
+      // 位置→bin
+      const idx=Math.round((x/w)*(magDb.length-1));
+      const f=freqs[idx], m=magDb[idx];
+      // ラベル
+      const label=`${f<1000? f.toFixed(1)+' Hz' : (f/1000).toFixed(3)+' kHz'}  /  ${isFinite(m)?m.toFixed(1):'-'} dB`;
+      $('cursorInfo').textContent = `カーソル: ${label}`;
+      // 吹き出し
+      const pad=6*dpr, boxW=ctx.measureText? (ctx.measureText(label).width+20*dpr) : 160*dpr;
+      const boxH=22*dpr, bx=clamp(x - boxW/2, 4*dpr, w - boxW - 4*dpr), by=6*dpr;
+      ctx.fillStyle='rgba(20,24,32,0.9)'; ctx.strokeStyle='#2b3546'; ctx.lineWidth=1*dpr;
+      ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx,by,boxW,boxH,4*dpr) : ctx.rect(bx,by,boxW,boxH); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='#dbe6f7'; ctx.font=`${12*dpr}px ui-monospace,monospace`; ctx.fillText(label, bx+pad, by+boxH-8*dpr);
+    }else{
+      if($('cursorInfo').textContent && $('tabSpec').checked===false){ $('cursorInfo').textContent=''; }
     }
   }
   function clearGram(){
@@ -227,6 +265,24 @@
     if($('tabWave').checked && lastWave) drawWave(lastWave,lastWaveSR);
     if($('tabSpec').checked && lastSpec&&lastFreqs) drawSpec(lastFreqs,lastSpec,lastPeak);
   }
+
+  // サブカーソル用イベント（Pointer Events優先）
+  function onPointer(e){
+    if(!$('tabSpec').checked || !lastFreqs || !lastSpec) return;
+    const rect=plot.getBoundingClientRect();
+    cursorX=(e.clientX-rect.left)*dpr;
+    cursorActive=true;
+    redraw();
+    e.preventDefault();
+  }
+  function onPointerEnd(){
+    if(cursorActive){ cursorActive=false; $('cursorInfo').textContent=''; redraw(); }
+  }
+  plot.addEventListener('pointerdown', onPointer, {passive:false});
+  plot.addEventListener('pointermove', onPointer, {passive:false});
+  plot.addEventListener('pointerup', onPointerEnd);
+  plot.addEventListener('pointercancel', onPointerEnd);
+  plot.addEventListener('pointerleave', onPointerEnd);
 
   // 窓関数・FFT
   function makeWindow(name,N){
@@ -318,7 +374,6 @@
     micAnalyser=audioCtx.createAnalyser(); micAnalyser.fftSize=2048; micAnalyser.smoothingTimeConstant=0.6;
     // 出力は無音のmainGainへ（ハウリング防止）
     micSource.connect(micGainNode).connect(micAnalyser).connect(mainGain);
-
     // スナップショット用リング
     micProc=(audioCtx.createScriptProcessor||audioCtx.createJavaScriptNode).call(audioCtx,4096,1,1);
     micRing=[]; micTotal=0;
@@ -352,7 +407,12 @@
       const maxF=audioCtx.sampleRate/2, binsFreq=new Float32Array(n); for(let i=0;i<n;i++) binsFreq[i]=i*maxF/n;
       let pk=-1e9, pbin=0; for(let i=0;i<n;i++){ if(fr[i]>pk){ pk=fr[i]; pbin=i; } }
       lastFreqs=binsFreq; lastSpec=fr; lastPeak={freq:binsFreq[pbin], db:pk};
-      redraw(); updateInfo(audioCtx.sampleRate, td.length/audioCtx.sampleRate, lastPeak);
+      // スペクトル既定なので都度再描画
+      if($('tabSpec').checked) drawSpec(lastFreqs,lastSpec,lastPeak);
+      else if($('tabWave').checked) drawWave(lastWave,lastWaveSR);
+      $('iRate').textContent = `${audioCtx.sampleRate} Hz`;
+      $('iLen').textContent  = `${(td.length/audioCtx.sampleRate).toFixed(3)} s`;
+      $('iPeak').textContent = `${lastPeak.freq.toFixed(1)} Hz / ${lastPeak.db.toFixed(1)} dB`;
       micRAF=requestAnimationFrame(draw);
     };
     draw();
@@ -422,7 +482,8 @@
     const s=Math.max(0,parseFloat($('startSec').value)||0), e=Math.max(s,parseFloat($('endSec').value)||0);
     if(e<=s) return alert('区間が不正です');
     const el=isVideo?videoEl:audioEl; el.currentTime=s; el.muted=true; await el.play().catch(()=>{});
-    await new Promise(r=>{ let tries=0; const iv=setInterval(()=>{ if(Math.abs(el.currentTime+s - (s+s))<0.03 || Math.abs(el.currentTime - s)<0.03 || tries>30){ clearInterval(iv); r(); } tries++; },30); });
+    // シーク安定待ち
+    await new Promise(r=>{ let tries=0; const iv=setInterval(()=>{ if(Math.abs(el.currentTime - s)<0.03 || tries>30){ clearInterval(iv); r(); } tries++; },30); });
     const src=audioCtx.createMediaElementSource(el), gain=audioCtx.createGain(); gain.gain.value=0.0; // 無音
     const procSize=4096; const node=(audioCtx.createScriptProcessor||audioCtx.createJavaScriptNode).call(audioCtx,procSize,2,2);
     const ring=[]; let total=0; const target=e-s, sr=audioCtx.sampleRate;
@@ -470,14 +531,14 @@
   function closeDrawer(){ $('drawer').classList.remove('open'); }
   $('btnMenu').addEventListener('click', openDrawer);
   $('drawer').addEventListener('click', e=>{ if(e.target.classList.contains('shade')) closeDrawer(); });
-  $('modeMic').addEventListener('change', ()=>{ if($('modeMic').checked){ $('secMic').style.display='block'; $('secFile').style.display='none'; $('tabWave').checked=true; syncTabs(); } });
-  $('modeFile').addEventListener('change', ()=>{ if($('modeFile').checked){ $('secMic').style.display='none'; $('secFile').style.display='block'; $('tabWave').checked=true; syncTabs(); } });
+  $('modeMic').addEventListener('change', ()=>{ if($('modeMic').checked){ $('secMic').style.display='block'; $('secFile').style.display='none'; $('tabSpec').checked=true; syncTabs(); } });
+  $('modeFile').addEventListener('change', ()=>{ if($('modeFile').checked){ $('secMic').style.display='none'; $('secFile').style.display='block'; $('tabSpec').checked=true; syncTabs(); } });
 
   // 上段ボタン：開始/再開、停止
   $('btnInit').addEventListener('click', async ()=>{
     await ensureAudio();
     if($('modeMic').checked){ await startMic(); closeDrawer(); }
-    // disableしない：再開のため常に有効
+    // 再開のため常に有効（disableしない）
   });
   $('btnStop').addEventListener('click', ()=>{
     // マイク停止
@@ -509,7 +570,8 @@
 
   // 初期
   function init(){
-    resizeCanvas(); clearGram(); drawWave(new Float32Array(0),48000);
+    resizeCanvas(); clearGram();
+    // 既定タブはスペクトル
     document.querySelector('.title').textContent='リアルタイムFFT';
   }
   init();
