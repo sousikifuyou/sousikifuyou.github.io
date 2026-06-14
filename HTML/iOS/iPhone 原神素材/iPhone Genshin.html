@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="color-scheme" content="light dark">
-<title>原神 曜日素材＆キャラ育成（フル自動更新・ダークモード）</title>
+<title>原神素材_R0.10</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <style>
   :root{
@@ -135,6 +135,9 @@
         <div class="section-title">CORSで失敗する場合</div>
         <div class="muted">設定内の USE_PROXY と PROXY_URL を有効化してください（Cloudflare Workers 等）。</div>
         <div class="divider"></div>
+        <button id="btnReset" class="btn danger" aria-label="キャッシュ削除">キャッシュ削除</button>
+        <span class="muted">（削除後に自動で再読み込みします）</span>
+        <div class="divider"></div>
         <div class="muted">プライバシー：外部サーバへユーザー固有情報は送信しません。</div>
       </div>
     </section>
@@ -229,7 +232,7 @@ const uniq = (a)=>[...new Set(a)];
 const groupBy = (arr, keyfn)=>{ const m=new Map(); for(const x of arr){ const k=keyfn(x); if(!m.has(k)) m.set(k,[]); m.get(k).push(x);} return m; };
 const proxy = (url)=> USE_PROXY ? (PROXY_URL + encodeURIComponent(url)) : url;
 
-async function fetchJSON(url, {retry=1, timeout=12000}={}){
+async function fetchJSON(url, {timeout=12000}={}){
   const ctl = new AbortController();
   const id = setTimeout(()=>ctl.abort(), timeout);
   try{
@@ -290,6 +293,15 @@ async function pullAmbrIndex(lang="ja"){
     console.warn("ambr index failed:", e);
     return { byName:new Map(), byId:new Map() };
   }
+}
+
+// ja → jp → en の順で自動フォールバック
+async function pullAmbrIndexAuto(){
+  for (const lang of ["ja","jp","en"]) {
+    const ix = await pullAmbrIndex(lang);
+    if(ix.byName && ix.byName.size){ ix._lang = lang; return ix; }
+  }
+  return { byName:new Map(), byId:new Map(), _lang:null };
 }
 
 async function pullAmbrDetail(id, lang="ja"){
@@ -359,8 +371,24 @@ let appData = {
   usage: {
     talentBySeries: {} // { seriesKey: [characterKey] }
   },
-  ambrIndex: { byName:new Map(), byId:new Map() }
+  ambrIndex: { byName:new Map(), byId:new Map(), _lang:null }
 };
+
+/* ========= 欠落補完（旧キャッシュ対策） ========= */
+function backfillLocalMappings(){
+  // 1) ローカル定義から talentBooks を補完
+  const base = new Map(LOCAL_CHARACTERS.map(x => [x.key, x.talentBooks]));
+  for(const c of appData.characters){
+    if(!c.talentBooks && base.has(c.key)){
+      c.talentBooks = base.get(c.key);
+    }
+  }
+  // 2) 使用キャラの逆引きを再構築
+  appData.usage.talentBySeries = {};
+  for(const c of appData.characters){
+    if(c.talentBooks) updateTalentUsage(c.key, c.talentBooks);
+  }
+}
 
 /* ========= テーマ切替 ========= */
 const THEME_KEY = "theme-pref-v1"; // "auto" | "dark" | "light"
@@ -563,13 +591,19 @@ async function buildData(){
       appData.characters = mergeByKey(appData.characters, live, "key");
     }
   }
-  // ambr: 名前→IDの逆引き
+
+  // まずローカル定義で欠落talentBooksを補完（旧キャッシュ対策）
+  backfillLocalMappings();
+
+  // ambr: 名前→ID（ja→jp→en の順にフォールバック）
   if(USE_LIVE_AMBR){
-    appData.ambrIndex = await pullAmbrIndex("ja");
+    appData.ambrIndex = await pullAmbrIndexAuto();
   }
-  // バックグラウンド詳細取得を開始
+
+  // バックグラウンド詳細取得を開始（詳細から判明したtalentBooksも順次反映）
   scheduleAmbrHydration();
-  // 表示更新（現在のタブを再描画）
+
+  // 表示更新（現在タブを再描画）
   const current = document.querySelector(".menu a.active")?.dataset.route || "today";
   setRoute(current);
 }
@@ -590,7 +624,8 @@ async function hydrateCharacterDetails(c){
 
   if(inflight.has(id)) return;
   inflight.add(id);
-  const detail = await pullAmbrDetail(id, "ja");
+  const lang = appData.ambrIndex._lang || "ja";
+  const detail = await pullAmbrDetail(id, lang);
   inflight.delete(id);
   const mats = parseAmbrMaterials(detail);
 
@@ -603,9 +638,9 @@ async function hydrateCharacterDetails(c){
   // 元素宝石・突破・ボス/敵素材の要約
   if(ascEl){
     const parts = [];
-    if(mats.gem.length) parts.push(...mats.gem.slice(0,3).map(x=>`<span class="badge">${safe(x.name)}</span>`));
+    if(mats.gem.length)   parts.push(...mats.gem.slice(0,3).map(x=>`<span class="badge">${safe(x.name)}</span>`));
     if(mats.local.length) parts.push(...mats.local.slice(0,2).map(x=>`<span class="badge">${safe(x.name)}</span>`));
-    if(mats.boss.length) parts.push(...mats.boss.slice(0,2).map(x=>`<span class="badge">${safe(x.name)}</span>`));
+    if(mats.boss.length)  parts.push(...mats.boss.slice(0,2).map(x=>`<span class="badge">${safe(x.name)}</span>`));
     ascEl.innerHTML = parts.length ? parts.join(" ") : '<span class="muted">未判定</span>';
     ascEl.dataset.ready="1";
   }
@@ -649,7 +684,7 @@ function scheduleAmbrHydration(){
   pump();
 }
 
-/* ========= UI: ドロワー/トースト/更新 ========= */
+/* ========= UI: ドロワー/トースト/更新/キャッシュ削除 ========= */
 const drawer = $("#drawer");
 const overlay = $("#overlay");
 
@@ -690,6 +725,28 @@ $("#btnRefresh").onclick = async ()=>{
   toast("更新しました");
 };
 
+document.addEventListener("DOMContentLoaded", ()=>{
+  const btnReset = document.getElementById("btnReset");
+  if(btnReset){
+    btnReset.onclick = ()=>{
+      try{
+        // 本体データ
+        localStorage.removeItem(K.DATA);
+        // ambr詳細キャッシュ（前方一致で削除）
+        for(let i=localStorage.length-1;i>=0;i--){
+          const key = localStorage.key(i);
+          if(key && key.startsWith(K.AMBR_DETAIL_PREFIX)){
+            localStorage.removeItem(key);
+          }
+        }
+        // テーマ設定は残す（必要なら THEME_KEY も削除）
+      }catch(e){}
+      toast("キャッシュを削除しました。再読込します…");
+      setTimeout(()=>location.reload(), 600);
+    };
+  }
+});
+
 /* ========= 起動 ========= */
 (async function init(){
   // テーマの適用（ボタンが未描画でもOK）
@@ -703,10 +760,13 @@ $("#btnRefresh").onclick = async ()=>{
       appData = {
         ...appData,
         ...saved,
-        ambrIndex: { byName:new Map(), byId:new Map() }
+        ambrIndex: { byName:new Map(), byId:new Map(), _lang:null }
       };
     }
   }catch{}
+
+  // 欠落補完（旧キャッシュ対策）
+  backfillLocalMappings();
 
   // 初回描画
   setRoute("today");
