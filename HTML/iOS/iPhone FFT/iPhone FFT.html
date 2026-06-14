@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>iPhone 1画面 FFT解析（ハンバーガー切替）</title>
+<title>iPhone 1画面 FFT解析（ハンバーガー切替・再開対応）</title>
 <style>
   :root{
     --bg:#0e1116; --panel:#141922; --text:#e6edf3; --muted:#93a1b3; --accent:#4ea1ff; --line:#1e2634;
@@ -16,7 +16,7 @@
   .title{font-weight:600;font-size:16px;flex:1;text-align:center}
   .iconbtn{width:36px;height:36px;display:inline-grid;place-items:center;border:1px solid var(--line);border-radius:8px;background:#0f131b;color:var(--text)}
   .primary{background:var(--accent);color:#07223d;border:none}
-  .ghost{background:#0f131b;border:1px solid var(--line);color:var(--text)}
+  .ghost{background:#0f131b;border:1px solid var(--line);color:#cfe0ff}
   button,select,input{font-size:var(--fs);padding:8px;border-radius:8px}
   /* ビュー領域 */
   #view{position:relative;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);overflow:hidden}
@@ -50,14 +50,13 @@
 </head>
 <body>
 <div id="app">
-  <!-- 上段バー：左にハンバーガー、中央にタイトル、右に開始/停止 -->
+  <!-- 上段バー：左ハンバーガー、中央タイトル、右に開始/停止 -->
   <div class="bar">
     <button id="btnMenu" class="iconbtn" aria-label="メニュー" title="メニュー">
-      <!-- 三本線 -->
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="#cfe0ff" stroke-width="2" stroke-linecap="round"/></svg>
     </button>
     <div class="title">リアルタイムFFT</div>
-    <button id="btnInit" class="iconbtn primary" title="オーディオ開始">▶</button>
+    <button id="btnInit" class="iconbtn primary" title="オーディオ開始/再開">▶</button>
     <button id="btnStop" class="iconbtn ghost" title="停止">■</button>
   </div>
 
@@ -66,7 +65,7 @@
     <div class="tabs">
       <input type="radio" id="tabWave" name="tab" checked><label for="tabWave">波形</label>
       <input type="radio" id="tabSpec" name="tab"><label for="tabSpec">スペクトル</label>
-      <input type="radio" id="tabGram" name="tab"><label for="tabGram">グラム</label>
+      <input type="radio" id="tabGram" name="tab"><label for="tabGram">スペクトログラム</label>
     </div>
     <canvas id="plot"></canvas>
     <canvas id="gram" style="display:none"></canvas>
@@ -124,6 +123,8 @@
       <div class="optrow">
         <label class="tag">開始[s] <input id="startSec" type="number" min="0" step="0.01" value="0"></label>
         <label class="tag">終了[s] <input id="endSec" type="number" min="0" step="0.01" value="0"></label>
+        <button id="btnSetStart" class="ghost">開始=現在位置</button>
+        <button id="btnSetEnd" class="ghost">終了=現在位置</button>
       </div>
       <div class="optrow">
         <button id="btnAnalyzeFast" class="primary">区間FFT（高速：音声）</button>
@@ -154,7 +155,7 @@
   const plot=$('plot'), gram=$('gram'), view=$('view');
   let lastWave=null, lastWaveSR=0, lastSpec=null, lastFreqs=null, lastPeak=null;
 
-  // レイアウト調整
+  // レイアウト
   function resizeCanvas(){
     const r=view.getBoundingClientRect();
     [plot,gram].forEach(cv=>{
@@ -167,7 +168,7 @@
   window.addEventListener('resize', resizeCanvas);
   window.addEventListener('orientationchange', ()=>setTimeout(resizeCanvas,250));
 
-  // タブ切替
+  // タブ
   function syncTabs(){
     const g=$('tabGram').checked;
     plot.style.display=g?'none':'block';
@@ -295,17 +296,19 @@
   // WebAudio・状態
   let audioCtx=null, mainGain=null;
   let micStream=null, micSource=null, micAnalyser=null, micGainNode=null, micRAF=0, micProc=null, micRing=null, micTotal=0;
+  let micActive=false;
 
   async function ensureAudio(){
     if(!audioCtx){
       audioCtx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
-      mainGain=audioCtx.createGain(); mainGain.gain.value=0.0; mainGain.connect(audioCtx.destination);
+      mainGain=audioCtx.createGain(); mainGain.gain.value=0.0; mainGain.connect(audioCtx.destination); // 無音バス
     }
     if(audioCtx.state==='suspended') await audioCtx.resume();
   }
 
   // リアルタイム（デフォルト）
   async function startMic(){
+    if(micActive) return; // 既に動作中
     await ensureAudio();
     try{
       micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
@@ -313,7 +316,9 @@
     micSource=audioCtx.createMediaStreamSource(micStream);
     micGainNode=audioCtx.createGain(); micGainNode.gain.value=parseFloat($('micGain').value)||1;
     micAnalyser=audioCtx.createAnalyser(); micAnalyser.fftSize=2048; micAnalyser.smoothingTimeConstant=0.6;
-    micSource.connect(micGainNode).connect(micAnalyser).connect(audioCtx.destination);
+    // 出力は無音のmainGainへ（ハウリング防止）
+    micSource.connect(micGainNode).connect(micAnalyser).connect(mainGain);
+
     // スナップショット用リング
     micProc=(audioCtx.createScriptProcessor||audioCtx.createJavaScriptNode).call(audioCtx,4096,1,1);
     micRing=[]; micTotal=0;
@@ -321,7 +326,9 @@
       const ch0=ev.inputBuffer.getChannelData(0); micRing.push(new Float32Array(ch0)); micTotal+=ch0.length;
       const lim=Math.floor(audioCtx.sampleRate*2.1); while(micTotal>lim){ const f=micRing.shift(); micTotal-=f.length; }
     };
-    micGainNode.connect(micProc).connect(audioCtx.destination);
+    micGainNode.connect(micProc).connect(mainGain);
+
+    micActive=true;
     liveLoop();
   }
   function stopMic(){
@@ -331,6 +338,7 @@
     try{ micGainNode&&micGainNode.disconnect(); }catch{} micGainNode=null;
     try{ micSource&&micSource.disconnect(); }catch{} micSource=null;
     if(micStream){ for(const t of micStream.getTracks()) t.stop(); micStream=null; }
+    micActive=false;
   }
   function liveLoop(){
     cancelAnimationFrame(micRAF); if(!micAnalyser) return;
@@ -341,11 +349,9 @@
       micAnalyser.getFloatTimeDomainData(td);
       micAnalyser.getFloatFrequencyData(fr);
       lastWave=td; lastWaveSR=audioCtx.sampleRate;
-      // bins→Hz
       const maxF=audioCtx.sampleRate/2, binsFreq=new Float32Array(n); for(let i=0;i<n;i++) binsFreq[i]=i*maxF/n;
       let pk=-1e9, pbin=0; for(let i=0;i<n;i++){ if(fr[i]>pk){ pk=fr[i]; pbin=i; } }
       lastFreqs=binsFreq; lastSpec=fr; lastPeak={freq:binsFreq[pbin], db:pk};
-      // タイトルは常に「リアルタイムFFT」
       redraw(); updateInfo(audioCtx.sampleRate, td.length/audioCtx.sampleRate, lastPeak);
       micRAF=requestAnimationFrame(draw);
     };
@@ -376,6 +382,14 @@
     if(!currentFile) return alert('ファイル未選択');
     openModal('プレビュー', isVideo?videoEl:audioEl);
   });
+  $('btnSetStart').addEventListener('click', ()=>{
+    const el=isVideo?videoEl:audioEl; if(!el || isNaN(el.currentTime)) return alert('プレビューで位置を合わせてください');
+    $('startSec').value=(el.currentTime||0).toFixed(2);
+  });
+  $('btnSetEnd').addEventListener('click', ()=>{
+    const el=isVideo?videoEl:audioEl; if(!el || isNaN(el.currentTime)) return alert('プレビューで位置を合わせてください');
+    $('endSec').value=(el.currentTime||0).toFixed(2);
+  });
 
   // 高速解析（音声）
   $('btnAnalyzeFast').addEventListener('click', async ()=>{
@@ -391,7 +405,7 @@
     if(buf.numberOfChannels>1){ const ch1=buf.getChannelData(1).slice(beg,end); for(let i=0;i<ch0.length;i++) ch0[i]=0.5*(ch0[i]+ch1[i]); }
     lastWave=ch0; lastWaveSR=sr; clearGram();
     const {freqs,magDb,peak}=computeSpectrum(ch0,sr,parseInt($('fftSize').value,10),$('windowFn').value,$('avgMode').value, gramPainter());
-    lastFreqs=freqs; lastSpec=magDb; lastPeak=peak; // タブに応じて描画
+    lastFreqs=freqs; lastSpec=magDb; lastPeak=peak;
     $('tabSpec').checked=true; syncTabs(); redraw(); updateInfo(sr, ch0.length/sr, peak);
     closeDrawer();
   });
@@ -408,8 +422,8 @@
     const s=Math.max(0,parseFloat($('startSec').value)||0), e=Math.max(s,parseFloat($('endSec').value)||0);
     if(e<=s) return alert('区間が不正です');
     const el=isVideo?videoEl:audioEl; el.currentTime=s; el.muted=true; await el.play().catch(()=>{});
-    await new Promise(r=>{ let tries=0; const iv=setInterval(()=>{ if(Math.abs(el.currentTime-s)<0.03 || tries>30){ clearInterval(iv); r(); } tries++; },30); });
-    const src=audioCtx.createMediaElementSource(el), gain=audioCtx.createGain(); gain.gain.value=0.0;
+    await new Promise(r=>{ let tries=0; const iv=setInterval(()=>{ if(Math.abs(el.currentTime+s - (s+s))<0.03 || Math.abs(el.currentTime - s)<0.03 || tries>30){ clearInterval(iv); r(); } tries++; },30); });
+    const src=audioCtx.createMediaElementSource(el), gain=audioCtx.createGain(); gain.gain.value=0.0; // 無音
     const procSize=4096; const node=(audioCtx.createScriptProcessor||audioCtx.createJavaScriptNode).call(audioCtx,procSize,2,2);
     const ring=[]; let total=0; const target=e-s, sr=audioCtx.sampleRate;
     node.onaudioprocess=ev=>{
@@ -428,7 +442,7 @@
         },0);
       }
     };
-    src.connect(node); node.connect(gain); gain.connect(audioCtx.destination);
+    src.connect(node); node.connect(gain); gain.connect(mainGain); // 無音バスへ
     collector={source:src,node,gain}; collecting=true; closeDrawer();
   });
   function concatFloat32(chunks,totalLen){ const out=new Float32Array(totalLen); let off=0; for(const c of chunks){ out.set(c,off); off+=c.length; } return out; }
@@ -459,15 +473,23 @@
   $('modeMic').addEventListener('change', ()=>{ if($('modeMic').checked){ $('secMic').style.display='block'; $('secFile').style.display='none'; $('tabWave').checked=true; syncTabs(); } });
   $('modeFile').addEventListener('change', ()=>{ if($('modeFile').checked){ $('secMic').style.display='none'; $('secFile').style.display='block'; $('tabWave').checked=true; syncTabs(); } });
 
-  // 上段ボタン：開始＝AudioContext+Mic開始、停止＝Mic停止/収集停止
+  // 上段ボタン：開始/再開、停止
   $('btnInit').addEventListener('click', async ()=>{
     await ensureAudio();
     if($('modeMic').checked){ await startMic(); closeDrawer(); }
-    $('btnInit').disabled=true; // 初期化済の意
+    // disableしない：再開のため常に有効
   });
-  $('btnStop').addEventListener('click', ()=>{ stopMic(); });
+  $('btnStop').addEventListener('click', ()=>{
+    // マイク停止
+    stopMic();
+    // 互換モードの収集停止
+    try{ stopCollector(); }catch(e){}
+    // プレビュー中のメディアも一時停止
+    try{ videoEl.pause(); }catch(e){}
+    try{ audioEl.pause(); }catch(e){}
+  });
 
-  // マイク関連（ドロワー内）
+  // マイク（ドロワー内）
   $('btnMicStart').addEventListener('click', async ()=>{ await startMic(); closeDrawer(); });
   $('micGain').addEventListener('input', ()=>{ if(micGainNode) micGainNode.gain.value=parseFloat($('micGain').value)||1; });
   $('btnMicSnap').addEventListener('click', ()=>{
@@ -485,10 +507,9 @@
   $('modalClose').addEventListener('click', closeModal);
   $('modal').addEventListener('click', e=>{ if(e.target===modal) closeModal(); });
 
-  // 初期化
+  // 初期
   function init(){
     resizeCanvas(); clearGram(); drawWave(new Float32Array(0),48000);
-    // デフォルト表示はリアルタイム用タイトル（バー中央）固定
     document.querySelector('.title').textContent='リアルタイムFFT';
   }
   init();
