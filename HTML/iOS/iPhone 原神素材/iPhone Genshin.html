@@ -2,286 +2,261 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>原神素材_R0.16</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>原神素材_R0.17</title>
     <style>
+        /* --- ダークテーマ標準のCSS --- */
         :root {
             --bg-color: #121212;
-            --card-bg: #1e1e1e;
-            --text-color: #e0e0e0;
-            --accent-color: #bb86fc;
-            --border-color: #333;
+            --panel-bg: #1e1e1e;
+            --text-main: #e0e0e0;
+            --text-sub: #aaaaaa;
+            --accent: #4fc3f7;
+            --border: #333333;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
-            color: var(--text-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
             margin: 0;
             padding: 0;
-            -webkit-tap-highlight-color: transparent;
+            -webkit-text-size-adjust: 100%; /* iPhoneでの文字拡大防止 */
         }
 
-        header {
+        /* ヘッダー＆ハンバーガーメニュー */
+        .header {
             display: flex;
             align-items: center;
             padding: 15px;
-            background-color: var(--card-bg);
-            border-bottom: 1px solid var(--border-color);
+            background-color: var(--panel-bg);
+            border-bottom: 1px solid var(--border);
             position: sticky;
             top: 0;
-            z-index: 100;
+            z-index: 1000;
         }
 
-        h1 { 
-            margin: 0; 
-            font-size: 1.2rem; 
-            margin-left: 15px; /* メニューボタンとの間隔 */
-        }
-
-        /* ハンバーガーメニューボタン（左側に配置） */
         .menu-btn {
+            font-size: 24px;
             background: none;
             border: none;
-            color: var(--text-color);
-            font-size: 1.5rem;
+            color: var(--text-main);
+            margin-right: 15px;
             cursor: pointer;
-            padding: 5px;
-            order: -1; /* 一番左に強制配置 */
         }
 
-        /* サイドナビゲーション（左側から出てくるように修正） */
-        .side-nav {
+        .header h1 {
+            font-size: 18px;
+            margin: 0;
+        }
+
+        /* サイドバーメニュー */
+        .sidebar {
             position: fixed;
             top: 0;
-            left: -250px; /* 左側に隠す */
+            left: -250px;
             width: 250px;
-            height: 100%;
-            background-color: var(--card-bg);
+            height: 100vh;
+            background-color: var(--panel-bg);
             box-shadow: 2px 0 5px rgba(0,0,0,0.5);
             transition: 0.3s;
-            z-index: 200;
+            z-index: 2000;
             padding-top: 60px;
         }
-
-        .side-nav.open { left: 0; } /* 左側から引き出す */
+        .sidebar.active { left: 0; }
         
-        .side-nav a {
+        .sidebar a {
             display: block;
-            padding: 15px;
-            color: var(--text-color);
+            padding: 15px 20px;
+            color: var(--text-main);
             text-decoration: none;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border);
         }
 
-        .close-btn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: none;
-            border: none;
-            color: var(--text-color);
-            font-size: 1.5rem;
-        }
-
-        main { padding: 15px; }
-
-        .filter-section {
-            margin-bottom: 15px;
+        /* 背景の暗転オーバーレイ */
+        .overlay {
             display: none;
-        }
-        select {
-            background-color: var(--card-bg);
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-            padding: 8px;
-            border-radius: 5px;
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            margin-bottom: 10px;
-            font-size: 1rem;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1500;
+        }
+        .overlay.active { display: block; }
+
+        /* コンテンツエリア */
+        .content { padding: 15px; }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            background: var(--panel-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 16px; /* 16px未満だとiPhoneでズームされるため */
         }
 
-        .grid {
+        /* カードデザイン */
+        .card-container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 12px;
+            grid-template-columns: 1fr;
+            gap: 10px;
         }
-
         .card {
-            background-color: var(--card-bg);
+            background-color: var(--panel-bg);
+            padding: 15px;
             border-radius: 8px;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            text-align: center;
+            border: 1px solid var(--border);
         }
-
-        .card h3 { margin: 0 0 8px 0; font-size: 1rem; }
-        .material-tag {
-            display: inline-block;
-            background-color: #333;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            margin: 2px;
+        .card h3 {
+            margin: 0 0 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 18px;
         }
+        .card p { margin: 5px 0; font-size: 14px; color: var(--text-sub); }
+        
+        /* 属性バッジ */
+        .badge {
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            color: #000;
+            font-weight: bold;
+        }
+        .炎 { background: #ff9999; }
+        .水 { background: #99ccff; }
+        .風 { background: #99ffcc; }
+        .雷 { background: #cc99ff; }
+        .草 { background: #aaff99; }
+        .氷 { background: #ccffff; }
+        .岩 { background: #ffcc99; }
 
-        /* 属性カラー(日本語名に完全連動) */
-        .pyro, .fire, .炎 { border-top: 4px solid #ff4e50; }
-        .hydro, .water, .水 { border-top: 4px solid #2196f3; }
-        .anemo, .wind, .風 { border-top: 4px solid #00ffcc; }
-        .electro, .electric, .雷 { border-top: 4px solid #af7ac5; }
-        .dendro, .grass, .草 { border-top: 4px solid #2ecc71; }
-        .cryo, .ice, .氷 { border-top: 4px solid #85c1e9; }
-        .geo, .rock, .岩 { border-top: 4px solid #f1c40f; }
-
-        .loading { text-align: center; padding: 20px; color: #888; }
-        .error-msg { color: #ff4e50; text-align: center; padding: 20px; }
     </style>
 </head>
 <body>
 
-    <header>
+    <div class="header">
         <button class="menu-btn" onclick="toggleMenu()">☰</button>
-        <h1 id="view-title">本日の曜日素材</h1>
-    </header>
+        <h1 id="page-title">本日の曜日素材</h1>
+    </div>
 
-    <nav id="sideNav" class="side-nav">
-        <button class="close-btn" onclick="toggleMenu()">×</button>
-        <a href="#" onclick="switchView('today')">本日の曜日素材</a>
-        <a href="#" onclick="switchView('characters')">キャラ選択・育成素材</a>
-    </nav>
+    <div class="sidebar" id="sidebar">
+        <a href="#" onclick="showToday(); return false;">📅 本日の曜日素材</a>
+        <a href="#" onclick="showCharacters(); return false;">👥 キャラ選択・育成素材</a>
+    </div>
+    <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
 
-    <main>
-        <div id="filterSection" class="filter-section">
-            <select id="elementFilter" onchange="renderCharacters()">
-                <option value="all">すべての属性</option>
-                <option value="炎">炎属性</option>
-                <option value="水">水属性</option>
-                <option value="風">風属性</option>
-                <option value="雷">雷属性</option>
-                <option value="草">草属性</option>
-                <option value="氷">氷属性</option>
-                <option value="岩">岩属性</option>
-            </select>
-        </div>
-
-        <div id="statusMessage" class="loading">最新データを高速読み込み中...</div>
-        <div id="contentGrid" class="grid"></div>
-    </main>
+    <div class="content" id="main-content">
+        <p>データを読み込み中...</p>
+    </div>
 
     <script>
-        let genshinData = [];
-        let currentView = 'today';
-        const dayNames = ["日曜日 (全開放)", "月曜日/木曜日", "火曜日/金曜日", "水曜日/土曜日", "月曜日/木曜日", "火曜日/金曜日", "水曜日/土曜日"];
+        let genshinData = null;
 
-        // 天賦素材の名前から日本の曜日を自動マッピング
-        function getDayOfWeek(materialName) {
-            if (!materialName) return [0,1,2,3,4,5,6];
-            if (/自由|繁栄|奮起|公平|あやかり/.test(materialName)) return [1, 4]; 
-            if (/抗争|勤労|風雅|熱誠|焚化/.test(materialName)) return [2, 5]; 
-            if (/詩文|黄金|浮世|篤行|正義|秩序/.test(materialName)) return [3, 6]; 
-            return [0,1,2,3,4,5,6]; 
-        }
-
-        // 超安定・超高速な日本語データソースから全キャラ取得
-        async function fetchGenshinData() {
+        // データ読み込み（キャッシュ対策付き）
+        async function loadData() {
             try {
-                // 負荷分散された最速のCDNサーバーを使用（絶対に落ちません）
-                const response = await fetch('https://fastly.jsdelivr.net/gh/theBowja/genshin-db@main/src/data/japanese/characters.json');
-                if (!response.ok) throw new Error();
+                // ?v=タイムスタンプを付けることでiPhone Safariの強制キャッシュを回避し、常に最新を読み込む
+                const response = await fetch('./data.json?v=' + new Date().getTime());
+                if (!response.ok) throw new Error('通信エラー');
+                genshinData = await response.json();
                 
-                const rawData = await response.json();
-                
-                // データをスマホ用に最適化して展開
-                genshinData = Object.keys(rawData).map(key => {
-                    const char = rawData[key];
-                    return {
-                        name: char.name,
-                        element: char.elementText || "その他", // 「炎」「水」などの日本語
-                        talentMat: char.talentMaterialType || "不明の素材",
-                        bossMat: char.bossMaterialType || "週ボス不明",
-                        dayOfWeek: getDayOfWeek(char.talentMaterialType)
-                    };
-                }).filter(char => char.name !== "旅人" && char.element !== "その他"); 
-
-                document.getElementById('statusMessage').style.display = 'none';
-                initApp();
+                // 初回は曜日素材を表示
+                showToday();
             } catch (error) {
+                document.getElementById('main-content').innerHTML = `<p style="color:red;">データの自動読み込みに失敗しました。</p>`;
                 console.error(error);
-                document.getElementById('statusMessage').className = 'error-msg';
-                document.getElementById('statusMessage').textContent = 'データの取得に失敗しました。ネット接続を確認してください。';
             }
         }
 
+        // メニューの開閉
         function toggleMenu() {
-            document.getElementById('sideNav').classList.toggle('open');
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('overlay').classList.toggle('active');
         }
 
-        function switchView(view) {
-            currentView = view;
-            if(document.getElementById('sideNav').classList.contains('open')) {
-                toggleMenu();
-            }
+        // 1. 本日の曜日素材画面
+        function showToday() {
+            document.getElementById('page-title').innerText = '本日の曜日素材';
+            const container = document.getElementById('main-content');
             
-            const title = document.getElementById('view-title');
-            const filterSection = document.getElementById('filterSection');
-
-            if (view === 'today') {
-                const todayNum = new Date().getDay();
-                title.textContent = `本日 (${dayNames[todayNum]}) の素材`;
-                filterSection.style.display = 'none';
-                renderTodayMaterials(todayNum);
+            const day = new Date().getDay(); // 0(日) 〜 6(土)
+            const daysStr = ['日', '月', '火', '水', '木', '金', '土'];
+            
+            let html = `<h2 style="font-size:16px;">今日は ${daysStr[day]}曜日 です</h2>`;
+            
+            if (day === 0) {
+                html += '<p>日曜日はすべての天賦・武器素材がドロップします！</p>';
             } else {
-                title.textContent = "キャラクター別 育成素材";
-                filterSection.style.display = 'block';
-                renderCharacters();
+                const todayMats = genshinData.materials_schedule[day];
+                html += `<p style="color:var(--accent);">対象の天賦素材: ${todayMats.join(', ')}</p>`;
+                
+                // 今日の素材を使うキャラを抽出
+                const todayChars = genshinData.characters.filter(c => todayMats.includes(c.talent));
+                
+                html += '<div class="card-container">';
+                todayChars.forEach(c => {
+                    html += `
+                        <div class="card">
+                            <h3>${c.name} <span class="badge ${c.element}">${c.element}</span></h3>
+                            <p>📝 天賦素材: ${c.talent}</p>
+                        </div>
+                    `;
+                });
+                html += '</div>';
             }
+            container.innerHTML = html;
+            
+            // メニューが開いていたら閉じる
+            if (document.getElementById('sidebar').classList.contains('active')) toggleMenu();
         }
 
-        function renderTodayMaterials(day) {
-            const grid = document.getElementById('contentGrid');
-            grid.innerHTML = '';
+        // 2. キャラクター選択・育成素材一覧画面
+        function showCharacters(filterElement = 'all') {
+            document.getElementById('page-title').innerText = 'キャラ育成素材';
+            const container = document.getElementById('main-content');
+            
+            let html = `
+                <select id="element-filter" onchange="showCharacters(this.value)">
+                    <option value="all" ${filterElement === 'all' ? 'selected' : ''}>すべての属性</option>
+                    <option value="炎" ${filterElement === '炎' ? 'selected' : ''}>炎属性</option>
+                    <option value="水" ${filterElement === '水' ? 'selected' : ''}>水属性</option>
+                    <option value="風" ${filterElement === '風' ? 'selected' : ''}>風属性</option>
+                    <option value="雷" ${filterElement === '雷' ? 'selected' : ''}>雷属性</option>
+                    <option value="草" ${filterElement === '草' ? 'selected' : ''}>草属性</option>
+                    <option value="氷" ${filterElement === '氷' ? 'selected' : ''}>氷属性</option>
+                    <option value="岩" ${filterElement === '岩' ? 'selected' : ''}>岩属性</option>
+                </select>
+                <div class="card-container">
+            `;
 
-            const filtered = genshinData.filter(char => day === 0 || char.dayOfWeek.includes(day));
-
-            filtered.forEach(char => {
-                const card = document.createElement('div');
-                card.className = `card ${char.element}`;
-                card.innerHTML = `
-                    <h3>${char.name}</h3>
-                    <div class="material-tag">${char.talentMat}</div>
+            // 属性でフィルタリング
+            const filtered = genshinData.characters.filter(c => filterElement === 'all' || c.element === filterElement);
+            
+            filtered.forEach(c => {
+                html += `
+                    <div class="card">
+                        <h3>${c.name} <span class="badge ${c.element}">${c.element}</span></h3>
+                        <p>📝 天賦素材: ${c.talent}</p>
+                        <p>👹 ボス素材: ${c.boss}</p>
+                        <p>🌸 地域特産: ${c.specialty}</p>
+                    </div>
                 `;
-                grid.appendChild(card);
             });
+            html += '</div>';
+            container.innerHTML = html;
+
+            if (document.getElementById('sidebar').classList.contains('active')) toggleMenu();
         }
 
-        function renderCharacters() {
-            const grid = document.getElementById('contentGrid');
-            const elementFilter = document.getElementById('elementFilter').value;
-            grid.innerHTML = '';
-
-            const filtered = genshinData.filter(char => {
-                return elementFilter === 'all' || char.element === elementFilter;
-            });
-
-            filtered.forEach(char => {
-                const card = document.createElement('div');
-                card.className = `card ${char.element}`;
-                card.innerHTML = `
-                    <h3>${char.name}</h3>
-                    <div class="material-tag" style="background:#555;">${char.element}</div>
-                    <div class="material-tag">${char.talentMat}</div>
-                    <div class="material-tag" style="background:#222;">${char.bossMat}</div>
-                `;
-                grid.appendChild(card);
-            });
-        }
-
-        function initApp() {
-            switchView('today');
-        }
-
-        fetchGenshinData();
+        // ページ読み込み時に実行
+        window.onload = loadData;
     </script>
 </body>
 </html>
