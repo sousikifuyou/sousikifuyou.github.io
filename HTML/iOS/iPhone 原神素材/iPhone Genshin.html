@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>原神素材_R0.13</title>
+    <title>原神素材_R0.14</title>
     <style>
-        /* CSS変数によるダークテーマ定義 */
         :root {
             --bg-color: #121212;
             --card-bg: #1e1e1e;
@@ -15,7 +14,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
@@ -23,7 +22,6 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* ヘッダー・ナビゲーション */
         header {
             display: flex;
             justify-content: space-between;
@@ -38,7 +36,6 @@
 
         h1 { margin: 0; font-size: 1.2rem; }
 
-        /* ハンバーガーメニュー */
         .menu-btn {
             background: none;
             border: none;
@@ -80,13 +77,11 @@
             font-size: 1.5rem;
         }
 
-        /* メインコンテンツエリア */
         main { padding: 15px; }
 
-        /* フィルターUI */
         .filter-section {
             margin-bottom: 15px;
-            display: none; /* キャラ一覧モードの時だけ表示 */
+            display: none;
         }
         select {
             background-color: var(--card-bg);
@@ -99,10 +94,9 @@
             font-size: 1rem;
         }
 
-        /* カードデザイン */
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 12px;
         }
 
@@ -124,16 +118,17 @@
             margin: 2px;
         }
 
-        /* 属性別カラー（簡易版） */
-        .pyro { border-left: 4px solid #ff4e50; }
-        .hydro { border-left: 4px solid #2196f3; }
-        .anemo { border-left: 4px solid #00ffcc; }
-        .electro { border-left: 4px solid #af7ac5; }
-        .dendro { border-left: 4px solid #2ecc71; }
-        .cryo { border-left: 4px solid #85c1e9; }
-        .geo { border-left: 4px solid #f1c40f; }
+        /* 属性カラー(英語名に連動) */
+        .pyro, .fire { border-top: 4px solid #ff4e50; }
+        .hydro, .water { border-top: 4px solid #2196f3; }
+        .anemo, .wind { border-top: 4px solid #00ffcc; }
+        .electro, .electric { border-top: 4px solid #af7ac5; }
+        .dendro, .grass { border-top: 4px solid #2ecc71; }
+        .cryo, .ice { border-top: 4px solid #85c1e9; }
+        .geo, .rock { border-top: 4px solid #f1c40f; }
 
-        .loading { text-align: center; padding: 5px; color: #888; }
+        .loading { text-align: center; padding: 20px; color: #888; }
+        .error-msg { color: #ff4e50; text-align: center; padding: 20px; }
     </style>
 </head>
 <body>
@@ -153,88 +148,73 @@
         <div id="filterSection" class="filter-section">
             <select id="elementFilter" onchange="renderCharacters()">
                 <option value="all">すべての属性</option>
-                <option value="Pyro">炎属性</option>
-                <option value="Hydro">水属性</option>
-                <option value="Anemo">風属性</option>
-                <option value="Electro">雷属性</option>
-                <option value="Dendro">草属性</option>
-                <option value="Cryo">氷属性</option>
-                <option value="Geo">岩属性</option>
+                <option value="炎">炎属性</option>
+                <option value="水">水属性</option>
+                <option value="風">風属性</option>
+                <option value="雷">雷属性</option>
+                <option value="草">草属性</option>
+                <option value="氷">氷属性</option>
+                <option value="岩">岩属性</option>
             </select>
         </div>
 
-        <div id="loading" class="loading">データを自動読み込み中...</div>
+        <div id="statusMessage" class="loading">最新データをサーバーから読み込み中...</div>
         <div id="contentGrid" class="grid"></div>
     </main>
 
     <script>
-        // APIから取得したデータを保持する変数
         let genshinData = [];
-        let currentView = 'today'; // 'today' or 'characters'
-
-        // 曜日マッピング (JavaScriptの 0:日〜6:土)
+        let currentView = 'today';
         const dayNames = ["日曜日 (全開放)", "月曜日/木曜日", "火曜日/金曜日", "水曜日/土曜日", "月曜日/木曜日", "火曜日/金曜日", "水曜日/土曜日"];
 
-        // 1. 外部サーバーから最新のキャラクターデータを自動読み込み (API)
-        // ※有志が更新しているオープンソースのRAWデータ（JSON）をフェッチします
+        // 天賦素材の名前から曜日を自動判定する
+        function getDayOfWeek(materialName) {
+            if (!materialName) return [0,1,2,3,4,5,6];
+            if (/自由|繁栄|奮起|公平|あやかり/.test(materialName)) return [1, 4]; 
+            if (/抗争|勤労|風雅|熱誠|焚化/.test(materialName)) return [2, 5]; 
+            if (/詩文|黄金|浮世|篤行|正義|秩序/.test(materialName)) return [3, 6]; 
+            return [0,1,2,3,4,5,6]; 
+        }
+
+        // 最も安定している有志の「最新日本語全キャラデータ」を直接取得
         async function fetchGenshinData() {
             try {
-                // 例として、高頻度で更新されるMinatoGenshin等のデータをデモ用にシンプル化したエンドポイント
-                // 本番環境では安定した独自のJSON、または信頼できるGenshin API（Genshin.dev等）に差し替え可能です。
-                const response = await fetch('https://raw.githubusercontent.com/theBowja/genshin-db/master/src/data/japanese/characters.json');
-                
-                // 上記が万が一繋がらない場合の統合データ(ダミー兼フォールバック)
-                if(!response.ok) throw new Error();
+                // jsDelivrのCDNを経由させることで、iPhone SafariのCORS制限を突破し、高速に取得できます
+                const response = await fetch('https://cdn.jsdelivr.net/gh/theBowja/genshin-db@main/src/data/japanese/characters.json');
+                if (!response.ok) throw new Error('APIの読み込みに失敗しました');
                 
                 const rawData = await response.json();
                 
-                // データを扱いやすい形に整形（APIの構造によって調整してください）
+                // データをアプリ用に整形
                 genshinData = Object.keys(rawData).map(key => {
                     const char = rawData[key];
                     return {
                         name: char.name,
-                        element: char.element,
-                        // 天賦素材の曜日（仮にAPIから取得、無ければ文字検索など）
-                        // ※自動取得の肝：APIデータ内の「dayOfWeek」や「material」を参照する構造にします
-                        dayOfWeek: guessDayOfWeek(char.talentMaterialType), 
+                        element: char.elementText || char.element, // 「炎」「水」などの日本語、または英語名
                         talentMat: char.talentMaterialType || "不明の素材",
-                        bossMat: char.bossMaterialType || "週ボス素材"
+                        bossMat: char.bossMaterialType || "週ボス不明",
+                        dayOfWeek: getDayOfWeek(char.talentMaterialType)
                     };
-                });
+                }).filter(char => char.name !== "旅人"); // 重複しやすい旅人を除外
 
-                document.getElementById('loading').style.display = 'none';
+                document.getElementById('statusMessage').style.display = 'none';
                 initApp();
             } catch (error) {
-                console.error("データ取得失敗。ローカルのバックアップを読み込みます", error);
-                // サーバーダウン時のフォールバック（最低限の動作保証）
-                genshinData = [
-                    { name: "神里綾華", element: "Cryo", dayOfWeek: [2, 5], talentMat: "「風雅」", bossMat: "血玉の枝" },
-                    { name: "鍾離", element: "Geo", dayOfWeek: [3, 6], talentMat: "「黄金」", bossMat: "武煉の魂・孤影" },
-                    { name: "ナヒーダ", element: "Dendro", dayOfWeek: [2, 5], talentMat: "「創意」", bossMat: "傀儡の糸" }
-                ];
-                document.getElementById('loading').style.display = 'none';
-                initApp();
+                console.error(error);
+                document.getElementById('statusMessage').className = 'error-msg';
+                document.getElementById('statusMessage').textContent = 'APIからのデータ取得に失敗しました。時間をおいて再度お試しください。';
             }
         }
 
-        // 天賦素材名から曜日を推測する簡易ロジック（自動化を補佐）
-        function guessDayOfWeek(materialName) {
-            if (!materialName) return [0,1,2,3,4,5,6];
-            if (/自由|繁栄|奮起|公平/.test(materialName)) return [1, 4]; // 月木
-            if (/抗争|勤労|風雅|熱誠/.test(materialName)) return [2, 5]; // 火金
-            if (/詩文|黄金|浮世|篤行/.test(materialName)) return [3, 6]; // 水土
-            return [0,1,2,3,4,5,6];
-        }
-
-        // ハンバーガーメニューの開閉
         function toggleMenu() {
             document.getElementById('sideNav').classList.toggle('open');
         }
 
-        // 画面の切り替え（本日 vs キャラ一覧）
         function switchView(view) {
             currentView = view;
-            toggleMenu();
+            if(document.getElementById('sideNav').classList.contains('open')) {
+                toggleMenu();
+            }
             
             const title = document.getElementById('view-title');
             const filterSection = document.getElementById('filterSection');
@@ -251,22 +231,16 @@
             }
         }
 
-        // 【モード1】本日の曜日素材の表示
         function renderTodayMaterials(day) {
             const grid = document.getElementById('contentGrid');
             grid.innerHTML = '';
 
-            // 本日の曜日に合致するキャラを抽出
             const filtered = genshinData.filter(char => day === 0 || char.dayOfWeek.includes(day));
-
-            if(filtered.length === 0) {
-                grid.innerHTML = '<p>対象データがありません</p>';
-                return;
-            }
 
             filtered.forEach(char => {
                 const card = document.createElement('div');
-                card.className = `card ${char.element.toLowerCase()}`;
+                // 属性名（日本語・英語両方に対応したクラス名付与）
+                card.className = `card ${char.element === '炎' ? 'pyro' : char.element === '水' ? 'hydro' : char.element === '風' ? 'anemo' : char.element === '雷' ? 'electro' : char.element === '草' ? 'dendro' : char.element === '氷' ? 'cryo' : char.element === '岩' ? 'geo' : 'default'}`;
                 card.innerHTML = `
                     <h3>${char.name}</h3>
                     <div class="material-tag">${char.talentMat}</div>
@@ -275,7 +249,6 @@
             });
         }
 
-        // 【モード2】キャラクター一覧（属性絞り込み付き）の表示
         function renderCharacters() {
             const grid = document.getElementById('contentGrid');
             const elementFilter = document.getElementById('elementFilter').value;
@@ -287,7 +260,7 @@
 
             filtered.forEach(char => {
                 const card = document.createElement('div');
-                card.className = `card ${char.element.toLowerCase()}`;
+                card.className = `card ${char.element === '炎' ? 'pyro' : char.element === '水' ? 'hydro' : char.element === '風' ? 'anemo' : char.element === '雷' ? 'electro' : char.element === '草' ? 'dendro' : char.element === '氷' ? 'cryo' : char.element === '岩' ? 'geo' : 'default'}`;
                 card.innerHTML = `
                     <h3>${char.name}</h3>
                     <div class="material-tag" style="background:#555;">${char.element}</div>
@@ -298,12 +271,10 @@
             });
         }
 
-        // 初期化
         function initApp() {
             switchView('today');
         }
 
-        // 起動時にデータをフェッチ
         fetchGenshinData();
     </script>
 </body>
