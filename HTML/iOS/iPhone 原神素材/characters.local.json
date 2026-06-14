@@ -1,0 +1,79 @@
+{
+  "characters": [
+    { "key": "amber",      "name": "アンバー",       "element": "Pyro",    "weapon": "Bow",      "talentBooks": "freedom" },
+    { "key": "barbara",    "name": "バーバラ",       "element": "Hydro",   "weapon": "Catalyst", "talentBooks": "freedom" },
+    { "key": "klee",       "name": "クレー",         "element": "Pyro",    "weapon": "Catalyst", "talentBooks": "freedom" },
+    { "key": "diona",      "name": "ディオナ",       "element": "Cryo",    "weapon": "Bow",      "talentBooks": "freedom" },
+    { "key": "sucrose",    "name": "スクロース",     "element": "Anemo",   "weapon": "Catalyst", "talentBooks": "freedom" },
+
+    { "key": "diluc",      "name": "ディルック",     "element": "Pyro",    "weapon": "Claymore", "talentBooks": "resistance" },
+    { "key": "jean",       "name": "ジン",           "element": "Anemo",   "weapon": "Sword",    "talentBooks": "resistance" },
+    { "key": "eula",       "name": "エウルア",       "element": "Cryo",    "weapon": "Claymore", "talentBooks": "resistance" },
+    { "key": "bennett",    "name": "ベネット",       "element": "Pyro",    "weapon": "Sword",    "talentBooks": "resistance" },
+    { "key": "razor",      "name": "レザー",         "element": "Electro", "weapon": "Claymore", "talentBooks": "resistance" },
+    { "key": "mona",       "name": "モナ",           "element": "Hydro",   "weapon": "Catalyst", "talentBooks": "resistance" },
+
+    { "key": "fischl",     "name": "フィッシュル",   "element": "Electro", "weapon": "Bow",      "talentBooks": "ballad" },
+    { "key": "kaeya",      "name": "ガイア",         "element": "Cryo",    "weapon": "Sword",    "talentBooks": "ballad" },
+    { "key": "lisa",       "name": "リサ",           "element": "Electro", "weapon": "Catalyst", "talentBooks": "ballad" },
+    { "key": "albedo",     "name": "アルベド",       "element": "Geo",     "weapon": "Sword",    "talentBooks": "ballad" },
+    { "key": "venti",      "name": "ウェンティ",     "element": "Anemo",   "weapon": "Bow",      "talentBooks": "ballad" },
+
+    { "key": "keqing",     "name": "刻晴",           "element": "Electro", "weapon": "Sword",    "talentBooks": "prosperity" },
+    { "key": "ningguang",  "name": "凝光",           "element": "Geo",     "weapon": "Catalyst", "talentBooks": "prosperity" },
+    { "key": "qiqi",       "name": "七七",           "element": "Cryo",    "weapon": "Sword",    "talentBooks": "prosperity" },
+    { "key": "yelan",      "name": "夜蘭",           "element": "Hydro",   "weapon": "Bow",      "talentBooks": "prosperity" },
+
+    { "key": "xiao",       "name": "魈",             "element": "Anemo",   "weapon": "Polearm",  "talentBooks": "diligence" },
+    { "key": "hutao",      "name": "胡桃",           "element": "Pyro",    "weapon": "Polearm",  "talentBooks": "diligence" },
+    { "key": "ganyu",      "name": "甘雨",           "element": "Cryo",    "weapon": "Bow",      "talentBooks": "diligence" },
+    { "key": "xiangling",  "name": "香菱",           "element": "Pyro",    "weapon": "Polearm",  "talentBooks": "diligence" },
+    { "key": "yaoyao",     "name": "ヨーヨー",       "element": "Dendro",  "weapon": "Polearm",  "talentBooks": "diligence" },
+
+    { "key": "zhongli",    "name": "鍾離",           "element": "Geo",     "weapon": "Polearm",  "talentBooks": "gold" },
+    { "key": "xingqiu",    "name": "行秋",           "element": "Hydro",   "weapon": "Sword",    "talentBooks": "gold" },
+    { "key": "beidou",     "name": "北斗",           "element": "Electro", "weapon": "Claymore", "talentBooks": "gold" },
+    { "key": "yanfei",     "name": "煙緋",           "element": "Pyro",    "weapon": "Catalyst", "talentBooks": "gold" },
+
+    { "key": "yoimiya",    "name": "宵宮",           "element": "Pyro",    "weapon": "Bow",      "talentBooks": "transience" },
+    { "key": "kokomi",     "name": "珊瑚宮心海",     "element": "Hydro",   "weapon": "Catalyst", "talentBooks": "transience" },
+    { "key": "heizou",     "name": "鹿野院平蔵",     "element": "Anemo",   "weapon": "Catalyst", "talentBooks": "transience" },
+    { "key": "thoma",      "name": "トーマ",         "element": "Pyro",    "weapon": "Polearm",  "talentBooks": "transience" },
+
+    { "key": "ayaka",      "name": "神里綾華",       "element": "Cryo",    "weapon": "Sword",    "talentBooks": "elegance" },
+    { "key": "ayato",      "name": "神里綾人",       "element": "Hydro",   "weapon": "Sword",    "talentBooks": "elegance" },
+    { "key": "sara",       "name": "九条裟羅",       "element": "Electro", "weapon": "Bow",      "talentBooks": "elegance" },
+    { "key": "itto",       "name": "荒瀧一斗",       "element": "Geo",     "weapon": "Claymore", "talentBooks": "elegance" },
+    { "key": "kuki",       "name": "久岐忍",         "element": "Electro", "weapon": "Sword",    "talentBooks": "elegance" },
+
+    { "key": "raiden",     "name": "雷電将軍",       "element": "Electro", "weapon": "Polearm",  "talentBooks": "light" },
+    { "key": "yaemiko",    "name": "八重神子",       "element": "Electro", "weapon": "Catalyst", "talentBooks": "light" },
+    { "key": "gorou",      "name": "ゴロー",         "element": "Geo",     "weapon": "Bow",      "talentBooks": "light" },
+    { "key": "kirara",     "name": "綺良々",         "element": "Dendro",  "weapon": "Sword",    "talentBooks": "transience" },
+
+    { "key": "tighnari",   "name": "ティナリ",       "element": "Dendro",  "weapon": "Bow",      "talentBooks": "admonition" },
+    { "key": "cyno",       "name": "セノ",           "element": "Electro", "weapon": "Polearm",  "talentBooks": "admonition" },
+    { "key": "candace",    "name": "キャンディス",   "element": "Hydro",   "weapon": "Polearm",  "talentBooks": "admonition" },
+    { "key": "faruzan",    "name": "ファルザン",     "element": "Anemo",   "weapon": "Bow",      "talentBooks": "admonition" },
+
+    { "key": "nahida",     "name": "ナヒーダ",       "element": "Dendro",  "weapon": "Catalyst", "talentBooks": "ingenuity" },
+    { "key": "alhaitham",  "name": "アルハイゼン",   "element": "Dendro",  "weapon": "Sword",    "talentBooks": "ingenuity" },
+    { "key": "kaveh",      "name": "カーヴェ",       "element": "Dendro",  "weapon": "Claymore", "talentBooks": "ingenuity" },
+    { "key": "layla",      "name": "レイラ",         "element": "Cryo",    "weapon": "Sword",    "talentBooks": "ingenuity" },
+
+    { "key": "nilou",      "name": "ニィロウ",       "element": "Hydro",   "weapon": "Sword",    "talentBooks": "praxis" },
+    { "key": "wanderer",   "name": "放浪者",         "element": "Anemo",   "weapon": "Catalyst", "talentBooks": "praxis" },
+    { "key": "dehya",      "name": "ディシア",       "element": "Pyro",    "weapon": "Claymore", "talentBooks": "praxis" },
+
+    { "key": "neuvillette","name": "ヌヴィレット",   "element": "Hydro",   "weapon": "Catalyst", "talentBooks": "equity" },
+    { "key": "lyney",      "name": "リネ",           "element": "Pyro",    "weapon": "Bow",      "talentBooks": "justice" },
+    { "key": "lynette",    "name": "リネット",       "element": "Anemo",   "weapon": "Sword",    "talentBooks": "order" },
+    { "key": "freminet",   "name": "フレミネ",       "element": "Cryo",    "weapon": "Claymore", "talentBooks": "justice" },
+    { "key": "furina",     "name": "フリーナ",       "element": "Hydro",   "weapon": "Sword",    "talentBooks": "order" },
+    { "key": "wriothesley","name": "リオセスリ",     "element": "Cryo",    "weapon": "Catalyst", "talentBooks": "order" },
+    { "key": "navia",      "name": "ナヴィア",       "element": "Geo",     "weapon": "Claymore", "talentBooks": "justice" },
+    { "key": "charlotte",  "name": "シャルロット",   "element": "Cryo",    "weapon": "Catalyst", "talentBooks": "order" },
+    { "key": "clorinde",   "name": "クロリンデ",     "element": "Electro", "weapon": "Sword",    "talentBooks": "justice" },
+    { "key": "sigewinne",  "name": "セトス？/シグウィンヌ", "element": "Hydro", "weapon": "Bow", "talentBooks": "justice" }
+  ]
+}
