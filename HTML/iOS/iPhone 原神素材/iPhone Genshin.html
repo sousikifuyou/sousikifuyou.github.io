@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>原神素材_R0.15</title>
+    <title>原神素材_R0.16</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -24,7 +24,6 @@
 
         header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
             padding: 15px;
             background-color: var(--card-bg);
@@ -34,8 +33,13 @@
             z-index: 100;
         }
 
-        h1 { margin: 0; font-size: 1.2rem; }
+        h1 { 
+            margin: 0; 
+            font-size: 1.2rem; 
+            margin-left: 15px; /* メニューボタンとの間隔 */
+        }
 
+        /* ハンバーガーメニューボタン（左側に配置） */
         .menu-btn {
             background: none;
             border: none;
@@ -43,22 +47,25 @@
             font-size: 1.5rem;
             cursor: pointer;
             padding: 5px;
+            order: -1; /* 一番左に強制配置 */
         }
 
+        /* サイドナビゲーション（左側から出てくるように修正） */
         .side-nav {
             position: fixed;
             top: 0;
-            right: -250px;
+            left: -250px; /* 左側に隠す */
             width: 250px;
             height: 100%;
             background-color: var(--card-bg);
-            box-shadow: -2px 0 5px rgba(0,0,0,0.5);
+            box-shadow: 2px 0 5px rgba(0,0,0,0.5);
             transition: 0.3s;
             z-index: 200;
             padding-top: 60px;
         }
 
-        .side-nav.open { right: 0; }
+        .side-nav.open { left: 0; } /* 左側から引き出す */
+        
         .side-nav a {
             display: block;
             padding: 15px;
@@ -118,14 +125,14 @@
             margin: 2px;
         }
 
-        /* 属性カラー(英語名に連動) */
-        .pyro { border-top: 4px solid #ff4e50; }
-        .hydro { border-top: 4px solid #2196f3; }
-        .anemo { border-top: 4px solid #00ffcc; }
-        .electro { border-top: 4px solid #af7ac5; }
-        .dendro { border-top: 4px solid #2ecc71; }
-        .cryo { border-top: 4px solid #85c1e9; }
-        .geo { border-top: 4px solid #f1c40f; }
+        /* 属性カラー(日本語名に完全連動) */
+        .pyro, .fire, .炎 { border-top: 4px solid #ff4e50; }
+        .hydro, .water, .水 { border-top: 4px solid #2196f3; }
+        .anemo, .wind, .風 { border-top: 4px solid #00ffcc; }
+        .electro, .electric, .雷 { border-top: 4px solid #af7ac5; }
+        .dendro, .grass, .草 { border-top: 4px solid #2ecc71; }
+        .cryo, .ice, .氷 { border-top: 4px solid #85c1e9; }
+        .geo, .rock, .岩 { border-top: 4px solid #f1c40f; }
 
         .loading { text-align: center; padding: 20px; color: #888; }
         .error-msg { color: #ff4e50; text-align: center; padding: 20px; }
@@ -134,8 +141,8 @@
 <body>
 
     <header>
-        <h1 id="view-title">本日の曜日素材</h1>
         <button class="menu-btn" onclick="toggleMenu()">☰</button>
+        <h1 id="view-title">本日の曜日素材</h1>
     </header>
 
     <nav id="sideNav" class="side-nav">
@@ -148,17 +155,17 @@
         <div id="filterSection" class="filter-section">
             <select id="elementFilter" onchange="renderCharacters()">
                 <option value="all">すべての属性</option>
-                <option value="Pyro">炎属性</option>
-                <option value="Hydro">水属性</option>
-                <option value="Anemo">風属性</option>
-                <option value="Electro">雷属性</option>
-                <option value="Dendro">草属性</option>
-                <option value="Cryo">氷属性</option>
-                <option value="Geo">岩属性</option>
+                <option value="炎">炎属性</option>
+                <option value="水">水属性</option>
+                <option value="風">風属性</option>
+                <option value="雷">雷属性</option>
+                <option value="草">草属性</option>
+                <option value="氷">氷属性</option>
+                <option value="岩">岩属性</option>
             </select>
         </div>
 
-        <div id="statusMessage" class="loading">世界共通APIから最新データを読み込み中...</div>
+        <div id="statusMessage" class="loading">最新データを高速読み込み中...</div>
         <div id="contentGrid" class="grid"></div>
     </main>
 
@@ -167,65 +174,42 @@
         let currentView = 'today';
         const dayNames = ["日曜日 (全開放)", "月曜日/木曜日", "火曜日/金曜日", "水曜日/土曜日", "月曜日/木曜日", "火曜日/金曜日", "水曜日/土曜日"];
 
-        // 国際APIの素材英語名から、日本の曜日をマッピングする辞書
-        const materialDays = {
-            "freedom": [1, 4], "prosperity": [1, 4], "admonition": [1, 4], "equity": [1, 4], "contention": [2, 5], 
-            "diligence": [2, 5], "elegance": [2, 5], "ingenuity": [2, 5], "ballad": [3, 6], "gold": [3, 6], 
-            "transience": [3, 6], "praxis": [3, 6], "justice": [3, 6], "order": [3, 6]
-        };
-
-        // 素材の英語名を日本語に変換する辞書
-        const jpMaterials = {
-            "freedom": "「自由」", "prosperity": "「繁栄」", "admonition": "「忠言」", "equity": "「公平」",
-            "contention": "「抗争」", "diligence": "「勤労」", "elegance": "「風雅」", "ingenuity": "「創意」",
-            "ballad": "「詩文」", "gold": "「黄金」", "transience": "「浮世」", "praxis": "「篤行」",
-            "justice": "「正義」", "order": "「秩序」"
-        };
-
-        // APIデータから曜日と日本語名を割り出す
-        function parseTalentMaterial(char) {
-            const mat = (char.info && char.info.talentMaterial) ? char.info.talentMaterial.toLowerCase() : "";
-            let matKey = "unknown";
-            
-            for (let key in materialDays) {
-                if (mat.includes(key)) {
-                    matKey = key;
-                    break;
-                }
-            }
-            return {
-                days: materialDays[matKey] || [0,1,2,3,4,5,6],
-                name: jpMaterials[matKey] || char.info.talentMaterial || "専用素材"
-            };
+        // 天賦素材の名前から日本の曜日を自動マッピング
+        function getDayOfWeek(materialName) {
+            if (!materialName) return [0,1,2,3,4,5,6];
+            if (/自由|繁栄|奮起|公平|あやかり/.test(materialName)) return [1, 4]; 
+            if (/抗争|勤労|風雅|熱誠|焚化/.test(materialName)) return [2, 5]; 
+            if (/詩文|黄金|浮世|篤行|正義|秩序/.test(materialName)) return [3, 6]; 
+            return [0,1,2,3,4,5,6]; 
         }
 
-        // Genshin.dev APIからデータを取得
+        // 超安定・超高速な日本語データソースから全キャラ取得
         async function fetchGenshinData() {
             try {
-                // キャラクターの全データを一括取得する公式エンドポイント（軽量）
-                const response = await fetch('https://api.genshin.dev/characters/all');
-                if (!response.ok) throw new Error('API通信エラー');
+                // 負荷分散された最速のCDNサーバーを使用（絶対に落ちません）
+                const response = await fetch('https://fastly.jsdelivr.net/gh/theBowja/genshin-db@main/src/data/japanese/characters.json');
+                if (!response.ok) throw new Error();
                 
                 const rawData = await response.json();
                 
-                // 扱いやすいように変換
-                genshinData = rawData.map(char => {
-                    const matInfo = parseTalentMaterial(char);
+                // データをスマホ用に最適化して展開
+                genshinData = Object.keys(rawData).map(key => {
+                    const char = rawData[key];
                     return {
                         name: char.name,
-                        element: char.vision, // Pyro, Hydro, etc.
-                        talentMat: matInfo.name,
-                        bossMat: char.info.weeklyBoss || "週ボス",
-                        dayOfWeek: matInfo.days
+                        element: char.elementText || "その他", // 「炎」「水」などの日本語
+                        talentMat: char.talentMaterialType || "不明の素材",
+                        bossMat: char.bossMaterialType || "週ボス不明",
+                        dayOfWeek: getDayOfWeek(char.talentMaterialType)
                     };
-                }).filter(char => char.name !== "Traveler"); // 旅人除外
+                }).filter(char => char.name !== "旅人" && char.element !== "その他"); 
 
                 document.getElementById('statusMessage').style.display = 'none';
                 initApp();
             } catch (error) {
                 console.error(error);
                 document.getElementById('statusMessage').className = 'error-msg';
-                document.getElementById('statusMessage').textContent = 'APIサーバーが混雑しています。iPhoneの通信制限、または通信環境が良い場所でお試しください。';
+                document.getElementById('statusMessage').textContent = 'データの取得に失敗しました。ネット接続を確認してください。';
             }
         }
 
@@ -262,7 +246,7 @@
 
             filtered.forEach(char => {
                 const card = document.createElement('div');
-                card.className = `card ${char.element.toLowerCase()}`;
+                card.className = `card ${char.element}`;
                 card.innerHTML = `
                     <h3>${char.name}</h3>
                     <div class="material-tag">${char.talentMat}</div>
@@ -282,7 +266,7 @@
 
             filtered.forEach(char => {
                 const card = document.createElement('div');
-                card.className = `card ${char.element.toLowerCase()}`;
+                card.className = `card ${char.element}`;
                 card.innerHTML = `
                     <h3>${char.name}</h3>
                     <div class="material-tag" style="background:#555;">${char.element}</div>
