@@ -1,267 +1,289 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>原神素材_R0.18</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="color-scheme" content="light dark">
+<title>原神素材_R0.20</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
 <style>
-  :root {
-    /* 標準ダークテーマ設定 */
-    --bg-color: #121212;
-    --card-bg: #1e1e1e;
-    --text-main: #ffffff;
-    --text-sub: #b3b3b3;
-    --accent: #ffb13f; /* 原神風のゴールド */
-    --border: #333333;
-    
-    /* 属性カラー */
-    --pyro: #ff9999;
-    --hydro: #80c0ff;
-    --anemo: #80ffd6;
-    --electro: #d980ff;
-    --dendro: #a6ff80;
-    --cryo: #99ffff;
-    --geo: #ffe680;
+  :root{ --bg:#0b0c10; --panel:#14171b; --text:#e9edf1; --muted:#a7b0bd; --accent:#6bb8ff; --chip:#1e232a; --border:#2a3038; --ok:#4ad295; --danger:#ff6b6b; --shadow:0 8px 22px rgba(0,0,0,.28); }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f6f8fb; --panel:#ffffff; --text:#0f1720; --muted:#5f6b7a; --accent:#0a6ad9; --chip:#eef3f8; --border:#e6ebf1; --shadow:0 8px 22px rgba(0,0,0,.08);}
   }
-  
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background-color: var(--bg-color); color: var(--text-main);
-    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Kaku Gothic ProN", sans-serif;
-    -webkit-text-size-adjust: 100%; touch-action: manipulation;
-  }
-
-  /* ヘッダー */
-  header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: env(safe-area-inset-top, 15px) 15px 15px 15px;
-    background-color: var(--card-bg); border-bottom: 1px solid var(--border);
-    position: sticky; top: 0; z-index: 100;
-  }
-  h1 { font-size: 1.2rem; }
-  .menu-btn { font-size: 1.5rem; background: none; border: none; color: var(--text-main); cursor: pointer; }
-
-  /* サイドバー (ハンバーガーメニュー) */
-  #sidebar {
-    position: fixed; top: 0; left: -100%;
-    width: 250px; height: 100%;
-    background-color: var(--card-bg); border-right: 1px solid var(--border);
-    transition: left 0.3s ease; z-index: 200;
-    padding: env(safe-area-inset-top, 20px) 20px 20px 20px;
-  }
-  #sidebar.open { left: 0; }
-  .close-btn { font-size: 1.8rem; background:none; border:none; color:var(--text-main); float:right; cursor:pointer;}
-  .menu-item {
-    display: block; width: 100%; padding: 15px 0; border-bottom: 1px solid var(--border);
-    color: var(--text-main); font-size: 1.1rem; text-align: left; background: none; border-top: none; border-left: none; border-right: none; margin-top: 40px; cursor: pointer;
-  }
-
-  /* オーバーレイ暗幕 */
-  #overlay {
-    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.6); z-index: 150;
-  }
-  #overlay.show { display: block; }
-
-  /* メインコンテンツ */
-  main { padding: 15px; padding-bottom: env(safe-area-inset-bottom, 15px); }
-  .section { display: none; animation: fadeIn 0.3s; }
-  .section.active { display: block; }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  h2 { font-size: 1.1rem; margin-bottom: 15px; border-left: 4px solid var(--accent); padding-left: 8px; }
-
-  /* ドロップダウン絞り込み */
-  select {
-    width: 100%; padding: 12px; margin-bottom: 15px; background: var(--card-bg);
-    color: var(--text-main); border: 1px solid var(--border); border-radius: 8px;
-    font-size: 1rem; appearance: none; outline: none;
-  }
-
-  /* カードUI */
-  .card {
-    background-color: var(--card-bg); padding: 15px; border-radius: 10px;
-    margin-bottom: 12px; border: 1px solid var(--border); box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  }
-  .card-title { font-weight: bold; margin-bottom: 8px; font-size: 1.1rem; }
-  .card-detail { font-size: 0.9rem; color: var(--text-sub); margin-bottom: 5px; line-height: 1.4; }
-  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-  .tag { padding: 4px 10px; border-radius: 15px; font-size: 0.8rem; background: #333; color: #121212; font-weight: bold; }
-  
-  /* 属性別左ボーダー色 */
-  .elem-炎 { border-left: 4px solid var(--pyro); }
-  .elem-水 { border-left: 4px solid var(--hydro); }
-  .elem-風 { border-left: 4px solid var(--anemo); }
-  .elem-雷 { border-left: 4px solid var(--electro); }
-  .elem-草 { border-left: 4px solid var(--dendro); }
-  .elem-氷 { border-left: 4px solid var(--cryo); }
-  .elem-岩 { border-left: 4px solid var(--geo); }
-
-  /* 読込中表示 */
-  #loading { text-align: center; padding: 50px; color: var(--accent); font-weight: bold; }
+  body.theme-dark{ --bg:#0b0c10; --panel:#14171b; --text:#e9edf1; --muted:#a7b0bd; --accent:#6bb8ff; --chip:#1e232a; --border:#2a3038; --ok:#4ad295; --danger:#ff6b6b; --shadow:0 8px 22px rgba(0,0,0,.28); }
+  body.theme-light{ --bg:#f6f8fb; --panel:#ffffff; --text:#0f1720; --muted:#5f6b7a; --accent:#0a6ad9; --chip:#eef3f8; --border:#e6ebf1; --shadow:0 8px 22px rgba(0,0,0,.08); }
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Hiragino Kaku Gothic ProN","Yu Gothic UI",sans-serif}
+  header{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--panel);border-bottom:1px solid var(--border)}
+  .hamburger{width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text);display:grid;place-items:center}
+  .hamburger span{display:block;width:18px;height:2px;background:var(--text);position:relative}
+  .hamburger span:before,.hamburger span:after{content:"";position:absolute;left:0;width:18px;height:2px;background:var(--text)}
+  .hamburger span:before{top:-6px}.hamburger span:after{top:6px}
+  .title{font-weight:700;font-size:16px}
+  .subtitle{color:var(--muted);font-size:12px}
+  main{padding:14px}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:14px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+  .chip{padding:8px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--border);font-size:12px;color:var(--text)}
+  .chip[aria-pressed="true"]{outline:2px solid var(--accent)}
+  .list{display:grid;gap:10px}
+  .item{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px}
+  .item h3{margin:0 0 6px 0;font-size:15px}
+  .muted{color:var(--muted);font-size:12px}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:var(--chip);font-size:11px;margin-right:6px}
+  .grid{display:grid;gap:10px}
+  .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .btn{padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:var(--chip);color:var(--text)}
+  .right{margin-left:auto}
+  .divider{height:1px;background:var(--border);margin:10px 0}
+  details summary{cursor:pointer;user-select:none}
 </style>
 </head>
 <body>
+  <header>
+    <button id="btnMenu" class="hamburger" aria-label="メニュー"><span></span></button>
+    <div>
+      <div class="title" id="appTitle">原神 曜日素材ビュー（自動更新）</div>
+      <div class="subtitle" id="subtitle"></div>
+    </div>
+    <button id="btnTheme" class="btn" aria-label="テーマ切替" title="テーマ切替">自動</button>
+    <button id="btnRefresh" class="btn right" aria-label="データ更新">データ更新</button>
+  </header>
 
-<header>
-  <h1 id="page-title">本日の曜日素材</h1>
-  <button class="menu-btn" onclick="toggleMenu()">☰</button>
-</header>
+  <div id="overlay" style="position:fixed;inset:0;display:none;background:rgba(0,0,0,.35);z-index:1100"></div>
 
-<div id="sidebar">
-  <button class="close-btn" onclick="toggleMenu()">×</button>
-  <button class="menu-item" onclick="switchTab('today')">📅 本日の天賦素材</button>
-  <button class="menu-item" style="margin-top:0;" onclick="switchTab('characters')">👤 キャラ選択・育成素材</button>
-</div>
-<div id="overlay" onclick="toggleMenu()"></div>
+  <nav id="drawer" class="drawer" aria-hidden="true" aria-label="ナビゲーション">
+    <div class="section-title">メニュー</div>
+    <div class="menu">
+      <a href="#" data-route="today" class="active">今日の曜日素材</a>
+      <a href="#" data-route="characters">キャラ選択</a>
+      <a href="#" data-route="about">このアプリについて</a>
+    </div>
+    <div class="muted" style="margin-top:8px">・同フォルダの characters.local.json を自動読込（HTTPS配布時）。</div>
+  </nav>
 
-<main>
-  <div id="loading">サーバーから最新データを読込中...</div>
+  <main>
+    <section id="view-today" class="grid" aria-live="polite">
+      <div class="panel">
+        <div class="row">
+          <div class="section-title">今日の曜日素材</div>
+          <div id="todayLabel" class="badge"></div>
+        </div>
+        <div class="chips" id="dayChips"></div>
+        <div class="chips" id="regionChips"></div>
+        <div id="todayTalent" class="list"></div>
+        <div class="divider"></div>
+        <div class="row"><div class="section-title">武器突破素材（秘境）</div></div>
+        <div id="todayWeapon" class="list"></div>
+      </div>
+    </section>
 
-  <div id="tab-today" class="section">
-    <h2>今日（<span id="today-day"></span>曜日）獲得できる天賦素材</h2>
-    <div id="today-content"></div>
-  </div>
+    <section id="view-characters" class="grid" style="display:none">
+      <div class="panel">
+        <div class="section-title">キャラ選択</div>
+        <div class="search"><input id="searchInput" type="search" placeholder="キャラ名で検索（例：宵宮）" enterkeyhint="search" /></div>
+        <div class="chips" id="elementChips"></div>
+        <div class="chips" id="weaponChips"></div>
+        <div id="charList" class="list"></div>
+      </div>
+    </section>
 
-  <div id="tab-characters" class="section">
-    <h2>キャラ別 育成素材全般</h2>
-    <select id="element-filter" onchange="filterCharacters()">
-      <option value="all">すべての属性</option>
-      <option value="炎">炎属性</option>
-      <option value="水">水属性</option>
-      <option value="風">風属性</option>
-      <option value="雷">雷属性</option>
-      <option value="草">草属性</option>
-      <option value="氷">氷属性</option>
-      <option value="岩">岩属性</option>
-    </select>
-    <div id="characters-content"></div>
-  </div>
-</main>
+    <section id="view-about" class="grid" style="display:none">
+      <div class="panel">
+        <div class="section-title">ローカルJSONとキャッシュ</div>
+        <div class="row" style="gap:8px">
+          <button id="btnImport" class="btn">ローカルJSONを読み込み</button>
+          <button id="btnExport" class="btn">現在のデータを書き出し</button>
+          <button id="btnReset"  class="btn danger">キャッシュ削除</button>
+          <span id="localInfo" class="muted"></span>
+        </div>
+        <input id="fileLocal" type="file" accept=".json,application/json" style="display:none" />
+        <div class="divider"></div>
+        <div class="muted">CORSで失敗する場合は USE_PROXY を有効化して自前の中継URLを設定してください。</div>
+      </div>
+    </section>
+  </main>
 
 <script>
-let genshinData = [];
+/* ===== 設定 ===== */
+const USE_LIVE_GENSHIN = true;
+const USE_LIVE_AMBR    = true;
+const GJ_BASE  = "https://genshin.jmp.blue";
+const AMBR_PRE = "https://api.ambr.top/v2";
+const USE_PROXY = false;
+const PROXY_URL = "https://your-workers-domain.example/proxy?u=";
+const AMBR_CONCURRENCY = 3;
 
-// 曜日の取得
-const dayNames = ["日", "月", "火", "水", "木", "金", "土"];
-const currentDay = dayNames[new Date().getDay()];
+/* ===== 基本データ ===== */
+const WEEK=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const WEEK_JA={Sun:"日",Mon:"月",Tue:"火",Wed:"水",Thu:"木",Fri:"金",Sat:"土"};
+const ELABEL={Pyro:"炎",Hydro:"水",Electro:"雷",Cryo:"氷",Anemo:"風",Geo:"岩",Dendro:"草"};
+const WLABEL={Sword:"片手剣",Claymore:"両手剣",Polearm:"長柄武器",Bow:"弓",Catalyst:"法器"};
+const TALENT_SERIES=[
+  {key:"freedom",name:"「自由」",region:"モンド",days:["Mon","Thu","Sun"]},
+  {key:"resistance",name:"「抗争」",region:"モンド",days:["Tue","Fri","Sun"]},
+  {key:"ballad",name:"「詩文」",region:"モンド",days:["Wed","Sat","Sun"]},
+  {key:"prosperity",name:"「繁栄」",region:"璃月",days:["Mon","Thu","Sun"]},
+  {key:"diligence",name:"「勤労」",region:"璃月",days:["Tue","Fri","Sun"]},
+  {key:"gold",name:"「黄金」",region:"璃月",days:["Wed","Sat","Sun"]},
+  {key:"transience",name:"「浮世」",region:"稲妻",days:["Mon","Thu","Sun"]},
+  {key:"elegance",name:"「風雅」",region:"稲妻",days:["Tue","Fri","Sun"]},
+  {key:"light",name:"「天光」",region:"稲妻",days:["Wed","Sat","Sun"]},
+  {key:"admonition",name:"「忠言」",region:"スメール",days:["Mon","Thu","Sun"]},
+  {key:"ingenuity",name:"「創意」",region:"スメール",days:["Tue","Fri","Sun"]},
+  {key:"praxis",name:"「篤行」",region:"スメール",days:["Wed","Sat","Sun"]},
+  {key:"equity",name:"「公平」",region:"フォンテーヌ",days:["Mon","Thu","Sun"]},
+  {key:"order",name:"「秩序」",region:"フォンテーヌ",days:["Tue","Fri","Sun"]},
+  {key:"justice",name:"「正義」",region:"フォンテーヌ",days:["Wed","Sat","Sun"]}
+];
+const WEAPON_SERIES=[
+  {key:"decarabian",name:"高塔の王の瓦（Decarabian系）",region:"モンド",days:["Mon","Thu","Sun"]},
+  {key:"boreal-wolf",name:"凛風奔狼（Boreal Wolf系）",region:"モンド",days:["Tue","Fri","Sun"]},
+  {key:"gladiator",name:"剣闘士（Gladiator系）",region:"モンド",days:["Wed","Sat","Sun"]},
+  {key:"guyun",name:"孤雲寒林（Guyun系）",region:"璃月",days:["Mon","Thu","Sun"]},
+  {key:"mist-veiled",name:"霧海雲間（Mist Veiled系）",region:"璃月",days:["Tue","Fri","Sun"]},
+  {key:"aerosiderite",name:"漆黒の隕鉄（Aerosiderite系）",region:"璃月",days:["Wed","Sat","Sun"]},
+  {key:"narukami",name:"鳴神御霊（Narukami系）",region:"稲妻",days:["Mon","Thu","Sun"]},
+  {key:"mask",name:"今昔劇画（Mask系）",region:"稲妻",days:["Tue","Fri","Sun"]},
+  {key:"branch",name:"遠海夷地（Branch系）",region:"稲妻",days:["Wed","Sat","Sun"]},
+  {key:"forest",name:"茂知の森（Forest系）",region:"スメール",days:["Mon","Thu","Sun"]},
+  {key:"scarab",name:"赤砂の王（Scarab系）",region:"スメール",days:["Tue","Fri","Sun"]},
+  {key:"oasis",name:"緑洲の花（Oasis系）",region:"スメール",days:["Wed","Sat","Sun"]},
+  {key:"machinist",name:"工匠の淵（Machinist系）",region:"フォンテーヌ",days:["Mon","Thu","Sun"]},
+  {key:"prism",name:"虹彩の棱晶（Prism系）",region:"フォンテーヌ",days:["Tue","Fri","Sun"]},
+  {key:"orderw",name:"秩序の遺産（Order系）",region:"フォンテーヌ",days:["Wed","Sat","Sun"]}
+];
+const LOCAL_CHARACTERS=[
+  {key:"amber",name:"アンバー",element:"Pyro",weapon:"Bow",talentBooks:"freedom"},
+  {key:"eula",name:"エウルア",element:"Cryo",weapon:"Claymore",talentBooks:"resistance"},
+  {key:"yoimiya",name:"宵宮",element:"Pyro",weapon:"Bow",talentBooks:"transience"},
+  {key:"kokomi",name:"珊瑚宮心海",element:"Hydro",weapon:"Catalyst",talentBooks:"transience"},
+  {key:"nahida",name:"ナヒーダ",element:"Dendro",weapon:"Catalyst",talentBooks:"ingenuity"}
+];
 
-// 初期データの読み込み処理 (自動化の要)
-async function loadData() {
-  try {
-    // 同じ階層に配置した data.json を読み込む。
-    // (?v=... をつけることで、iPhone Safari特有のキャッシュ残りを防ぎ、常に最新を読み込みます)
-    const response = await fetch('data.json?v=' + new Date().getTime());
-    if (!response.ok) throw new Error("JSONデータの取得に失敗しました");
-    
-    const json = await response.json();
-    genshinData = json.characters;
+/* ===== ストレージキー ===== */
+const K={ DATA:"genshin-app-v3", AMBR_DETAIL_PREFIX:"ambr-avatar-", LOCAL_OVERRIDES:"local-overrides-v1" };
 
-    // 読み込みが完了したらローディングを消す
-    document.getElementById('loading').style.display = 'none';
-    
-    // 画面の構築
-    document.getElementById('today-day').innerText = currentDay;
-    renderToday();
-    renderCharacters();
-    switchTab('today'); // 初期タブを開く
+/* ===== ユーティリティ ===== */
+const $=(s)=>document.querySelector(s);
+const WEEKKEY=()=>WEEK[new Date().getDay()];
+const safe=(s)=>String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]));
+const uniq=(a)=>[...new Set(a)];
+const groupBy=(arr,fn)=>{const m=new Map();for(const x of arr){const k=fn(x);if(!m.has(k))m.set(k,[]);m.get(k).push(x);}return m;};
+const proxy=(url)=>USE_PROXY?(PROXY_URL+encodeURIComponent(url)):url;
+async function fetchJSON(url,{timeout=12000}={}){const ctl=new AbortController();const id=setTimeout(()=>ctl.abort(),timeout);try{const r=await fetch(proxy(url),{cache:"no-cache",signal:ctl.signal});if(!r.ok)throw new Error(`HTTP ${r.status}`);return await r.json();}finally{clearTimeout(id);}}
+function mergeByKey(base,add,key="key"){const m=new Map((base||[]).map(x=>[x[key],x]));for(const it of(add||[])){const k=it[key];m.set(k,{...(m.get(k)||{}),...it});}return [...m.values()];}
+function normalizeName(s){return String(s||"").toLowerCase().replace(/\s+/g,"").replace(/[・・，,.\-_'’\"！!？?()（）]/g,"");}
 
-  } catch (error) {
-    document.getElementById('loading').innerText = "データの読み込みに失敗しました。data.jsonの配置を確認してください。";
-    console.error("Data Load Error:", error);
-  }
+/* ===== ライブ取得 ===== */
+async function pullGenshinCharacters(){try{const list=await fetchJSON(`${GJ_BASE}/characters/all?lang=ja`);const arr=Array.isArray(list)?list:Object.values(list||{});return arr.map(c=>{const key=(c.id||c.key||c.slug||(c.name||"").toLowerCase().replace(/\s+/g,"-")).toString();return{key,name:c.name||c.title||key,element:c.vision||c.element||"",weapon:c.weapon||c.weaponType||""};}).filter(x=>x.key&&x.name);}catch(e){console.warn("genshin failed:",e);return[];}}
+async function pullAmbrIndex(lang="ja"){try{const j=await fetchJSON(`${AMBR_PRE}/${lang}/avatar`);const items=(j&&j.data&&j.data.items)||(j&&j.items)||{};const byName=new Map();const byId=new Map();Object.values(items).forEach(v=>{const id=String(v.id||v.ID||v.avatarId||"");const name=v.name||v.title||"";if(id&&name){byId.set(id,v);byName.set(normalizeName(name),id);}});return{byName,byId};}catch(e){console.warn("ambr index failed:",e);return{byName:new Map(),byId:new Map()};}}
+async function pullAmbrIndexAuto(){for(const lang of ["ja","jp","en"]){const ix=await pullAmbrIndex(lang);if(ix.byName&&ix.byName.size){ix._lang=lang;return ix;}}return{byName:new Map(),byId:new Map(),_lang:null};}
+async function pullAmbrDetail(id,lang="ja"){try{const key=`${K.AMBR_DETAIL_PREFIX}${id}`;const c=localStorage.getItem(key);if(c){try{return JSON.parse(c);}catch{}}const j=await fetchJSON(`${AMBR_PRE}/${lang}/avatar/${id}`);localStorage.setItem(key,JSON.stringify(j));return j;}catch(e){console.warn("ambr detail failed:",e);return null;}}
+function buildCharsFromAmbr(ix){if(!ix||!ix.byId||!ix.byId.size)return[];const out=[];ix.byId.forEach((v,id)=>{out.push({key:String(v.slug||v.key||v.id||id),name:v.name||v.title||String(id),element:v.element||v.vision||v.attribute||"",weapon:v.weapon||v.weaponType||v.equipType||""});});return out;}
+
+/* ===== ambr応答パース ===== */
+function parseAmbrMaterials(d){if(!d)return{};const data=d.data||d||{};const pool=[];(function walk(n){if(!n||typeof n!=="object")return;if(Array.isArray(n)){n.forEach(walk);return}const hasId=("id"in n)||("ID"in n);const hasName=("name"in n)||("n"in n)||("title"in n);if(hasId&&hasName){pool.push({id:String(n.id??n.ID??""),name:String(n.name??n.n??n.title??""),type:String(n.type??n.category??n.t??"")});}for(const k of Object.keys(n))walk(n[k]);})(data);const isTB=(nm)=>/「(自由|抗争|詩文|繁栄|勤労|黄金|浮世|風雅|天光|忠言|創意|篤行|公平|秩序|正義)」/.test(nm);const isGem=(nm)=>/(瑪瑙|ラピス|翡翠|トパーズ|アメジスト|ターコイズ|エメラルド|宝石|欠片|塊|砕屑)/.test(nm);const isBoss=(nm)=>/(龍王|公子|征討|傀儡|符|しずく|冠|鏡|心臓|影胚|花|琴|尻尾|世界ボス|週ボス|征討領主)/.test(nm);const isEnemy=(nm)=>/(ヒルチャール|トリックフラワー|ファデュイ|盗賊|スライム|スペクター|浮遊|導灯|メカ|遺跡|キノコン|ハスク|亡命者|士官|狩人|ビシャップ|プラント)/.test(nm)||/(の仮面|の刀|の心|の芯|の爪|の機械|の欠片|の歯|の紋章|の記章)/.test(nm);const isLocal=(nm)=>/(特産|花|キノコ|玉|水晶|結晶|貝|コア|果実|蕊|花蜜)/.test(nm);const out={talentBook:[],gem:[],boss:[],enemy:[],local:[],other:[]};for(const it of pool){const nm=it.name;if(isTB(nm))out.talentBook.push(it);else if(isGem(nm))out.gem.push(it);else if(isBoss(nm))out.boss.push(it);else if(isEnemy(nm))out.enemy.push(it);else if(isLocal(nm))out.local.push(it);else out.other.push(it);}for(const k of Object.keys(out)){const s=new Set();out[k]=out[k].filter(x=>{const t=x.name+"#"+x.id;if(s.has(t))return false;s.add(t);return true;});}return out;}
+
+/* ===== アプリ状態 ===== */
+let appData={updatedAt:null,characters:[...LOCAL_CHARACTERS],materials:{talentSeries:TALENT_SERIES,weaponSeries:WEAPON_SERIES},usage:{talentBySeries:{}},ambrIndex:{byName:new Map(),byId:new Map(),_lang:null}};
+
+/* ===== 補助（ローカル→欠落補完） ===== */
+function updateTalentUsage(charKey,seriesKey){if(!appData.usage.talentBySeries[seriesKey])appData.usage.talentBySeries[seriesKey]=[];if(!appData.usage.talentBySeries[seriesKey].includes(charKey))appData.usage.talentBySeries[seriesKey].push(charKey);}
+function backfillLocalMappings(){const base=new Map(LOCAL_CHARACTERS.map(x=>[x.key,x.talentBooks]));for(const c of appData.characters){if(!c.talentBooks&&base.has(c.key))c.talentBooks=base.get(c.key);}appData.usage.talentBySeries={};for(const c of appData.characters){if(c.talentBooks)updateTalentUsage(c.key,c.talentBooks);}}
+
+/* ===== ローカルJSON（同フォルダ/手動） ===== */
+async function tryFetchRelativeLocal(){try{if(!/^https?:$/i.test(location.protocol))return{ok:false};const res=await fetch("./characters.local.json",{cache:"no-cache"});if(!res.ok)return{ok:false};const data=await res.json();const merged=mergeLocalOverrides(normalizeLocalSchema(data));return{ok:true,count:merged.length};}catch(e){return{ok:false};}}
+function normalizeLocalSchema(j){if(Array.isArray(j))return{characters:j};if(j&&typeof j==="object"&&Array.isArray(j.characters))return j;return{characters:[]};}
+function mergeLocalOverrides(pack){const chars=(pack.characters||[]).map(x=>({key:String(x.key||x.id||x.slug||"").trim(),name:String(x.name||"").trim(),element:x.element||x.vision||"",weapon:x.weapon||x.weaponType||"",talentBooks:x.talentBooks||x.talent||undefined})).filter(x=>x.key&&x.name);if(chars.length){appData.characters=mergeByKey(appData.characters,chars,"key");backfillLocalMappings();localStorage.setItem(K.LOCAL_OVERRIDES,JSON.stringify(pack));}return chars;}
+
+/* ===== テーマ ===== */
+const THEME_KEY="theme-pref-v1";
+function applyTheme(pref,{save=true}={}){document.body.classList.remove("theme-dark","theme-light");if(pref==="dark")document.body.classList.add("theme-dark");if(pref==="light")document.body.classList.add("theme-light");const b=$("#btnTheme");if(b){b.textContent=pref==="auto"?"自動":(pref==="dark"?"🌙":"☀️");b.setAttribute("aria-label",`テーマ切替（現在：${pref==="auto"?"自動":pref==="dark"?"ダーク":"ライト"}）`);}if(save)localStorage.setItem(THEME_KEY,pref);}
+function nextTheme(p){if(p==="auto")return"dark";if(p==="dark")return"light";return"auto";}
+const mqlDark=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)");
+if(mqlDark&&mqlDark.addEventListener){mqlDark.addEventListener("change",()=>{if((localStorage.getItem(THEME_KEY)||"auto")==="auto")applyTheme("auto",{save:false});});}
+document.addEventListener("DOMContentLoaded",()=>{const b=$("#btnTheme");if(b){applyTheme(localStorage.getItem(THEME_KEY)||"auto",{save:false});b.onclick=()=>{const n=nextTheme(localStorage.getItem(THEME_KEY)||"auto");applyTheme(n);toast?.(`テーマ: ${n==="auto"?"自動":n==="dark"?"ダーク":"ライト"}`);};}});
+
+/* ===== 画面描画 ===== */
+function setRoute(route){document.querySelectorAll(".menu a").forEach(a=>a.classList.toggle("active",a.dataset.route===route));$("#view-today").style.display=route==="today"?"grid":"none";$("#view-characters").style.display=route==="characters"?"grid":"none";$("#view-about").style.display=route==="about"?"grid":"none";$("#subtitle").textContent=route==="today"?"今日の曜日素材":route==="characters"?"キャラ選択":"このアプリについて";if(route==="today")renderToday();if(route==="characters")renderCharacters();}
+function renderToday(){const dc=$("#dayChips");dc.innerHTML="";const JA2KEY={日:"Sun",月:"Mon",火:"Tue",水:"Wed",木:"Thu",金:"Fri",土:"Sat"};["今日","月","火","水","木","金","土","日"].forEach((lab,i)=>{const b=document.createElement("button");b.className="chip";b.textContent=lab;b.setAttribute("aria-pressed",i===0?"true":"false");b.onclick=()=>{dc.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true");list();};dc.appendChild(b);});function activeDayKey(){const t=[...dc.querySelectorAll(".chip")].find(c=>c.getAttribute("aria-pressed")==="true")?.textContent||"今日";return t==="今日"?WEEKKEY():(JA2KEY[t]||WEEKKEY());}
+const rc=$("#regionChips");rc.innerHTML="";const regions=uniq(TALENT_SERIES.map(x=>x.region));const addChip=(label,on)=>{const b=document.createElement("button");b.className="chip";b.textContent=label;b.setAttribute("aria-pressed",on?"true":"false");b.onclick=()=>{rc.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true");list();};rc.appendChild(b);};addChip("すべて",true);regions.forEach(r=>addChip(r,false));const activeRegion=()=>[...rc.querySelectorAll(".chip")].find(c=>c.getAttribute("aria-pressed")==="true")?.textContent||"すべて";
+function list(){const w=activeDayKey();const region=activeRegion();$("#todayLabel").textContent=`表示中（${WEEK_JA[w]}）`;const charByBook=groupBy(appData.characters.filter(c=>!!c.talentBooks),c=>c.talentBooks);
+const tList=$("#todayTalent");tList.innerHTML="";const tSeries=TALENT_SERIES.filter(s=>w==="Sun"||s.days.includes(w)).filter(s=>region==="すべて"?true:s.region===region);if(w==="Sun"){const info=document.createElement("div");info.className="muted";info.textContent="日曜は全シリーズ開放。";tList.appendChild(info);}for(const s of tSeries){const users=(charByBook.get(s.key)||[]).map(c=>c.name);const el=document.createElement("div");el.className="item";el.innerHTML=`<h3>${safe(s.name)} <span class="badge">${safe(s.region)}</span></h3><div class="muted">開放曜日：${s.days.map(d=>WEEK_JA[d]).join("・")}</div><div style="margin-top:6px">使用キャラ： ${users.length?users.map(n=>`<span class="badge">${safe(n)}</span>`).join(" "):'<span class="muted">取得中…（自動更新後に反映）</span>'}</div>`;tList.appendChild(el);}
+const wList=$("#todayWeapon");wList.innerHTML="";const wSeries=WEAPON_SERIES.filter(s=>w==="Sun"||s.days.includes(w)).filter(s=>region==="すべて"?true:s.region===region);for(const s of wSeries){const el=document.createElement("div");el.className="item";el.innerHTML=`<h3>${safe(s.name)} <span class="badge">${safe(s.region)}</span></h3><div class="muted">開放曜日：${s.days.map(d=>WEEK_JA[d]).join("・")}</div>`;wList.appendChild(el);}}
+list();}
+function renderCharacters(){const elems=["All","Pyro","Hydro","Electro","Cryo","Anemo","Geo","Dendro"];const weapons=["All","Sword","Claymore","Polearm","Bow","Catalyst"];const ec=$("#elementChips");ec.innerHTML="";elems.forEach((e,i)=>{const b=document.createElement("button");b.className="chip";b.textContent=e==="All"?"元素：すべて":`${ELABEL[e]} (${e})`;b.setAttribute("aria-pressed",i===0?"true":"false");b.onclick=()=>{ec.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true");list();};ec.appendChild(b);});const wc=$("#weaponChips");wc.innerHTML="";weapons.forEach((w,i)=>{const b=document.createElement("button");b.className="chip";b.textContent=w==="All"?"武器：すべて":`${WLABEL[w]} (${w})`;b.setAttribute("aria-pressed",i===0?"true":"false");b.onclick=()=>{wc.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true");list();};wc.appendChild(b);});$("#searchInput").oninput=()=>list();
+function active(sel){const a=[...sel.querySelectorAll(".chip")].find(c=>c.getAttribute("aria-pressed")==="true");if(!a)return"All";const m=a.textContent.match(/$(\w+)$$/);return m?m[1]:"All";}
+function list(){const q=($("#searchInput").value||"").trim().toLowerCase();const e=active(ec),w=active(wc);const out=$("#charList");out.innerHTML="";const arr=appData.characters.filter(c=>e==="All"?true:c.element===e).filter(c=>w==="All"?true:c.weapon===w).filter(c=>!q?true:(c.name.toLowerCase().includes(q)||c.key.includes(q)));if(arr.length===0){const d=document.createElement("div");d.className="muted";d.textContent="該当キャラが見つかりません。";out.appendChild(d);return;}for(const c of arr){const sKey=c.talentBooks;const series=(TALENT_SERIES||[]).find(t=>t.key===sKey);const det=document.createElement("details");det.className="item";det.innerHTML=`<summary><h3 style="display:inline">${safe(c.name)}</h3><span class="badge">${ELABEL[c.element]||c.element||"?"}</span><span class="badge">${WLABEL[c.weapon]||c.weapon||"?"}</span></summary><div style="margin-top:6px"><div>天賦本： ${series?`<span class="badge">${safe(series.name)}</span> <span class="muted">（${series.days.map(d=>WEEK_JA[d]).join("・")}）</span>`:'<span class="muted">自動判定中…</span>'}</div><div style="margin-top:6px">突破素材： <span id="asc-${safe(c.key)}" class="muted">自動取得中…</span></div><div style="margin-top:6px">ボス/敵素材： <span id="mob-${safe(c.key)}" class="muted">自動取得中…</span></div></div>`;det.addEventListener("toggle",async()=>{if(det.open)await hydrateCharacterDetails(c);},{once:true});out.appendChild(det);}}list();}
+
+/* ===== データ構築 ===== */
+async function buildData(){
+  // 0) 同フォルダ JSON を先に読む（HTTPS配布時のみ）
+  const rel=await tryFetchRelativeLocal(); if(rel.ok) toast(`ローカルJSON ${rel.count}件`);
+
+  // 0.5) 手動インポート済みを反映
+  try{const savedLocal=JSON.parse(localStorage.getItem(K.LOCAL_OVERRIDES)||"null");if(savedLocal){mergeLocalOverrides(normalizeLocalSchema(savedLocal));}}catch{}
+
+  // 1) genshin
+  let gotFromGenshin=false;
+  if(USE_LIVE_GENSHIN){const live=await pullGenshinCharacters();if(live.length){appData.characters=mergeByKey(appData.characters,live,"key");gotFromGenshin=true;}}
+  backfillLocalMappings();
+
+  // 2) ambr インデックス（言語フォールバック）
+  if(USE_LIVE_AMBR){appData.ambrIndex=await pullAmbrIndexAuto();}
+
+  // 3) 5人問題の回避（genshin取れない場合はambr索引から全キャラ補完）
+  const tooFew=(appData.characters||[]).length<=LOCAL_CHARACTERS.length+1;
+  if(!gotFromGenshin||tooFew){const fromAmbr=buildCharsFromAmbr(appData.ambrIndex);if(fromAmbr.length){appData.characters=mergeByKey(appData.characters,fromAmbr,"key");}}
+
+  // 4) 詳細取得を並列開始
+  scheduleAmbrHydration();
+
+  // 5) 再描画
+  const current=document.querySelector(".menu a.active")?.dataset.route||"today";
+  setRoute(current);
 }
 
-// 今日の素材一覧を描画
-function renderToday() {
-  const container = document.getElementById('today-content');
-  container.innerHTML = '';
-  
-  // 日曜日はすべての素材が落ちるので "日" に該当するキャラ、または今日が対象のキャラを抽出
-  const todayChars = genshinData.filter(c => c.days.includes(currentDay) || currentDay === "日");
-  
-  // 素材の名前(「正義」など)ごとにキャラをグループ分け
-  const talents = {};
-  todayChars.forEach(c => {
-    if(!talents[c.talent]) talents[c.talent] = [];
-    talents[c.talent].push(c);
-  });
-
-  if (Object.keys(talents).length === 0) {
-    container.innerHTML = '<p>今日の対象素材はありません。</p>';
-    return;
-  }
-
-  for (const [talent, chars] of Object.entries(talents)) {
-    const card = document.createElement('div');
-    card.className = 'card';
-    
-    // キャラ名のタグ（属性色）を生成
-    let charTags = chars.map(c => `<span class="tag" style="background:var(--${getElemColor(c.element)})">${c.name}</span>`).join('');
-
-    card.innerHTML = `
-      <div class="card-title">「${talent}」の教え/導き/哲学</div>
-      <div class="card-detail">使用キャラクター:</div>
-      <div class="tags">${charTags}</div>
-    `;
-    container.appendChild(card);
-  }
+/* ===== 詳細ハイドレーション ===== */
+const inflight=new Set();
+async function hydrateCharacterDetails(c){
+  const ascEl=document.getElementById(`asc-${c.key}`); const mobEl=document.getElementById(`mob-${c.key}`);
+  if(ascEl&&ascEl.dataset.ready==="1"&&mobEl&&mobEl.dataset.ready==="1")return;
+  const id=appData.ambrIndex.byName.get(normalizeName(c.name));
+  if(!id){if(ascEl){ascEl.textContent="（情報未取得）";ascEl.dataset.ready="1";}if(mobEl){mobEl.textContent="（情報未取得）";mobEl.dataset.ready="1";}return;}
+  if(inflight.has(id))return; inflight.add(id);
+  const lang=appData.ambrIndex._lang||"ja";
+  const detail=await pullAmbrDetail(id,lang); inflight.delete(id);
+  const mats=parseAmbrMaterials(detail);
+  if(!c.talentBooks&&mats.talentBook&&mats.talentBook.length){const hit=TALENT_SERIES.find(s=>mats.talentBook.some(m=>(m.name||"").includes(s.name)));if(hit){c.talentBooks=hit.key;updateTalentUsage(c.key,hit.key);if($("#view-today").style.display!=="none")renderToday();}}
+  if(ascEl){const parts=[];if(mats.gem?.length)parts.push(...mats.gem.slice(0,3).map(x=>`<span class="badge">${safe(x.name)}</span>`));if(mats.local?.length)parts.push(...mats.local.slice(0,2).map(x=>`<span class="badge">${safe(x.name)}</span>`));if(mats.boss?.length)parts.push(...mats.boss.slice(0,2).map(x=>`<span class="badge">${safe(x.name)}</span>`));ascEl.innerHTML=parts.length?parts.join(" "):'<span class="muted">未判定</span>';ascEl.dataset.ready="1";}
+  if(mobEl){const parts=[];if(mats.enemy?.length)parts.push(...mats.enemy.slice(0,4).map(x=>`<span class="badge">${safe(x.name)}</span>`));if(mats.other?.length&&parts.length<4)parts.push(...mats.other.slice(0,4-parts.length).map(x=>`<span class="badge">${safe(x.name)}</span>`));mobEl.innerHTML=parts.length?parts.join(" "):'<span class="muted">未判定</span>';mobEl.dataset.ready="1";}
 }
 
-// キャラ選択一覧を描画
-function renderCharacters(filterElem = 'all') {
-  const container = document.getElementById('characters-content');
-  container.innerHTML = '';
+/* ===== スケジューラ ===== */
+function scheduleAmbrHydration(){const ids=[];const seen=new Set();for(const c of appData.characters){const id=appData.ambrIndex.byName.get(normalizeName(c.name));if(id&&!seen.has(id)){ids.push({id,c});seen.add(id);}}let idx=0,running=0;const pump=async()=>{while(running<AMBR_CONCURRENCY&&idx<ids.length){const take=ids[idx++];running++;(async()=>{await hydrateCharacterDetails(take.c);running--;pump();})();}};pump();}
 
-  // 属性絞り込み
-  const filtered = genshinData.filter(c => filterElem === 'all' || c.element === filterElem);
-  
-  filtered.forEach(c => {
-    const card = document.createElement('div');
-    card.className = `card elem-${c.element}`;
-    card.innerHTML = `
-      <div class="card-title">${c.name} <span style="font-size:0.8rem; color:var(--text-sub)">(${c.element})</span></div>
-      <div class="card-detail">📚 <b>天賦素材:</b> 「${c.talent}」 (${c.days.join(' / ')}曜日)</div>
-      <div class="card-detail">⚔️ <b>ボス素材:</b> ${c.boss}</div>
-      <div class="card-detail">🌸 <b>特産品:</b> ${c.specialty}</div>
-    `;
-    container.appendChild(card);
-  });
-}
-
-// セレクトボックス変更時の絞り込み処理
-function filterCharacters() {
-  const elem = document.getElementById('element-filter').value;
-  renderCharacters(elem);
-}
-
-// メニューの開閉
-function toggleMenu() {
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('overlay').classList.toggle('show');
-}
-
-// タブの切り替え
-function switchTab(tabId) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.getElementById(`tab-${tabId}`).classList.add('active');
-  
-  const titleMap = { 'today': '本日の曜日素材', 'characters': 'キャラ別 育成素材' };
-  document.getElementById('page-title').innerText = titleMap[tabId];
-  
-  // サイドバーが開いていれば閉じる
-  if (document.getElementById('sidebar').classList.contains('open')) {
-    toggleMenu();
-  }
-}
-
-// 属性名をCSS変数名に変換
-function getElemColor(elem) {
-  const map = {'炎':'pyro', '水':'hydro', '風':'anemo', '雷':'electro', '草':'dendro', '氷':'cryo', '岩':'geo'};
-  return map[elem] || 'text-sub';
-}
-
-// ページ読み込み完了時にデータを取得開始
-window.onload = loadData;
+/* ===== UI: トースト等 ===== */
+function toast(msg){const t=document.createElement("div");t.style.position="fixed";t.style.left="50%";t.style.bottom="22px";t.style.transform="translateX(-50%)";t.style.background="var(--panel)";t.style.border="1px solid var(--border)";t.style.borderRadius="10px";t.style.padding="10px 14px";t.style.boxShadow="var(--shadow)";t.style.zIndex=2000;t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2000);}
+const drawer=$("#drawer"),overlay=$("#overlay");
+function openDrawer(){drawer.classList.add("open");drawer.setAttribute("aria-hidden","false");if(overlay)overlay.style.display="block";}
+function closeDrawer(){drawer.classList.remove("open");drawer.setAttribute("aria-hidden","true");if(overlay)overlay.style.display="none";}
+$("#btnMenu").onclick=()=>drawer.classList.contains("open")?closeDrawer():openDrawer();
+if(overlay){overlay.onclick=closeDrawer;}
+drawer.querySelectorAll(".menu a").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();setRoute(a.dataset.route);closeDrawer();}));
+window.addEventListener("keydown",e=>{if(e.key==="Escape"&&drawer.classList.contains("open"))closeDrawer();});
+$("#btnRefresh").onclick=async()=>{toast("最新データを取得中…");await buildData();toast("更新しました");};
+document.addEventListener("DOMContentLoaded",()=>{const btnReset=$("#btnReset");if(btnReset){btnReset.onclick=()=>{try{localStorage.removeItem(K.DATA);localStorage.removeItem(K.LOCAL_OVERRIDES);for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith(K.AMBR_DETAIL_PREFIX))localStorage.removeItem(k);}}catch(e){}toast("キャッシュを削除しました。再読込します…");setTimeout(()=>location.reload(),600);};}const file=$("#fileLocal"),btnI=$("#btnImport"),btnE=$("#btnExport"),info=$("#localInfo");if(btnI&&file){btnI.onclick=()=>file.click();file.onchange=()=>{const f=file.files&&file.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result);const pack=normalizeLocalSchema(j);mergeLocalOverrides(pack);toast(`ローカルJSONを読み込み：${(pack.characters||[]).length}件`);info.textContent=`ローカル読込：${(pack.characters||[]).length}件`;setRoute(document.querySelector(".menu a.active")?.dataset.route||"today");}catch(e){toast("JSONの読み込みに失敗しました");}file.value="";};r.readAsText(f,"utf-8");};}if(btnE){btnE.onclick=()=>{const minimal=appData.characters.map(c=>({key:c.key,name:c.name,element:c.element,weapon:c.weapon,talentBooks:c.talentBooks||null}));const blob=new Blob([JSON.stringify({characters:minimal},null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="characters.local.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);};}try{const saved=JSON.parse(localStorage.getItem(K.LOCAL_OVERRIDES)||"null");if(saved&&info){const n=Array.isArray(saved.characters)?saved.characters.length:0;if(n)info.textContent=`ローカル読込：${n}件`;}}catch{}});
+/* ===== 起動 ===== */
+(async function init(){
+  applyTheme(localStorage.getItem("theme-pref-v1")||"auto",{save:false});
+  try{const saved=JSON.parse(localStorage.getItem(K.DATA)||"null");if(saved){appData={...appData,...saved,ambrIndex:{byName:new Map(),byId:new Map(),_lang:null}};}}catch{}
+  backfillLocalMappings();
+  setRoute("today");const w=WEEKKEY();$("#subtitle").textContent=`今日の曜日素材（${WEEK_JA[w]}）`;$("#todayLabel").textContent=`表示中（${WEEK_JA[w]}）`;
+  await buildData();
+  appData.updatedAt=new Date().toISOString();const copy=JSON.parse(JSON.stringify({...appData,ambrIndex:undefined}));localStorage.setItem(K.DATA,JSON.stringify(copy));
+})();
 </script>
 </body>
 </html>
