@@ -3,16 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>iPhone/iPad 1画面 FFT解析（スペクトル既定・サブカーソル対応）</title>
+<title>iPhone/iPad 1画面 FFT解析（固定情報バー・サブカーソル）</title>
 <style>
   :root{
     --bg:#0e1116; --panel:#141922; --text:#e6edf3; --muted:#93a1b3; --accent:#4ea1ff; --line:#1e2634;
     --fs:14px; --r:12px;
   }
   html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,system-ui,Segoe UI,Roboto,"Hiragino Sans",sans-serif}
-  /* まず100vhを指定し、対応端末では100svhで上書き（iOS/iPadOSのツールバー対策） */
-  #app{height:100vh;display:grid;grid-template-rows:auto 1fr auto;gap:8px;padding:8px;box-sizing:border-box;overflow:hidden;
-       padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));}
+  /* 100vh→100svhで上書き（iOS/iPadOSバー対策）＋Safe Area下余白 */
+  #app{
+    height:100vh; display:grid; grid-template-rows:auto 1fr auto; gap:8px; padding:8px; box-sizing:border-box; overflow:hidden;
+    padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));
+  }
   @supports (height: 100svh){ #app{height:100svh;} }
 
   /* 上部バー */
@@ -29,13 +31,34 @@
   .tabs input{display:none}
   .tabs label{padding:5px 8px;font-size:12px;background:#0f131b;color:#c9d4e6;border:1px solid var(--line);border-radius:6px;margin-right:4px}
   .tabs input:checked+label{background:#2a3446;color:#dbe6f7}
-  canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none} /* touch-action:none でドラッグ操作を取り込む */
+  canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
   #plot,#gram{background:#0a0d12}
+  /* HUD（カーソル情報は情報バーではなくグラフ上に表示） */
+  #hud{
+    position:absolute;left:8px;bottom:8px;z-index:4;display:none;
+    background:rgba(20,24,32,0.85);border:1px solid #2b3546;border-radius:8px;
+    color:#dbe6f7;font:12px ui-monospace,monospace;padding:4px 8px;pointer-events:none;
+  }
 
-  /* 下部情報バー（Safe Areaぶん下余白を確保） */
-  #info{display:flex;gap:10px;align-items:center;justify-content:space-between;
-        padding-bottom:env(safe-area-inset-bottom,0px)}
-  .kv{font-size:12px;color:#9fb0c7}
+  /* 下部情報バー：1行固定高＋省略表示。ボタンも固定高 */
+  #info{
+    display:flex;gap:10px;align-items:center;justify-content:space-between;
+    min-height:40px; padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  #info .kv{
+    flex:1 1 auto; min-width:0;
+    font-size:12px; color:#9fb0c7;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  #info .btns{display:flex;gap:6px;flex:0 0 auto}
+  #info .btns > button{
+    height:34px; line-height:34px; padding:0 10px;
+    font-size:13px; white-space:nowrap;
+  }
+  @media (min-width:768px){
+    #info{ min-height:44px; }
+    #info .btns > button{ height:36px; line-height:36px; font-size:14px; }
+  }
 
   /* 左ドロワー（ハンバーガー） */
   #drawer{position:fixed;inset:0 0 0 0;display:none;z-index:10}
@@ -50,7 +73,7 @@
   input[type="number"]{width:90px;background:#0f131b;color:#e6edf3;border:1px solid var(--line)}
   select{background:#0f131b;color:#e6edf3;border:1px solid var(--line)}
 
-  /* モーダル（プレビュー/ピーク） */
+  /* モーダル */
   #modal{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:11}
   .modal-body{width:min(560px,92vw);max-height:86vh;background:#0f131b;border:1px solid var(--line);border-radius:12px;padding:10px;overflow:auto}
   .modal-body h3{margin:6px 0 8px 0;font-size:15px}
@@ -59,7 +82,7 @@
 </head>
 <body>
 <div id="app">
-  <!-- 上段バー：左ハンバーガー、中央タイトル、右に開始/停止 -->
+  <!-- 上段バー -->
   <div class="bar">
     <button id="btnMenu" class="iconbtn" aria-label="メニュー" title="メニュー">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="#cfe0ff" stroke-width="2" stroke-linecap="round"/></svg>
@@ -69,7 +92,7 @@
     <button id="btnStop" class="iconbtn ghost" title="停止">■</button>
   </div>
 
-  <!-- 表示（タブで1面のみ） -->
+  <!-- 表示（既定：スペクトル） -->
   <div id="view">
     <div class="tabs">
       <input type="radio" id="tabWave" name="tab"><label for="tabWave">波形</label>
@@ -78,22 +101,20 @@
     </div>
     <canvas id="plot"></canvas>
     <canvas id="gram" style="display:none"></canvas>
+    <div id="hud"></div>
   </div>
 
-  <!-- 下段情報 -->
+  <!-- 下段情報（固定高） -->
   <div id="info">
-    <div class="kv">
-      SR: <span id="iRate">-</span> / 区間: <span id="iLen">-</span> / ピーク: <span id="iPeak">-</span>
-      <span id="cursorInfo" style="margin-left:10px;color:#cfe0ff"></span>
-    </div>
-    <div style="display:flex;gap:6px">
+    <div class="kv">SR: <span id="iRate">-</span> / 区間: <span id="iLen">-</span> / ピーク: <span id="iPeak">-</span></div>
+    <div class="btns">
       <button id="btnPeaks" class="ghost">ピーク一覧</button>
       <button id="btnCsv" class="ghost">CSV</button>
     </div>
   </div>
 </div>
 
-<!-- ドロワー：モード切替＋各操作（1画面から開閉） -->
+<!-- ドロワー：モード切替＋各操作 -->
 <div id="drawer">
   <div class="shade"></div>
   <div class="sheet">
@@ -103,7 +124,6 @@
       <label><input type="radio" name="mode" id="modeFile"> ファイル解析</label>
     </div>
 
-    <!-- 共通設定 -->
     <div class="h3">解析設定</div>
     <div class="optrow">
       <span class="tag">窓</span>
@@ -114,7 +134,6 @@
       <select id="avgMode"><option value="mean" selected>平均</option><option value="max">最大</option></select>
     </div>
 
-    <!-- マイク設定 -->
     <div id="secMic">
       <div class="h3">マイク</div>
       <div class="optrow">
@@ -122,10 +141,9 @@
         <button id="btnMicSnap" class="ghost">2秒FFT</button>
         <label class="tag">ゲイン <input id="micGain" type="range" min="0" max="3" step="0.01" value="1" style="width:140px"></label>
       </div>
-      <div class="tag">HTTPSが必要です。ハウリング防止のため音量を下げ、イヤホン推奨。</div>
+      <div class="tag">HTTPSが必要です。ハウリング防止のためイヤホン推奨。</div>
     </div>
 
-    <!-- ファイル設定 -->
     <div id="secFile" style="display:none">
       <div class="h3">ファイル（音声/動画）</div>
       <div class="optrow">
@@ -147,7 +165,7 @@
   </div>
 </div>
 
-<!-- モーダル（プレビュー/ピーク） -->
+<!-- モーダル -->
 <div id="modal">
   <div class="modal-body">
     <button id="modalClose" class="ghost" style="float:right">閉じる</button>
@@ -158,16 +176,14 @@
 
 <script>
 (()=>{'use strict';
-  // 基本ユーティリティ
   const $=id=>document.getElementById(id);
   const dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
-  // 画面要素
-  const plot=$('plot'), gram=$('gram'), view=$('view');
+  const plot=$('plot'), gram=$('gram'), view=$('view'), hud=$('hud');
   let lastWave=null, lastWaveSR=0, lastSpec=null, lastFreqs=null, lastPeak=null;
 
-  // サブカーソル状態
+  // サブカーソル
   let cursorActive=false, cursorX=0;
 
   // レイアウト
@@ -188,13 +204,12 @@
     const g=$('tabGram').checked;
     plot.style.display=g?'none':'block';
     gram.style.display=g?'block':'none';
-    // スペクトル以外ではサブカーソルを消す
-    if(!$('tabSpec').checked){ cursorActive=false; $('cursorInfo').textContent=''; }
+    if(!$('tabSpec').checked){ cursorActive=false; hud.style.display='none'; }
     redraw();
   }
   ['tabWave','tabSpec','tabGram'].forEach(id=>$(id).addEventListener('change', syncTabs));
 
-  // グリッド・描画
+  // 描画系
   function drawGrid(ctx,w,h){
     ctx.strokeStyle='#1b2230'; ctx.lineWidth=1;
     ctx.beginPath();
@@ -235,23 +250,16 @@
     // サブカーソル
     if(cursorActive){
       const x=clamp(cursorX,0,w-1);
-      // 垂直線
-      ctx.strokeStyle='#ffd36b'; ctx.lineWidth=1*dpr; ctx.setLineDash([4*dpr,3*dpr]); ctx.beginPath();
-      ctx.moveTo(x+0.5,0); ctx.lineTo(x+0.5,h); ctx.stroke(); ctx.setLineDash([]);
-      // 位置→bin
+      ctx.strokeStyle='#ffd36b'; ctx.lineWidth=1*dpr; ctx.setLineDash([4*dpr,3*dpr]);
+      ctx.beginPath(); ctx.moveTo(x+0.5,0); ctx.lineTo(x+0.5,h); ctx.stroke(); ctx.setLineDash([]);
+
       const idx=Math.round((x/w)*(magDb.length-1));
       const f=freqs[idx], m=magDb[idx];
-      // ラベル
-      const label=`${f<1000? f.toFixed(1)+' Hz' : (f/1000).toFixed(3)+' kHz'}  /  ${isFinite(m)?m.toFixed(1):'-'} dB`;
-      $('cursorInfo').textContent = `カーソル: ${label}`;
-      // 吹き出し
-      const pad=6*dpr, boxW=ctx.measureText? (ctx.measureText(label).width+20*dpr) : 160*dpr;
-      const boxH=22*dpr, bx=clamp(x - boxW/2, 4*dpr, w - boxW - 4*dpr), by=6*dpr;
-      ctx.fillStyle='rgba(20,24,32,0.9)'; ctx.strokeStyle='#2b3546'; ctx.lineWidth=1*dpr;
-      ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx,by,boxW,boxH,4*dpr) : ctx.rect(bx,by,boxW,boxH); ctx.fill(); ctx.stroke();
-      ctx.fillStyle='#dbe6f7'; ctx.font=`${12*dpr}px ui-monospace,monospace`; ctx.fillText(label, bx+pad, by+boxH-8*dpr);
-    }else{
-      if($('cursorInfo').textContent && $('tabSpec').checked===false){ $('cursorInfo').textContent=''; }
+      const label=`${f<1000? f.toFixed(1)+' Hz' : (f/1000).toFixed(2)+' kHz'} / ${isFinite(m)?m.toFixed(1):'-'} dB`;
+
+      // HUDに表示（情報バーは固定長のまま）
+      hud.style.display='block';
+      hud.textContent=label;
     }
   }
   function clearGram(){
@@ -266,7 +274,7 @@
     if($('tabSpec').checked && lastSpec&&lastFreqs) drawSpec(lastFreqs,lastSpec,lastPeak);
   }
 
-  // サブカーソル用イベント（Pointer Events優先）
+  // サブカーソル用イベント
   function onPointer(e){
     if(!$('tabSpec').checked || !lastFreqs || !lastSpec) return;
     const rect=plot.getBoundingClientRect();
@@ -276,7 +284,7 @@
     e.preventDefault();
   }
   function onPointerEnd(){
-    if(cursorActive){ cursorActive=false; $('cursorInfo').textContent=''; redraw(); }
+    if(cursorActive){ cursorActive=false; hud.style.display='none'; redraw(); }
   }
   plot.addEventListener('pointerdown', onPointer, {passive:false});
   plot.addEventListener('pointermove', onPointer, {passive:false});
@@ -346,10 +354,10 @@
     const idx=[]; for(let i=1;i<magDb.length-1;i++) if(magDb[i]>magDb[i-1] && magDb[i]>magDb[i+1]) idx.push(i);
     idx.sort((a,b)=>magDb[b]-magDb[a]);
     const sel=[]; for(const i of idx){ if(sel.every(j=>Math.abs(freqs[j]-freqs[i])>=minSep)) sel.push(i); if(sel.length>=topN) break; }
-    return sel.map(i=>({f:freqs[i],db:magDb[i]})).sort((a,b)=>b.db-a.db);
+    return sel.map(i=>({f:freqs[i],db:magDb[i]})).sort((a,b)=>b.db-a.b);
   }
 
-  // WebAudio・状態
+  // WebAudio
   let audioCtx=null, mainGain=null;
   let micStream=null, micSource=null, micAnalyser=null, micGainNode=null, micRAF=0, micProc=null, micRing=null, micTotal=0;
   let micActive=false;
@@ -357,14 +365,14 @@
   async function ensureAudio(){
     if(!audioCtx){
       audioCtx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
-      mainGain=audioCtx.createGain(); mainGain.gain.value=0.0; mainGain.connect(audioCtx.destination); // 無音バス
+      mainGain=audioCtx.createGain(); mainGain.gain.value=0.0; mainGain.connect(audioCtx.destination);
     }
     if(audioCtx.state==='suspended') await audioCtx.resume();
   }
 
   // リアルタイム（デフォルト）
   async function startMic(){
-    if(micActive) return; // 既に動作中
+    if(micActive) return;
     await ensureAudio();
     try{
       micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
@@ -372,9 +380,7 @@
     micSource=audioCtx.createMediaStreamSource(micStream);
     micGainNode=audioCtx.createGain(); micGainNode.gain.value=parseFloat($('micGain').value)||1;
     micAnalyser=audioCtx.createAnalyser(); micAnalyser.fftSize=2048; micAnalyser.smoothingTimeConstant=0.6;
-    // 出力は無音のmainGainへ（ハウリング防止）
-    micSource.connect(micGainNode).connect(micAnalyser).connect(mainGain);
-    // スナップショット用リング
+    micSource.connect(micGainNode).connect(micAnalyser).connect(mainGain); // 無音出力
     micProc=(audioCtx.createScriptProcessor||audioCtx.createJavaScriptNode).call(audioCtx,4096,1,1);
     micRing=[]; micTotal=0;
     micProc.onaudioprocess=ev=>{
@@ -382,7 +388,6 @@
       const lim=Math.floor(audioCtx.sampleRate*2.1); while(micTotal>lim){ const f=micRing.shift(); micTotal-=f.length; }
     };
     micGainNode.connect(micProc).connect(mainGain);
-
     micActive=true;
     liveLoop();
   }
@@ -407,18 +412,17 @@
       const maxF=audioCtx.sampleRate/2, binsFreq=new Float32Array(n); for(let i=0;i<n;i++) binsFreq[i]=i*maxF/n;
       let pk=-1e9, pbin=0; for(let i=0;i<n;i++){ if(fr[i]>pk){ pk=fr[i]; pbin=i; } }
       lastFreqs=binsFreq; lastSpec=fr; lastPeak={freq:binsFreq[pbin], db:pk};
-      // スペクトル既定なので都度再描画
       if($('tabSpec').checked) drawSpec(lastFreqs,lastSpec,lastPeak);
       else if($('tabWave').checked) drawWave(lastWave,lastWaveSR);
       $('iRate').textContent = `${audioCtx.sampleRate} Hz`;
-      $('iLen').textContent  = `${(td.length/audioCtx.sampleRate).toFixed(3)} s`;
-      $('iPeak').textContent = `${lastPeak.freq.toFixed(1)} Hz / ${lastPeak.db.toFixed(1)} dB`;
+      $('iLen').textContent  = `${(td.length/audioCtx.sampleRate).toFixed(2)} s`;
+      $('iPeak').textContent = `${lastPeak.freq<1000 ? lastPeak.freq.toFixed(1)+' Hz' : (lastPeak.freq/1000).toFixed(2)+' kHz'} / ${lastPeak.db.toFixed(1)} dB`;
       micRAF=requestAnimationFrame(draw);
     };
     draw();
   }
 
-  // ファイル解析（プレビューはモーダル）
+  // ファイル解析
   let objectUrl=null, currentFile=null, isVideo=false;
   const videoEl=document.createElement('video'); videoEl.playsInline=true; videoEl.controls=true; videoEl.muted=true; videoEl.style.width='100%';
   const audioEl=document.createElement('audio'); audioEl.controls=true; audioEl.style.width='100%';
@@ -451,7 +455,6 @@
     $('endSec').value=(el.currentTime||0).toFixed(2);
   });
 
-  // 高速解析（音声）
   $('btnAnalyzeFast').addEventListener('click', async ()=>{
     if(!currentFile) return alert('ファイルを選択してください');
     if(!currentFile.type.startsWith('audio/')) return alert('高速解析は音声ファイルのみ。動画は「互換」を使用してください。');
@@ -470,7 +473,6 @@
     closeDrawer();
   });
 
-  // 互換解析（動画/音声：実時間収集）
   let collecting=false, collector=null;
   function stopCollector(){
     collecting=false;
@@ -482,9 +484,8 @@
     const s=Math.max(0,parseFloat($('startSec').value)||0), e=Math.max(s,parseFloat($('endSec').value)||0);
     if(e<=s) return alert('区間が不正です');
     const el=isVideo?videoEl:audioEl; el.currentTime=s; el.muted=true; await el.play().catch(()=>{});
-    // シーク安定待ち
     await new Promise(r=>{ let tries=0; const iv=setInterval(()=>{ if(Math.abs(el.currentTime - s)<0.03 || tries>30){ clearInterval(iv); r(); } tries++; },30); });
-    const src=audioCtx.createMediaElementSource(el), gain=audioCtx.createGain(); gain.gain.value=0.0; // 無音
+    const src=audioCtx.createMediaElementSource(el), gain=audioCtx.createGain(); gain.gain.value=0.0;
     const procSize=4096; const node=(audioCtx.createScriptProcessor||audioCtx.createJavaScriptNode).call(audioCtx,procSize,2,2);
     const ring=[]; let total=0; const target=e-s, sr=audioCtx.sampleRate;
     node.onaudioprocess=ev=>{
@@ -503,7 +504,7 @@
         },0);
       }
     };
-    src.connect(node); node.connect(gain); gain.connect(mainGain); // 無音バスへ
+    src.connect(node); node.connect(gain); gain.connect(mainGain);
     collector={source:src,node,gain}; collecting=true; closeDrawer();
   });
   function concatFloat32(chunks,totalLen){ const out=new Float32Array(totalLen); let off=0; for(const c of chunks){ out.set(c,off); off+=c.length; } return out; }
@@ -511,8 +512,10 @@
   // 情報・CSV・ピーク
   function updateInfo(sr,len,peak){
     $('iRate').textContent=sr?`${sr} Hz`:'-';
-    $('iLen').textContent=isFinite(len)?`${len.toFixed(3)} s`:'-';
-    $('iPeak').textContent=(peak&&isFinite(peak.freq))?`${peak.freq.toFixed(1)} Hz / ${peak.db.toFixed(1)} dB`:'-';
+    $('iLen').textContent=isFinite(len)?`${len.toFixed(2)} s`:'-';
+    $('iPeak').textContent=(peak&&isFinite(peak.freq))
+      ? `${peak.freq<1000 ? peak.freq.toFixed(1)+' Hz' : (peak.freq/1000).toFixed(2)+' kHz'} / ${peak.db.toFixed(1)} dB`
+      : '-';
     window.__lastPeaks=(lastFreqs&&lastSpec)?listPeaks(lastFreqs,lastSpec):[];
   }
   $('btnCsv').addEventListener('click', ()=>{
@@ -522,11 +525,11 @@
   });
   $('btnPeaks').addEventListener('click', ()=>{
     const pre=document.createElement('pre'); pre.style='white-space:pre-wrap;font:12px ui-monospace,monospace;color:#cfe0ff';
-    const rows=(window.__lastPeaks||[]).map(p=>`${p.f<1000? p.f.toFixed(1)+' Hz' : (p.f/1000).toFixed(3)+' kHz'}  |  ${p.db.toFixed(1)} dB`).join('\n') || '-';
+    const rows=(window.__lastPeaks||[]).map(p=>`${p.f<1000? p.f.toFixed(1)+' Hz' : (p.f/1000).toFixed(2)+' kHz'}  |  ${p.db.toFixed(1)} dB`).join('\n') || '-';
     pre.textContent=rows; openModal('ピーク一覧（上位）', pre);
   });
 
-  // ハンバーガー（ドロワー）
+  // ドロワー
   function openDrawer(){ $('drawer').classList.add('open'); }
   function closeDrawer(){ $('drawer').classList.remove('open'); }
   $('btnMenu').addEventListener('click', openDrawer);
@@ -534,18 +537,14 @@
   $('modeMic').addEventListener('change', ()=>{ if($('modeMic').checked){ $('secMic').style.display='block'; $('secFile').style.display='none'; $('tabSpec').checked=true; syncTabs(); } });
   $('modeFile').addEventListener('change', ()=>{ if($('modeFile').checked){ $('secMic').style.display='none'; $('secFile').style.display='block'; $('tabSpec').checked=true; syncTabs(); } });
 
-  // 上段ボタン：開始/再開、停止
+  // 上段ボタン
   $('btnInit').addEventListener('click', async ()=>{
     await ensureAudio();
     if($('modeMic').checked){ await startMic(); closeDrawer(); }
-    // 再開のため常に有効（disableしない）
   });
   $('btnStop').addEventListener('click', ()=>{
-    // マイク停止
     stopMic();
-    // 互換モードの収集停止
     try{ stopCollector(); }catch(e){}
-    // プレビュー中のメディアも一時停止
     try{ videoEl.pause(); }catch(e){}
     try{ audioEl.pause(); }catch(e){}
   });
@@ -571,7 +570,6 @@
   // 初期
   function init(){
     resizeCanvas(); clearGram();
-    // 既定タブはスペクトル
     document.querySelector('.title').textContent='リアルタイムFFT';
   }
   init();
