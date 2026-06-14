@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>原神素材_R0.14</title>
+    <title>原神素材_R0.15</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -119,13 +119,13 @@
         }
 
         /* 属性カラー(英語名に連動) */
-        .pyro, .fire { border-top: 4px solid #ff4e50; }
-        .hydro, .water { border-top: 4px solid #2196f3; }
-        .anemo, .wind { border-top: 4px solid #00ffcc; }
-        .electro, .electric { border-top: 4px solid #af7ac5; }
-        .dendro, .grass { border-top: 4px solid #2ecc71; }
-        .cryo, .ice { border-top: 4px solid #85c1e9; }
-        .geo, .rock { border-top: 4px solid #f1c40f; }
+        .pyro { border-top: 4px solid #ff4e50; }
+        .hydro { border-top: 4px solid #2196f3; }
+        .anemo { border-top: 4px solid #00ffcc; }
+        .electro { border-top: 4px solid #af7ac5; }
+        .dendro { border-top: 4px solid #2ecc71; }
+        .cryo { border-top: 4px solid #85c1e9; }
+        .geo { border-top: 4px solid #f1c40f; }
 
         .loading { text-align: center; padding: 20px; color: #888; }
         .error-msg { color: #ff4e50; text-align: center; padding: 20px; }
@@ -148,17 +148,17 @@
         <div id="filterSection" class="filter-section">
             <select id="elementFilter" onchange="renderCharacters()">
                 <option value="all">すべての属性</option>
-                <option value="炎">炎属性</option>
-                <option value="水">水属性</option>
-                <option value="風">風属性</option>
-                <option value="雷">雷属性</option>
-                <option value="草">草属性</option>
-                <option value="氷">氷属性</option>
-                <option value="岩">岩属性</option>
+                <option value="Pyro">炎属性</option>
+                <option value="Hydro">水属性</option>
+                <option value="Anemo">風属性</option>
+                <option value="Electro">雷属性</option>
+                <option value="Dendro">草属性</option>
+                <option value="Cryo">氷属性</option>
+                <option value="Geo">岩属性</option>
             </select>
         </div>
 
-        <div id="statusMessage" class="loading">最新データをサーバーから読み込み中...</div>
+        <div id="statusMessage" class="loading">世界共通APIから最新データを読み込み中...</div>
         <div id="contentGrid" class="grid"></div>
     </main>
 
@@ -167,42 +167,65 @@
         let currentView = 'today';
         const dayNames = ["日曜日 (全開放)", "月曜日/木曜日", "火曜日/金曜日", "水曜日/土曜日", "月曜日/木曜日", "火曜日/金曜日", "水曜日/土曜日"];
 
-        // 天賦素材の名前から曜日を自動判定する
-        function getDayOfWeek(materialName) {
-            if (!materialName) return [0,1,2,3,4,5,6];
-            if (/自由|繁栄|奮起|公平|あやかり/.test(materialName)) return [1, 4]; 
-            if (/抗争|勤労|風雅|熱誠|焚化/.test(materialName)) return [2, 5]; 
-            if (/詩文|黄金|浮世|篤行|正義|秩序/.test(materialName)) return [3, 6]; 
-            return [0,1,2,3,4,5,6]; 
+        // 国際APIの素材英語名から、日本の曜日をマッピングする辞書
+        const materialDays = {
+            "freedom": [1, 4], "prosperity": [1, 4], "admonition": [1, 4], "equity": [1, 4], "contention": [2, 5], 
+            "diligence": [2, 5], "elegance": [2, 5], "ingenuity": [2, 5], "ballad": [3, 6], "gold": [3, 6], 
+            "transience": [3, 6], "praxis": [3, 6], "justice": [3, 6], "order": [3, 6]
+        };
+
+        // 素材の英語名を日本語に変換する辞書
+        const jpMaterials = {
+            "freedom": "「自由」", "prosperity": "「繁栄」", "admonition": "「忠言」", "equity": "「公平」",
+            "contention": "「抗争」", "diligence": "「勤労」", "elegance": "「風雅」", "ingenuity": "「創意」",
+            "ballad": "「詩文」", "gold": "「黄金」", "transience": "「浮世」", "praxis": "「篤行」",
+            "justice": "「正義」", "order": "「秩序」"
+        };
+
+        // APIデータから曜日と日本語名を割り出す
+        function parseTalentMaterial(char) {
+            const mat = (char.info && char.info.talentMaterial) ? char.info.talentMaterial.toLowerCase() : "";
+            let matKey = "unknown";
+            
+            for (let key in materialDays) {
+                if (mat.includes(key)) {
+                    matKey = key;
+                    break;
+                }
+            }
+            return {
+                days: materialDays[matKey] || [0,1,2,3,4,5,6],
+                name: jpMaterials[matKey] || char.info.talentMaterial || "専用素材"
+            };
         }
 
-        // 最も安定している有志の「最新日本語全キャラデータ」を直接取得
+        // Genshin.dev APIからデータを取得
         async function fetchGenshinData() {
             try {
-                // jsDelivrのCDNを経由させることで、iPhone SafariのCORS制限を突破し、高速に取得できます
-                const response = await fetch('https://cdn.jsdelivr.net/gh/theBowja/genshin-db@main/src/data/japanese/characters.json');
-                if (!response.ok) throw new Error('APIの読み込みに失敗しました');
+                // キャラクターの全データを一括取得する公式エンドポイント（軽量）
+                const response = await fetch('https://api.genshin.dev/characters/all');
+                if (!response.ok) throw new Error('API通信エラー');
                 
                 const rawData = await response.json();
                 
-                // データをアプリ用に整形
-                genshinData = Object.keys(rawData).map(key => {
-                    const char = rawData[key];
+                // 扱いやすいように変換
+                genshinData = rawData.map(char => {
+                    const matInfo = parseTalentMaterial(char);
                     return {
                         name: char.name,
-                        element: char.elementText || char.element, // 「炎」「水」などの日本語、または英語名
-                        talentMat: char.talentMaterialType || "不明の素材",
-                        bossMat: char.bossMaterialType || "週ボス不明",
-                        dayOfWeek: getDayOfWeek(char.talentMaterialType)
+                        element: char.vision, // Pyro, Hydro, etc.
+                        talentMat: matInfo.name,
+                        bossMat: char.info.weeklyBoss || "週ボス",
+                        dayOfWeek: matInfo.days
                     };
-                }).filter(char => char.name !== "旅人"); // 重複しやすい旅人を除外
+                }).filter(char => char.name !== "Traveler"); // 旅人除外
 
                 document.getElementById('statusMessage').style.display = 'none';
                 initApp();
             } catch (error) {
                 console.error(error);
                 document.getElementById('statusMessage').className = 'error-msg';
-                document.getElementById('statusMessage').textContent = 'APIからのデータ取得に失敗しました。時間をおいて再度お試しください。';
+                document.getElementById('statusMessage').textContent = 'APIサーバーが混雑しています。iPhoneの通信制限、または通信環境が良い場所でお試しください。';
             }
         }
 
@@ -239,8 +262,7 @@
 
             filtered.forEach(char => {
                 const card = document.createElement('div');
-                // 属性名（日本語・英語両方に対応したクラス名付与）
-                card.className = `card ${char.element === '炎' ? 'pyro' : char.element === '水' ? 'hydro' : char.element === '風' ? 'anemo' : char.element === '雷' ? 'electro' : char.element === '草' ? 'dendro' : char.element === '氷' ? 'cryo' : char.element === '岩' ? 'geo' : 'default'}`;
+                card.className = `card ${char.element.toLowerCase()}`;
                 card.innerHTML = `
                     <h3>${char.name}</h3>
                     <div class="material-tag">${char.talentMat}</div>
@@ -260,7 +282,7 @@
 
             filtered.forEach(char => {
                 const card = document.createElement('div');
-                card.className = `card ${char.element === '炎' ? 'pyro' : char.element === '水' ? 'hydro' : char.element === '風' ? 'anemo' : char.element === '雷' ? 'electro' : char.element === '草' ? 'dendro' : char.element === '氷' ? 'cryo' : char.element === '岩' ? 'geo' : 'default'}`;
+                card.className = `card ${char.element.toLowerCase()}`;
                 card.innerHTML = `
                     <h3>${char.name}</h3>
                     <div class="material-tag" style="background:#555;">${char.element}</div>
