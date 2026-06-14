@@ -435,9 +435,7 @@
       lastFreqs=binsFreq; lastSpec=fr; lastPeak={freq:binsFreq[pbin], db:pk};
       if($('tabSpec').checked) drawSpec(lastFreqs,lastSpec,lastPeak);
       else if($('tabWave').checked) drawWave(lastWave,lastWaveSR);
-      $('iRate').textContent = rateShort(audioCtx.sampleRate);
-      $('iLen').textContent  = `${(td.length/audioCtx.sampleRate).toFixed(2)}s`;
-      $('iPeak').textContent = `${hzShort(lastPeak.freq)} ${lastPeak.db.toFixed(1)}dB`;
+      updateInfo(audioCtx.sampleRate, td.length/audioCtx.sampleRate, lastPeak);
       micRAF=requestAnimationFrame(draw);
     };
     draw();
@@ -545,11 +543,13 @@
   $('btnPeaks').addEventListener('click', ()=>{
   const pre=document.createElement('pre');
   pre.style='white-space:pre-wrap;font:12px ui-monospace,monospace;color:#cfe0ff';
-  // 不正値を除外して安全に表示
-  const peaks=(window.__lastPeaks||[]).filter(p=>isFinite(p.f) && isFinite(p.db));
-  // hzShort がある前提。無い場合は後述の代替を書き換えてください
-  const rows = peaks.map(p=>`${hzShort(p.f)}  |  ${p.db.toFixed(1)} dB`).join('\n') || '-';
-  pre.textContent=rows;
+  // __lastPeaks が無い/空なら今あるスペクトルから再計算
+  const base = (window.__lastPeaks && window.__lastPeaks.length)
+    ? window.__lastPeaks
+    : ((lastFreqs && lastSpec) ? listPeaks(lastFreqs, lastSpec) : []);
+  const peaks = base.filter(p=>isFinite(p.f) && isFinite(p.db));
+  const rows  = peaks.map(p=>`${hzShort(p.f)}  |  ${p.db.toFixed(1)} dB`).join('\n') || '-';
+  pre.textContent = rows;
   openModal('ピーク一覧（上位）', pre);
   });
 
