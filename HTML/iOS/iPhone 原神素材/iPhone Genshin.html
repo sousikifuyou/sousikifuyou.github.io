@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="color-scheme" content="light dark">
-<title>原神素材_R0.10</title>
+<title>原神素材_R0.11</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <style>
   :root{
@@ -303,6 +303,19 @@ async function pullAmbrIndexAuto(){
   }
   return { byName:new Map(), byId:new Map(), _lang:null };
 }
+  function buildCharsFromAmbr(ix){
+  if(!ix || !ix.byId || !ix.byId.size) return [];
+  const out = [];
+  ix.byId.forEach((v, id)=>{
+    const key = String(v.slug || v.key || v.id || id);
+    const name = v.name || v.title || key;
+    // 要素・武器はambr項目にあれば拾い、無ければ空（後で詳細取得時に埋まります）
+    const element = v.element || v.vision || v.attribute || "";
+    const weapon  = v.weapon  || v.weaponType || v.equipType || "";
+    out.push({ key, name, element, weapon });
+  });
+  return out;
+}
 
 async function pullAmbrDetail(id, lang="ja"){
   try{
@@ -584,43 +597,41 @@ function renderCharacters(){
 
 /* ========= データ構築 ========= */
 async function buildData(){
-  // genshin: キャラ基本
+  let gotFromGenshin = false;
+
+  // 1) genshin: キャラ基本
   if(USE_LIVE_GENSHIN){
     const live = await pullGenshinCharacters();
     if(live.length){
       appData.characters = mergeByKey(appData.characters, live, "key");
+      gotFromGenshin = true;
     }
   }
 
-  // まずローカル定義で欠落talentBooksを補完（旧キャッシュ対策）
+  // 旧キャッシュ対策：ローカルで欠落talentBooksを補完
   backfillLocalMappings();
 
-  // ambr: 名前→ID（ja→jp→en の順にフォールバック）
+  // 2) ambr: 名前→ID（ja→jp→en の順にフォールバック）
   if(USE_LIVE_AMBR){
     appData.ambrIndex = await pullAmbrIndexAuto();
   }
 
-  // バックグラウンド詳細取得を開始（詳細から判明したtalentBooksも順次反映）
+  // 3) genshinが取れなかった/5人のまま等 → ambrインデックスから“全キャラ一覧”を構築して補完
+  const tooFew = (appData.characters || []).length <= LOCAL_CHARACTERS.length + 1; // ほぼ5人だけ
+  if(!gotFromGenshin || tooFew){
+    const fromAmbr = buildCharsFromAmbr(appData.ambrIndex);
+    if(fromAmbr.length){
+      appData.characters = mergeByKey(appData.characters, fromAmbr, "key");
+    }
+  }
+
+  // 4) バックグラウンド詳細取得（元素・武器・天賦本などを順次埋める）
   scheduleAmbrHydration();
 
-  // 表示更新（現在タブを再描画）
+  // 5) 表示更新（現在のタブを再描画）
   const current = document.querySelector(".menu a.active")?.dataset.route || "today";
   setRoute(current);
 }
-
-/* ========= キャラ詳細のハイドレーション ========= */
-const inflight = new Set();
-async function hydrateCharacterDetails(c){
-  const ascEl = document.getElementById(`asc-${c.key}`);
-  const mobEl = document.getElementById(`mob-${c.key}`);
-  if(ascEl && ascEl.dataset.ready==="1" && mobEl && mobEl.dataset.ready==="1") return;
-
-  const id = appData.ambrIndex.byName.get(normalizeName(c.name));
-  if(!id){
-    if(ascEl){ ascEl.textContent="（情報未取得）"; ascEl.dataset.ready="1"; }
-    if(mobEl){ mobEl.textContent="（情報未取得）"; mobEl.dataset.ready="1"; }
-    return;
-  }
 
   if(inflight.has(id)) return;
   inflight.add(id);
