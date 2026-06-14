@@ -371,7 +371,7 @@
     const idx=[]; for(let i=1;i<magDb.length-1;i++) if(magDb[i]>magDb[i-1] && magDb[i]>magDb[i+1]) idx.push(i);
     idx.sort((a,b)=>magDb[b]-magDb[a]);
     const sel=[]; for(const i of idx){ if(sel.every(j=>Math.abs(freqs[j]-freqs[i])>=minSep)) sel.push(i); if(sel.length>=topN) break; }
-    return sel.map(i=>({f:freqs[i],db:magDb[i]})).sort((a,b)=>b.db-a.db);
+    return sel.map(i=>({f:freqs[i],db:magDb[i]})).sort((a,b)=>b.db - a.db);
   }
 
   // 短縮表記
@@ -543,9 +543,14 @@
     const blob=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='spectrum.csv'; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },0);
   });
   $('btnPeaks').addEventListener('click', ()=>{
-    const pre=document.createElement('pre'); pre.style='white-space:pre-wrap;font:12px ui-monospace,monospace;color:#cfe0ff';
-    const rows=(window.__lastPeaks||[]).map(p=>`${hzShort(p.f)}  |  ${p.db.toFixed(1)} dB`).join('\n') || '-';
-    pre.textContent=rows; openModal('ピーク一覧（上位）', pre);
+  const pre=document.createElement('pre');
+  pre.style='white-space:pre-wrap;font:12px ui-monospace,monospace;color:#cfe0ff';
+  // 不正値を除外して安全に表示
+  const peaks=(window.__lastPeaks||[]).filter(p=>isFinite(p.f) && isFinite(p.db));
+  // hzShort がある前提。無い場合は後述の代替を書き換えてください
+  const rows = peaks.map(p=>`${hzShort(p.f)}  |  ${p.db.toFixed(1)} dB`).join('\n') || '-';
+  pre.textContent=rows;
+  openModal('ピーク一覧（上位）', pre);
   });
 
   // ドロワー
