@@ -1,0 +1,64 @@
+{
+  "materials_schedule": {
+    "1": ["自由", "繁栄", "浮世", "忠言", "公平", "無明"],
+    "2": ["抗争", "勤労", "風雅", "創意", "正義", "角逐"],
+    "3": ["詩文", "黄金", "天光", "篤行", "秩序", "秘策"],
+    "4": ["自由", "繁栄", "浮世", "忠言", "公平", "無明"],
+    "5": ["抗争", "勤労", "風雅", "創意", "正義", "角逐"],
+    "6": ["詩文", "黄金", "天光", "篤行", "秩序", "秘策"]
+  },
+  "characters": [
+    { "name": "ディルック", "element": "炎", "talent": "抗争", "boss": "爆炎樹", "specialty": "イグサ" },
+    { "name": "クレー", "element": "炎", "talent": "自由", "boss": "爆炎樹", "specialty": "慕風のキノコ" },
+    { "name": "胡桃", "element": "炎", "talent": "勤労", "boss": "未熟の玉石", "specialty": "霓裳花" },
+    { "name": "宵宮", "element": "炎", "talent": "浮世", "boss": "無相の炎", "specialty": "鳴草" },
+    { "name": "ディシア", "element": "炎", "talent": "篤行", "boss": "導きの機巧", "specialty": "砂脂蛹" },
+    { "name": "リネ", "element": "炎", "talent": "公平", "boss": "鉄甲熔炎帝王", "specialty": "虹薔薇" },
+    { "name": "アルレッキーノ", "element": "炎", "talent": "秩序", "boss": "魔像レガトゥス", "specialty": "虹薔薇" },
+    { "name": "ベネット", "element": "炎", "talent": "抗争", "boss": "爆炎樹", "specialty": "風車アスター" },
+    { "name": "香菱", "element": "炎", "talent": "勤労", "boss": "爆炎樹", "specialty": "絶雲の唐辛子" },
+    
+    { "name": "モナ", "element": "水", "talent": "抗争", "boss": "純水精霊", "specialty": "慕風のキノコ" },
+    { "name": "タルタリヤ", "element": "水", "talent": "自由", "boss": "純水精霊", "specialty": "星螺" },
+    { "name": "珊瑚宮心海", "element": "水", "talent": "浮世", "boss": "無相の水", "specialty": "珊瑚真珠" },
+    { "name": "神里綾人", "element": "水", "talent": "風雅", "boss": "無相の水", "specialty": "緋櫻毬" },
+    { "name": "夜蘭", "element": "水", "talent": "繁栄", "boss": "遺跡サーペント", "specialty": "星螺" },
+    { "name": "ニィロウ", "element": "水", "talent": "篤行", "boss": "兆載竜獣", "specialty": "パティサラ" },
+    { "name": "ヌヴィレット", "element": "水", "talent": "公平", "boss": "千年真珠の駿麟", "specialty": "ルミドゥースベル" },
+    { "name": "フリーナ", "element": "水", "talent": "正義", "boss": "「水形幻人」", "specialty": "湖光の鈴蘭" },
+    { "name": "行秋", "element": "水", "talent": "黄金", "boss": "純水精霊", "specialty": "霓裳花" },
+
+    { "name": "ジン", "element": "風", "talent": "抗争", "boss": "無相の風", "specialty": "蒲公英の種" },
+    { "name": "ウェンティ", "element": "風", "talent": "詩文", "boss": "無相の風", "specialty": "セシリアの花" },
+    { "name": "魈", "element": "風", "talent": "繁栄", "boss": "未熟の玉石", "specialty": "清心" },
+    { "name": "楓原万葉", "element": "風", "talent": "勤労", "boss": "魔偶剣鬼", "specialty": "海霊芝" },
+    { "name": "放浪者", "element": "風", "talent": "篤行", "boss": "兆載竜獣", "specialty": "ルッカデヴァータダケ" },
+    { "name": "閑雲", "element": "風", "talent": "黄金", "boss": "隠山猊獣", "specialty": "清水玉" },
+
+    { "name": "刻晴", "element": "雷", "talent": "繁栄", "boss": "無相の雷", "specialty": "石珀" },
+    { "name": "雷電将軍", "element": "雷", "talent": "天光", "boss": "雷音権現", "specialty": "天雲草の実" },
+    { "name": "八重神子", "element": "雷", "talent": "天光", "boss": "アビサルヴィシャップの群れ", "specialty": "ウミレイシ" },
+    { "name": "セノ", "element": "雷", "talent": "忠言", "boss": "迅電樹", "specialty": "聖金虫" },
+    { "name": "クロリンデ", "element": "雷", "talent": "正義", "boss": "千年真珠の駿麟", "specialty": "ルミドゥースベル" },
+    { "name": "フィッシュル", "element": "雷", "talent": "詩文", "boss": "無相の雷", "specialty": "イグサ" },
+    { "name": "久岐忍", "element": "雷", "talent": "風雅", "boss": "遺跡サーペント", "specialty": "鳴草" },
+
+    { "name": "ティナリ", "element": "草", "talent": "忠言", "boss": "迅電樹", "specialty": "サウマラタ蓮" },
+    { "name": "ナヒーダ", "element": "草", "talent": "創意", "boss": "無相の草", "specialty": "カルパラタ蓮" },
+    { "name": "アルハイゼン", "element": "草", "talent": "創意", "boss": "蒼漠の翎羽", "specialty": "砂脂蛹" },
+    { "name": "白朮", "element": "草", "talent": "黄金", "boss": "深罪の浸礼者", "specialty": "琉璃袋" },
+
+    { "name": "七七", "element": "氷", "talent": "繁栄", "boss": "急凍樹", "specialty": "琉璃袋" },
+    { "name": "甘雨", "element": "氷", "talent": "勤労", "boss": "霜の華", "specialty": "清心" },
+    { "name": "エウルア", "element": "氷", "talent": "抗争", "boss": "無相の氷", "specialty": "蒲公英の種" },
+    { "name": "神里綾華", "element": "氷", "talent": "風雅", "boss": "恒常からくり芯", "specialty": "緋櫻毬" },
+    { "name": "申鶴", "element": "氷", "talent": "繁栄", "boss": "アビサルヴィシャップの群れ", "specialty": "清心" },
+    { "name": "リオセスリ", "element": "氷", "talent": "秩序", "boss": "実験用フィールド生成装置", "specialty": "サブゼロ" },
+
+    { "name": "アルベド", "element": "岩", "talent": "詩文", "boss": "無相の岩", "specialty": "セシリアの花" },
+    { "name": "鍾離", "element": "岩", "talent": "黄金", "boss": "無相の岩", "specialty": "石珀" },
+    { "name": "荒瀧一斗", "element": "岩", "talent": "風雅", "boss": "黄金王獣", "specialty": "オニカブトムシ" },
+    { "name": "ナヴィア", "element": "岩", "talent": "公平", "boss": "氷風組曲", "specialty": "初露の源" },
+    { "name": "千織", "element": "岩", "talent": "天光", "boss": "氷風組曲", "specialty": "血石華" }
+  ]
+}
