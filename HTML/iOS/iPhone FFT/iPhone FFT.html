@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>FFT解析_R0.2</title>
+<title>FFT解析_R0.21</title>
 <style>
   :root{
     --bg:#0e1116; --panel:#141922; --text:#e6edf3; --muted:#93a1b3; --accent:#4ea1ff; --line:#1e2634;
@@ -85,16 +85,25 @@
   input[type="number"]{width:90px;background:#0f131b;color:#e6edf3;border:1px solid var(--line)}
   select{background:#0f131b;color:#e6edf3;border:1px solid var(--line)}
 
+  /* 使い方セクションの追加スタイル */
+  .drawer-help-sec {margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--line);}
+
   /* モーダル */
   #modal{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:11}
-  .modal-body{width:min(560px,92vw);max-height:86vh;background:#0f131b;border:1px solid var(--line);border-radius:12px;padding:10px;overflow:auto}
-  .modal-body h3{margin:6px 0 8px 0;font-size:15px}
+  .modal-body{width:min(560px,92vw);max-height:86vh;background:#0f131b;border:1px solid var(--line);border-radius:12px;padding:15px;overflow:auto}
+  .modal-body h3{margin:6px 0 12px 0;font-size:16px;color:#cfe0ff;border-bottom:1px solid var(--line);padding-bottom:6px}
   video,audio{width:100%;background:#000;border-radius:8px}
+
+  /* 使い方説明のテキスト装飾 */
+  .help-content {font-size: 13px; line-height: 1.6; color:#e6edf3;}
+  .help-content p {margin: 0 0 8px 0;}
+  .help-content ul, .help-content ol {margin: 0 0 12px 0; padding-left: 20px;}
+  .help-content li {margin-bottom: 4px;}
+  .help-content strong {color: var(--accent);}
 </style>
 </head>
 <body>
 <div id="app">
-  <!-- 上段バー -->
   <div class="bar">
     <button id="btnMenu" class="iconbtn" aria-label="メニュー" title="メニュー">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="#cfe0ff" stroke-width="2" stroke-linecap="round"/></svg>
@@ -104,7 +113,6 @@
     <button id="btnStop" class="iconbtn ghost" title="停止">■</button>
   </div>
 
-  <!-- 表示（既定：スペクトル） -->
   <div id="view">
     <div class="tabs">
       <input type="radio" id="tabWave" name="tab"><label for="tabWave">波形</label>
@@ -116,7 +124,6 @@
     <div id="hud"></div>
   </div>
 
-  <!-- 下段情報（2カラム：左=省略/右=ボタン） -->
   <div id="info">
     <div class="kv">SR <span id="iRate">-</span> | <span id="iLen">-</span> | Pk <span id="iPeak">-</span></div>
     <div class="btns">
@@ -132,7 +139,6 @@
   </div>
 </div>
 
-<!-- ドロワー：モード切替＋各操作 -->
 <div id="drawer">
   <div class="shade"></div>
   <div class="sheet">
@@ -180,15 +186,65 @@
       </div>
       <div id="meta" class="tag">ファイル未選択</div>
     </div>
+
+    <div class="drawer-help-sec">
+      <button id="btnHelp" class="ghost" style="width:100%; display:inline-flex; align-items:center; justify-content:center; gap:8px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#cfe0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        使い方・操作説明
+      </button>
+    </div>
   </div>
 </div>
 
-<!-- モーダル -->
 <div id="modal">
   <div class="modal-body">
     <button id="modalClose" class="ghost" style="float:right">閉じる</button>
     <h3 id="modalTitle">プレビュー</h3>
     <div id="modalBody"></div>
+  </div>
+</div>
+
+<div id="helpTemplate" style="display:none">
+  <div class="help-content">
+    <p>当アプリは、マイク入力や音声/動画ファイルから取得したオーディオ信号をリアルタイムにFFT（高速フーリエ変換）解析し、可視化するツールです。</p>
+    
+    <strong>■ 基本操作（画面上部バー）</strong>
+    <ul>
+      <li><strong>「▶」ボタン：</strong> 解析を開始・再開します（現在のモードに従います）。</li>
+      <li><strong>「■」ボタン：</strong> マイク、ファイル解析、各種プレビュー再生をすべて停止します。</li>
+    </ul>
+
+    <strong>■ 表示表示（ビュー領域のタブ）</strong>
+    <ul>
+      <li><strong>波形：</strong> 入力中の音声の「時間波形」をそのまま描写します。</li>
+      <li><strong>スペクトル：</strong> 音声を周波数成分に分解し、横軸「周波数(Hz)」、縦軸「音量(dB)」で描写します。画面最頻出のピーク値には黄色の●マーカーが表示されます。</li>
+      <li><strong>スペクトログラム：</strong> 周波数成分の連続的な時間変化を、色の濃淡（ヒートマップ形式）で描写します。</li>
+    </ul>
+
+    <strong>■ スペクトル画面でのサブカーソル機能</strong>
+    <p>「スペクトル」タブの描画エリア内を<strong>タップ（またはドラッグ/マウスホバー）</strong>すると、任意の周波数の詳細情報（Hz / dB）を追跡できるミント色の「サブカーソル」とHUD（数値情報）が表示されます。</p>
+
+    <strong>■ 各種モード（メニュー内から切り替え）</strong>
+    <ol>
+      <li>
+        <strong>リアルタイム（マイク）モード：</strong>
+        <p>周囲の音をリアルタイムに解析します。ハウリング防止のためイヤホン等の装着を推奨します。「2秒FFT」を押すと、直近2秒間の平均/最大スペクトルを固定化してじっくり確認できます。</p>
+      </li>
+      <li>
+        <strong>ファイル解析モード：</strong>
+        <p>「ファイルを選択」から端末内の音声や動画を読み込みます。「プレビュー」画面で聴き（見）ながら位置を合わせ、「開始/終了位置＝現在位置」ボタンで任意の解析区間（秒）を切り出せます。</p>
+        <ul>
+          <li><strong>区間FFT（高速：音声）：</strong> 音声ファイル全体を一瞬でデコードし、指定区間の平均/最大スペクトルを描画します。</li>
+          <li><strong>区間FFT（互換：動画可）：</strong> 動画ファイル等で、実際に再生させながら音声を裏側で集計して解析を行います。</li>
+        </ul>
+      </li>
+    </ol>
+
+    <strong>■ 解析結果の出力（画面下部）</strong>
+    <ul>
+      <li><strong>ピーク一覧：</strong> 現在描画されているスペクトルデータから、突出している上位8つの山（ピーク周波数）を検出してポップアップ表示します。</li>
+      <li><strong>CSVボタン：</strong> 全ての周波数ステップごとの「周波数(Hz)」と「強度(dB)」の一覧をCSVファイルとしてダウンロードできます。</li>
+    </ul>
   </div>
 </div>
 
@@ -543,7 +599,7 @@
         },0);
       }
     };
-    src.connect(node); node.connect(gain); gain.connect(mainGain);
+    src.connect(node); node.disconnect(); gain.disconnect();
     collector={source:src,node,gain}; collecting=true; closeDrawer();
   });
   function concatFloat32(chunks,totalLen){ const out=new Float32Array(totalLen); let off=0; for(const c of chunks){ out.set(c,off); off+=c.length; } return out; }
@@ -610,6 +666,15 @@
   function closeModal(){ modal.style.display='none'; modalBody.innerHTML=''; }
   $('modalClose').addEventListener('click', closeModal);
   $('modal').addEventListener('click', e=>{ if(e.target===modal) closeModal(); });
+
+  // 使い方ボタンのイベント追加
+  $('btnHelp').addEventListener('click', () => {
+    // 隠しテンプレートから中身を複製してモーダルに挿入
+    const helpContent = $('helpTemplate').innerHTML;
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = helpContent;
+    openModal('使い方・操作説明', tempDiv);
+  });
 
   // 初期
   function init(){
