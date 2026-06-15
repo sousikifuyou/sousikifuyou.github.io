@@ -31,13 +31,34 @@
   }
 
   header{
-    padding:10px 14px;
-    font-weight:800;
-    font-size:18px;
+    padding:8px 14px;
     border-bottom:1px solid var(--border);
     position:sticky; top:0; z-index:2;
     background:var(--overlay);
     backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    /* 右上ボタン配置用 */
+    display: table;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .header-title {
+    display: table-cell;
+    vertical-align: middle;
+    font-weight:800;
+    font-size:18px;
+  }
+  .header-btn-wrap {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  /* ヘッダー内ボタン専用スタイル */
+  header button {
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 8px;
   }
 
   main{ padding:10px 12px 20px; }
@@ -72,10 +93,11 @@
     border-top:1px solid var(--border);
     background:var(--overlay);
     backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     padding:8px 10px calc(8px + env(safe-area-inset-bottom));
   }
   .btnrow{ display:flex; gap:8px; }
-  .btnrow>button{ flex:1 1 0; min-height:44px; }
+  .btnrow>button{ flex:1 1 0; min-height:44px; font-size:14px; } /* 4つボタンに戻ったためサイズ調整 */
 
   button{
     -webkit-tap-highlight-color:transparent;
@@ -93,13 +115,52 @@
   ::-webkit-scrollbar{ width:12px; height:12px; }
   ::-webkit-scrollbar-thumb{ background:#4b5563; border-radius:20px; border:3px solid var(--bg); }
   ::-webkit-scrollbar-track{ background:transparent; }
+
+  /* 使い方マニュアル（モーダル）のスタイル */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 100;
+    left: 0; top: 0; width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .modal-content {
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    margin: 15% auto;
+    padding: 20px;
+    border-radius: 14px;
+    width: 85%;
+    max-width: 440px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    position: relative;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  .modal-content h2 { margin: 0 0 14px; font-size: 18px; font-weight: 800; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  .modal-content ul { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.6; color: var(--fg); }
+  .modal-content li { margin-bottom: 8px; }
+  .modal-content p { font-size: 12px; color: var(--muted); margin: 12px 0 0; line-height: 1.4; }
+  .close-btn {
+    position: absolute; right: 16px; top: 14px;
+    font-size: 24px; font-weight: bold; color: var(--muted); cursor: pointer;
+    line-height: 1; -webkit-tap-highlight-color: transparent;
+  }
+  .close-btn:hover { color: var(--fg); }
 </style>
 </head>
 <body>
-<header>方位・水準器</header>
+
+<header>
+  <div class="header-title">方位・水準器</div>
+  <div class="header-btn-wrap">
+    <button id="openModalBtn" class="secondary">使い方</button>
+  </div>
+</header>
 
 <main>
-  <!-- 上段：方位＋水準器 -->
   <section class="row2">
     <div class="card">
       <div class="title">方位（<span id="ttlHeadingMode">絶対</span>）</div>
@@ -121,7 +182,6 @@
 
   <div class="spacer"></div>
 
-  <!-- 下段：ピッチ＋ロール -->
   <section class="row2">
     <div class="card">
       <div class="title">ピッチ（<span id="ttlPitchMode">絶対</span>）</div>
@@ -155,7 +215,20 @@
   </div>
 </main>
 
-<!-- 下端 -->
+<div id="manualModal" class="modal">
+  <div class="modal-content">
+    <span id="closeModalBtn" class="close-btn">&times;</span>
+    <h2>使い方マニュアル</h2>
+      <strong>※iPhoneの水準器で小数点以下を見るためだけに作ったモノです</strong>
+    <ul>
+      <li><strong>計測開始：</strong>「計測」ボタンを押し、動作と方向へのアクセスを許可すると、センサーが連動し始めます。</li>
+      <li><strong>ゼロ点設定：</strong>現在の傾き・方位を「0°（基準）」として、そこからの変化量（相対値）を測定できます。もう一度押すと絶対値に戻ります。</li>
+      <li><strong>記録・保存：</strong>「記録開始」で毎秒10回のデータを蓄積し、いつでも「CSV保存」でファイル出力可能です。</li>
+    </ul>
+    <p>※ iOS（iPhone）で数値が動かない場合は、Safariの設定等で「動作と方向のアクセス」が許可されているか確認してください。</p>
+  </div>
+</div>
+
 <nav class="bottombar">
   <div class="btnrow">
     <button id="measureBtn">計測</button>
@@ -175,7 +248,14 @@
     absFlag: $('absFlag'), compAcc: $('compAcc'),
     tbody: $('logTable').querySelector('tbody'), rateBadge: $('rateBadge'), recInfo: $('recInfo'),
     measure: $('measureBtn'), zero: $('zeroBtn'), rec: $('recBtn'), csv: $('csvBtn'),
+    // マニュアル関連要素
+    openModal: $('openModalBtn'), closeModal: $('closeModalBtn'), modal: $('manualModal')
   };
+
+  // 使い方マニュアルの制御イベント
+  el.openModal.addEventListener('click', () => el.modal.style.display = 'block');
+  el.closeModal.addEventListener('click', () => el.modal.style.display = 'none');
+  window.addEventListener('click', (e) => { if(e.target === el.modal) el.modal.style.display = 'none'; });
 
   // --- ダブルタップズーム無効（ピンチは維持） ---
   (function disableDoubleTapZoom(){
@@ -204,7 +284,6 @@
     try{ if (wakeLock){ await wakeLock.release(); wakeLock=null; } }catch{}
   }
   function shouldKeepAwake(){
-    // 計測中 or （ホールド中かつ記録中）の間は防止
     return (measureState==='running') || (measureState==='hold' && !!recTimer);
   }
   async function updateKeepAwake(){
@@ -216,14 +295,14 @@
   const state = { heading:null, headingAcc:null, isAbsolute:false, pitch:null, roll:null, lastTS:0 };
   let lastDraw = { heading:0, pitch:0, roll:0 };
 
-  // 表示モード：ゼロ点がある間は相対
+  // 表示モード
   let zeroBase = null;
   const usingAbs = ()=> !zeroBase;
   const modeLabel = ()=> usingAbs()? '絶対' : '相対';
   function updateModeTitles(){ [el.ttlHeadingMode, el.ttlLevelMode, el.ttlPitchMode, el.ttlRollMode].forEach(x=>x.textContent=modeLabel()); }
   function updateZeroBtn(){ el.zero.textContent = zeroBase ? 'ゼロ点 クリア' : 'ゼロ点 設定'; }
 
-  // 記録（10Hz・30分）
+  // 記録
   const SAMPLE_HZ = 10, SAMPLE_MS = Math.round(1000/SAMPLE_HZ);
   const MAX_SECONDS = 30*60, MAX_RECORDS = MAX_SECONDS * SAMPLE_HZ;
   el.rateBadge.textContent = `${SAMPLE_HZ} Hz`;
@@ -242,7 +321,7 @@
     const cs = card ? getComputedStyle(card) : null;
     const padX = cs ? (parseFloat(cs.paddingLeft)||0) + (parseFloat(cs.paddingRight)||0) : 0;
     const maxByVar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--dial')) || 260;
-    const size = Math.max(160, Math.min(maxByVar, cardW - padX - 2)); // 枠線分で-2
+    const size = Math.max(160, Math.min(maxByVar, cardW - padX - 2));
     return Math.floor(size);
   }
   function fitCanvas(canvas, cssSize){
@@ -255,9 +334,9 @@
     if (g.setTransform) g.setTransform(dpr,0,0,dpr,0,0);
     return g;
   }
-  function getCS(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#111'; }
-  function isDark(hex){ const m=/^#([0-9a-f]{3,6})$/i.exec(hex||''); if(!m) return true; let h=m[1]; if(h.length===3) h=h.split('').map(c=>c+c).join(''); const r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16); return (0.299*r+0.587*g+0.114*b)<140; }
-  function lineCol(){ return isDark(getCS('--bg'))? '#fff3' : '#0003'; }
+  getCS = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#111';
+  isDark = hex => { const m=/^#([0-9a-f]{3,6})$/i.exec(hex||''); if(!m) return true; let h=m[1]; if(h.length===3) h=h.split('').map(c=>c+c).join(''); const r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16); return (0.299*r+0.587*g+0.114*b)<140; }
+  lineCol = () => isDark(getCS('--bg'))? '#fff3' : '#0003';
 
   // 盤面描画
   function drawCompass(deg){
@@ -321,7 +400,7 @@
     drawLevel(pAbs, rAbs);
   }
 
-  // センサーのアタッチ/デタッチ
+  // センサーリスナー
   let sensorsOn = false;
   function attachOrientationListeners(){
     if (sensorsOn) return;
@@ -362,10 +441,9 @@
   function startSensors(){
     attachOrientationListeners();
     el.zero.disabled=false; el.rec.disabled=false; el.csv.disabled=false;
-    resizeDials(); lastDraw={heading:0,pitch:0,roll:0}; updateUI(); // 初期描画
+    resizeDials(); lastDraw={heading:0,pitch:0,roll:0}; updateUI();
   }
 
-  // カード幅に合わせてリサイズ
   function resizeDials(){
     const s1 = getDialTargetSize(el.compass);
     const s2 = getDialTargetSize(el.level);
@@ -379,12 +457,12 @@
   window.addEventListener('resize', ()=>{ if(!document.hidden){ resizeDials(); updateUI(); } });
   document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ resizeDials(); updateUI(); } });
 
-  // 計測ボタン（idle → running → hold → running …）
-  let measureState = 'idle'; // 'idle' | 'running' | 'hold'
+  // 計測ボタン
+  let measureState = 'idle';
   function refreshMeasureLabel(){
     if (measureState==='idle') { el.measure.textContent='計測'; return; }
     if (measureState==='running') { el.measure.textContent = recTimer ? 'ホールド' : '停止'; return; }
-    el.measure.textContent='再開'; // hold
+    el.measure.textContent='再開';
   }
   function setMeasureState(ns){ measureState = ns; refreshMeasureLabel(); updateKeepAwake(); }
 
@@ -392,17 +470,15 @@
     if (measureState==='idle'){
       await requestPermissionsIfNeeded(); startSensors(); setMeasureState('running');
     } else if (measureState==='running'){
-      // 記録中ならセンサー継続、未記録なら停止
       if (!recTimer) detachOrientationListeners();
-      setMeasureState('hold'); // 画面更新は停止
+      setMeasureState('hold');
     } else {
-      // 再開
       if (!sensorsOn) startSensors();
       setMeasureState('running'); updateUI();
     }
   });
 
-  // ゼロ点（設定中は相対表示）
+  // ゼロ点
   function toggleZero(){
     if (!zeroBase){
       if (!Number.isFinite(state.heading)||!Number.isFinite(state.pitch)||!Number.isFinite(state.roll)) return;
@@ -412,7 +488,7 @@
   }
   el.zero.addEventListener('click', toggleZero);
 
-  // 記録（ホールド中でも記録中はセンサーON。開始/停止時にWakeLockも更新）
+  // 記録
   const MAX_ROWS_VIEW = 200;
   function nowJST(){ try{ return new Date().toLocaleString('ja-JP',{timeZone:'Asia/Tokyo',hour12:false}); }catch{ return new Date().toISOString(); } }
   function sampleOnce(){
@@ -441,7 +517,7 @@
   }
   function startRec(){
     if(recTimer) return;
-    if (!sensorsOn) attachOrientationListeners(); // ホールド中から開始でも計測できるように
+    if (!sensorsOn) attachOrientationListeners();
     recStartT=Date.now();
     recTimer=setInterval(sampleOnce, SAMPLE_MS);
     el.rec.textContent='記録停止'; el.rec.classList.remove('secondary'); el.rec.classList.add('warn'); el.recInfo.textContent='経過 00:00 / 30:00';
@@ -451,7 +527,7 @@
     if(!recTimer) return;
     clearInterval(recTimer); recTimer=null;
     el.rec.textContent='記録開始'; el.rec.classList.add('secondary'); el.rec.classList.remove('warn');
-    if (measureState==='hold') detachOrientationListeners(); // ホールド中に記録停止したら計測も停止
+    if (measureState==='hold') detachOrientationListeners();
     refreshMeasureLabel(); updateKeepAwake();
   }
   el.rec.addEventListener('click', ()=> recTimer? stopRec() : startRec());
@@ -474,7 +550,7 @@
 
   // 初期化
   (function init(){
-    resizeDials();             // カード幅にフィット
+    resizeDials();
     drawCompass(0); drawLevel(0,0);
     updateZeroBtn(); updateModeTitles();
     setMeasureState('idle');
