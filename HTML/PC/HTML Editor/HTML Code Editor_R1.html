@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>HTMLコードエディタ（CodeMirror版）_R1.06.07</title>
+<title>HTMLコードエディタ（CodeMirror版）_R1.06.07.01（外部ﾗｲﾌﾞﾗﾘダウンロード版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <!-- CodeMirror 5 Local (libフォルダ参照) -->
@@ -797,6 +797,7 @@
     }
     try {
       const [handle] = await window.showOpenFilePicker({
+        id: 'html-editor-folder', //ブラウザにフォルダ位置を記憶させるための識別子
         types: [
           {
             description: "HTML / Text",
@@ -857,6 +858,7 @@
 
     try {
       const handle = await window.showSaveFilePicker({
+        id: 'html-editor-folder', //読み込み時と同じ識別子を指定することで、フォルダ位置を同期させます
         suggestedName: defaultName,
         types: [
           {
@@ -992,6 +994,8 @@
   divider.addEventListener('mousedown', (e) => {
     isDraggingDivider = true;
     document.body.style.cursor = 'col-resize';
+    // ドラッグ開始時にiframeのマウスイベントを無効化
+    previewFrame.style.pointerEvents = 'none'; 
     e.preventDefault();
   });
 
@@ -1011,6 +1015,8 @@
     if (isDraggingDivider) {
       isDraggingDivider = false;
       document.body.style.cursor = 'default';
+      // ドラッグ終了時にiframeのマウスイベントを元に戻す
+      previewFrame.style.pointerEvents = 'auto'; 
     }
   });
 
