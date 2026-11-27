@@ -37,13 +37,16 @@
   .el-Pyro{--el:#f07a3e} .el-Hydro{--el:#3fb5f0} .el-Electro{--el:#b383f0} .el-Cryo{--el:#8fd3e8}
   .el-Anemo{--el:#3fcfa6} .el-Geo{--el:#e8b33a} .el-Dendro{--el:#8cc63f}
 
+  /* 日本語フォント優先（iPhone/Mac はヒラギノ、Windows は游ゴシック/メイリオ、その他は Noto Sans JP 等）。
+     中国語フォントに置き換わらないよう、和文フォントを明示的に並べる */
+  :root{--font-ja:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","ヒラギノ角ゴシック","BIZ UDPGothic","Yu Gothic UI","Yu Gothic","游ゴシック体",YuGothic,Meiryo,"メイリオ","Noto Sans JP","Noto Sans CJK JP","Source Han Sans JP","IPAPGothic","IPAexGothic",sans-serif}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
   body{background:var(--bg-grad),var(--bg);background-attachment:fixed;color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI",sans-serif;
+    font-family:var(--font-ja);font-feature-settings:"palt";
     font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;
     padding-bottom:calc(78px + env(safe-area-inset-bottom))}
-  button{font:inherit;color:inherit}
+  button,input{font:inherit;color:inherit}
 
   /* ===== ヘッダー ===== */
   header{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:10px;
