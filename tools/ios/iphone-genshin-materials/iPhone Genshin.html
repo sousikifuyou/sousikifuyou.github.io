@@ -111,7 +111,7 @@
   .people{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
   .person{display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 6px;border-radius:999px;background:var(--surface-2);font-size:13px;font-weight:600}
   .person::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--el,var(--muted));box-shadow:0 0 0 3px color-mix(in srgb,var(--el,var(--muted)) 25%,transparent)}
-  .person.r5{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--r5) 55%,transparent)}
+  .person.r5{color:var(--r5);font-weight:700}  /* ★5は金色の文字 */
   .empty{color:var(--muted);font-size:13px;padding:4px 0}
 
   details.card>summary{list-style:none;cursor:pointer}
