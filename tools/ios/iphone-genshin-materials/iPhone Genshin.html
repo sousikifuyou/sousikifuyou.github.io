@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0d1120">
 <title>原神素材_R0.40</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -42,7 +43,8 @@
   :root{--font-ja:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","ヒラギノ角ゴシック","BIZ UDPGothic","Yu Gothic UI","Yu Gothic","游ゴシック体",YuGothic,Meiryo,"メイリオ","Noto Sans JP","Noto Sans CJK JP","Source Han Sans JP","IPAPGothic","IPAexGothic",sans-serif}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
-  body{background:var(--bg-grad),var(--bg);background-attachment:fixed;color:var(--text);
+  html{background-color:var(--bg)}
+  body{background:var(--bg-grad) no-repeat,var(--bg);color:var(--text);
     font-family:var(--font-ja);font-feature-settings:"palt";
     font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;
     padding-bottom:calc(78px + env(safe-area-inset-bottom))}
@@ -326,7 +328,18 @@ function applyTheme(pref,{save=true}={}){
   const b=$("#btnTheme"); b.innerHTML=pref==="dark"?ICON_DARK:pref==="light"?ICON_LIGHT:ICON_AUTO;
   b.setAttribute("aria-label",`テーマ切替（現在：${pref==="auto"?"自動":pref==="dark"?"ダーク":"ライト"}）`);
   if(save)localStorage.setItem(K.THEME,pref);
+  syncBrowserChrome();
 }
+// Safari の上下バー（ステータスバー・ツールバー）の色をアプリのテーマに合わせる
+function syncBrowserChrome(){
+  const pref=localStorage.getItem(K.THEME)||"auto";
+  const dark=pref==="dark"||(pref==="auto"&&!!(mqlDark&&mqlDark.matches));
+  document.querySelector('meta[name="color-scheme"]').setAttribute("content",pref==="auto"?"light dark":(dark?"dark":"light"));
+  const bg=getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()||(dark?"#0d1120":"#f5f1e8");
+  document.querySelector('meta[name="theme-color"]').setAttribute("content",bg);
+}
+const mqlDark=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)");
+if(mqlDark&&mqlDark.addEventListener) mqlDark.addEventListener("change",syncBrowserChrome);
 function nextTheme(p){if(p==="auto")return"dark";if(p==="dark")return"light";return"auto";}
 $("#btnTheme").onclick=()=>{const n=nextTheme(localStorage.getItem(K.THEME)||"auto");applyTheme(n);toast(`テーマ: ${n==="auto"?"自動":n==="dark"?"ダーク":"ライト"}`);};
 
