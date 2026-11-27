@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#0d1120">
-<title>原神素材_R0.43</title>
+<title>原神素材_R0.44</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
@@ -85,6 +85,11 @@
   .chip{flex:0 0 auto;padding:7px 14px;border-radius:999px;background:var(--surface);border:1px solid var(--line);
     font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s ease;position:relative}
   .chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+  /* 並び順の切替（セグメント） */
+  .sortbar{display:flex;align-items:center;gap:10px;margin:0 2px 4px;font-size:12px;color:var(--muted);font-weight:600}
+  .seg{display:inline-flex;padding:3px;border-radius:10px;background:var(--surface);border:1px solid var(--line)}
+  .seg button{border:0;background:none;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer}
+  .seg button[aria-pressed="true"]{background:var(--surface-2);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.2)}
   .chip.is-today::after{content:"";position:absolute;top:4px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--ok)}
   .chip .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--el);margin-right:6px;vertical-align:1px}
 
@@ -185,6 +190,11 @@
       </div>
       <div class="scroller" id="dayChips"></div>
       <div class="scroller" id="regionChips"></div>
+      <div class="sortbar">並び順
+        <div class="seg" id="orderSeg" role="group" aria-label="地域の並び順">
+          <button data-order="old">古い地域から</button><button data-order="new">新しい地域から</button>
+        </div>
+      </div>
 
       <details class="section" data-sec="talent" open>
         <summary><span class="sec-title">天賦素材（秘境）</span><span class="count" id="talentCount"></span><span class="chev">▾</span></summary>
@@ -268,8 +278,8 @@ const FALLBACK_DATA={schema:1,generatedAt:null,source:{name:"内蔵データ",ve
   weaponSeries:[],characters:[],weapons:[]};
 
 /* ===== ストレージキー ===== */
-const APP_VERSION="R0.43";
-const K={ DATA:"genshin-data-v4", FETCHED_AT:"genshin-data-fetched-at-v4", FROM:"genshin-data-from-v4", LOCAL_OVERRIDES:"local-overrides-v2", THEME:"theme-pref-v1", FOLD:"fold-state-v1" };
+const APP_VERSION="R0.44";
+const K={ DATA:"genshin-data-v4", FETCHED_AT:"genshin-data-fetched-at-v4", FROM:"genshin-data-from-v4", LOCAL_OVERRIDES:"local-overrides-v2", THEME:"theme-pref-v1", FOLD:"fold-state-v1", ORDER:"region-order-v1" };
 // 旧バージョンのキャッシュを掃除
 // local-overrides-v1 は旧版が同梱の characters.local.json を自動保存したもの（古い天賦本・旧キー名を含む）なので破棄する
 (function cleanupOld(){try{localStorage.removeItem("genshin-app-v3");localStorage.removeItem("local-overrides-v1");for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith("ambr-avatar-"))localStorage.removeItem(k);}}catch{}})();
@@ -386,6 +396,7 @@ function setRoute(route){
   document.querySelector("nav.tabbar")?.classList.remove("compact");
 }
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>setRoute(t.dataset.route));
+document.querySelectorAll("#orderSeg button").forEach(b=>b.onclick=()=>{try{localStorage.setItem(K.ORDER,b.dataset.order);}catch{} renderToday();});
 
 /* ===== タブバー：下スクロールで縮小、上スクロールで元に戻す ===== */
 (function(){
@@ -411,7 +422,13 @@ function renderToday(){
   const prevDay=chipValue(dc), prevRegion=chipValue(rc);
   const today=gameDayKey();
   makeChips(dc,[{value:"today",label:"今日"},...["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d=>({value:d,label:WEEK_JA[d],cls:d===today?"is-today":""}))],list);
-  const regions=uniq(data.talentSeries.map(x=>x.region).concat((data.weaponSeries||[]).map(x=>x.region)).filter(Boolean));
+  // 地域はデータの並び（＝実装順）。「新しい地域から」のときは逆順にする（設定はブラウザに保存）
+  const order=localStorage.getItem(K.ORDER)==="new"?"new":"old";
+  document.querySelectorAll("#orderSeg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.order===order)));
+  let regions=uniq(data.talentSeries.map(x=>x.region).concat((data.weaponSeries||[]).map(x=>x.region)).filter(Boolean));
+  if(order==="new") regions=regions.reverse();
+  const rank=new Map(regions.map((r,i)=>[r,i]));
+  const byRegion=(a,b)=>(rank.get(a.region)??99)-(rank.get(b.region)??99);  // 同じ地域内の順（月木→火金→水土）は維持
   makeChips(rc,[{value:"all",label:"全地域"},...regions.map(r=>({value:r,label:r}))],list);
   keepChip(dc,prevDay); keepChip(rc,prevRegion);
 
@@ -425,8 +442,8 @@ function renderToday(){
     const weaponsOf=new Map();
     for(const wp of (data.weapons||[])){ if(!weaponsOf.has(wp.series))weaponsOf.set(wp.series,[]); weaponsOf.get(wp.series).push(wp); }
 
-    const ts=data.talentSeries.filter(openOn).filter(inRegion);
-    const ws=(data.weaponSeries||[]).filter(openOn).filter(inRegion);
+    const ts=data.talentSeries.filter(openOn).filter(inRegion).sort(byRegion);
+    const ws=(data.weaponSeries||[]).filter(openOn).filter(inRegion).sort(byRegion);
     const charCount=uniq(ts.flatMap(s=>(usersOf.get(s.key)||[]).map(c=>c.key))).length;
 
     $("#heroDay").innerHTML=`${WEEK_JA[w]}曜日<small>${sel==="today"||w===today?"今日":"の秘境"}</small>`;
