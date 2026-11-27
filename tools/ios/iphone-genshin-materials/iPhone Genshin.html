@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#0d1120">
-<title>原神素材_R0.40</title>
+<title>原神素材_R0.41</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
@@ -260,9 +260,11 @@ const FALLBACK_DATA={schema:1,generatedAt:null,source:{name:"内蔵データ",ve
   weaponSeries:[],characters:[],weapons:[]};
 
 /* ===== ストレージキー ===== */
-const K={ DATA:"genshin-data-v4", FETCHED_AT:"genshin-data-fetched-at-v4", FROM:"genshin-data-from-v4", LOCAL_OVERRIDES:"local-overrides-v1", THEME:"theme-pref-v1", FOLD:"fold-state-v1" };
+const APP_VERSION="R0.41";
+const K={ DATA:"genshin-data-v4", FETCHED_AT:"genshin-data-fetched-at-v4", FROM:"genshin-data-from-v4", LOCAL_OVERRIDES:"local-overrides-v2", THEME:"theme-pref-v1", FOLD:"fold-state-v1" };
 // 旧バージョンのキャッシュを掃除
-(function cleanupOld(){try{localStorage.removeItem("genshin-app-v3");for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith("ambr-avatar-"))localStorage.removeItem(k);}}catch{}})();
+// local-overrides-v1 は旧版が同梱の characters.local.json を自動保存したもの（古い天賦本・旧キー名を含む）なので破棄する
+(function cleanupOld(){try{localStorage.removeItem("genshin-app-v3");localStorage.removeItem("local-overrides-v1");for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith("ambr-avatar-"))localStorage.removeItem(k);}}catch{}})();
 
 /* ===== ユーティリティ ===== */
 const $=(s)=>document.querySelector(s);
@@ -492,6 +494,7 @@ function renderAbout(){
   const ov=getOverrides();
   const r=(k,v)=>`<div class="row"><span>${k}</span><span>${v}</span></div>`;
   $("#dataInfo").innerHTML=
+    r("アプリ",APP_VERSION)+
     r("データ元",`${safe(s.name||"—")} ${s.version?`v${safe(s.version)}`:""}`)+
     r("収録ゲームVer.",s.gameVersion?`〜 ${safe(s.gameVersion)}`:"—")+
     r("データ生成",fmtDate(d.generatedAt))+
