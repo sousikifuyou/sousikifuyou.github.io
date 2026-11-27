@@ -1,0 +1,52 @@
+name: 原神素材データ自動更新
+
+on:
+  schedule:
+    - cron: "17 21 * * *"   # 毎日 06:17 JST
+  workflow_dispatch:          # Actions タブから手動実行も可能
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-genshin-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      APP_DIR: tools/ios/iphone-genshin-materials
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: genshin-db の最新版を取得（コードは実行せずデータだけ使う）
+        id: fetch
+        run: |
+          mkdir -p "$RUNNER_TEMP/gdb"
+          cd "$RUNNER_TEMP/gdb"
+          VERSION=$(npm view genshin-db version)
+          echo "genshin-db version: $VERSION"
+          npm pack "genshin-db@$VERSION" --silent
+          tar xzf "genshin-db-$VERSION.tgz"
+          test -f package/src/min/data.min.json
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: アプリ用 JSON を生成
+        run: |
+          python3 "$APP_DIR/scripts/build_genshin_data.py" \
+            "$RUNNER_TEMP/gdb/package/src/min/data.min.json" \
+            "$APP_DIR/genshin-data.json" \
+            "${{ steps.fetch.outputs.version }}"
+
+      - name: 変更があればコミット
+        run: |
+          if git diff --quiet -- "$APP_DIR/genshin-data.json"; then
+            echo "データに変更なし"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$APP_DIR/genshin-data.json"
+          git commit -m "原神素材データを更新 (genshin-db ${{ steps.fetch.outputs.version }})"
+          git push
