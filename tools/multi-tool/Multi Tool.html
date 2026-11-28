@@ -236,7 +236,7 @@ details>summary{cursor:pointer;color:#334;font-weight:600;margin:6px 0}
     <label>機種</label><select id="ex-mach" data-persist><option value="ex">油圧ショベル</option><option value="wl">ホイールローダ</option></select><span></span>
     <label>操作速度</label><input id="ex-speed" type="number" step="0.1" min="0.1" value="1" data-persist><span class="u">倍</span>
     <label class="full"><input type="checkbox" id="ex-jack" data-persist> フロントが地面に当たったら機械をジャッキアップする</label>
-    <label class="full"><input type="checkbox" id="ex-coll" checked data-persist> 車体・ブームと干渉する動きを止める（油圧ショベル）</label>
+    <label class="full"><input type="checkbox" id="ex-coll" checked data-persist> フロントが車体と干渉する動きを止める</label>
    </div>
    <div class="note" id="ex-help" style="line-height:1.7;margin-top:6px"></div>
    <div class="note" style="line-height:1.7">マウス：左ドラッグ 回転／右ドラッグ・Shift+ドラッグ 移動／ホイール 拡大縮小／ダブルクリック 全体表示</div>
@@ -1350,16 +1350,16 @@ const EX_DIMS=[
   ['bktLen','バケット長（ピン〜刃先）',1450],['bktW','バケット幅',1000],['hitchH','クイックヒッチ高さ（上下ピン間）',320],
   ['#','可動範囲'],
   ['boomMin','ブーム角 最小',-50,'°'],['boomMax','ブーム角 最大',62,'°'],['armMin','アーム角 最小（引き側）',-155,'°'],['armMax','アーム角 最大（出し側）',-35,'°'],
-  ['bktMin','バケット角 最小（掘削側）',-165,'°'],['bktMax','バケット角 最大（ダンプ側）',35,'°'],
+  ['bktMin','バケット角 最小（掘削側）',-160,'°'],['bktMax','バケット角 最大（ダンプ側）',20,'°'],
   ['+','シリンダ・リンク取付位置（詳細）'],
   ['cbX','ブームシリンダ ボトム X（旋回体）',750],['cbY','　〃 Y（地上高）',1150],
   ['pbX','ブームシリンダ ロッド x（ブーム座標）',2350],['pbY','　〃 y',170],
   ['paX','アームシリンダ ボトム x（ブーム座標）',3100],['paY','　〃 y',1250],
   ['atX','アームシリンダ ロッド x（アーム座標）',-775],['atY','　〃 y',140],
-  ['ckX','バケットシリンダ ボトム x（アーム座標）',330],['ckY','　〃 y',420],
-  ['p1X','サイドリンク支点 x（アーム座標）',2560],['p1Y','　〃 y',130],
-  ['kX','バケットリンク支点 x（バケット座標）',-210],['kY','　〃 y',325],
-  ['l1','サイドリンク長',520],['l2','バケットリンク（Hリンク）長',560],
+  ['ckX','バケットシリンダ ボトム x（アーム座標）',490],['ckY','　〃 y',530],
+  ['p1X','サイドリンク支点 x（アーム座標）',2425],['p1Y','　〃 y',100],
+  ['kX','バケットリンク支点 x（バケット座標）',-195],['kY','　〃 y',250],
+  ['l1','サイドリンク長',565],['l2','バケットリンク（Hリンク）長',725],
 ];
 // バケット側面形状（作図用座標：開口を右に向けた側面図、ピン原点、mm）
 const EXB={ T:[600,-1350], K:[-380,60], F:[260,-140],
@@ -1495,9 +1495,10 @@ const EXC={
     for(const z of [-zb+70,-zb+130,zb-70,zb-130]) M.bhose.add(tube([[ht[0][0]+250,ht[0][1]-20,z],ht[1].concat(z),[ht[2][0]-450,ht[2][1],z]].map(q=>q.length===2?[q[0],q[1],z]:q),24,8));
     /* --- アーム --- */
     const La=p.armLen, za=p.armW/2, at=[p.atX,p.atY], ck=[p.ckX,p.ckY], p1=[p.p1X,p.p1Y];
-    M.arm=extrude(hullC([[at[0],at[1],135],[0,0,185],[ck[0],ck[1],120],[p1[0],p1[1],100],[La,0,135]],24),-za,za);
+    M.arm=new Geo().add(extrude(hullC([[at[0],at[1],135],[0,0,185],[p1[0],p1[1],100],[La,0,135]],24),-za,za))
+      .add(pair(hullC([[ck[0],ck[1],110],[ck[0]-320,40,20],[ck[0]+320,40,20]]),100,135)); // バケットシリンダ ボトムのブラケット（アーム上面に立つ）
     M.apins=new Geo().add(cylZ(0,0,72,-za-40,za+40,24)).add(cylZ(La,0,66,-za-90,za+90,24)).add(cylZ(p1[0],p1[1],56,-za-55,za+55,20))
-      .add(cylZ(at[0],at[1],58,-160,160,20)).add(cylZ(ck[0],ck[1],56,-140,140,20));
+      .add(cylZ(at[0],at[1],58,-160,160,20)).add(cylZ(ck[0],ck[1],56,-145,145,20));
     M.slink=pair(hullC([[0,0,72],[p.l1,0,72]]),za+8,za+38);
     M.hlink=pair(hullC([[0,0,78],[p.l2,0,78]]),za+52,za+84);
     M.jpin=cylZ(0,0,55,-za-90,za+90,20);
@@ -1922,7 +1923,12 @@ const WLC={
     M.cLt=cL.tube; M.cLr=cL.rod; M.cKt=cK.tube; M.cKr=cK.rod;
     if(this.model) Object.values(this.model.mesh).forEach(freeMesh);
     const mesh={}; Object.entries(M).forEach(([k,g])=>{ if(g.p.length) mesh[k]=mkMesh(g); });
-    this.model={mesh,rg};
+    const cbx=-p.cabX, crx=cbx-p.cabL, cbY=yA+tr*0.75+40, hz=Math.max(p.apY,p.fcY)+300;
+    const colF=[[L-tr,L+tr,0,2*tr,-T2-tw/2,-T2+tw/2,'左前タイヤ'],[L-tr,L+tr,0,2*tr,T2-tw/2,T2+tw/2,'右前タイヤ'],
+      [180,p.apX+120,yA-220,hz,-(az-90),az-90,'前フレーム'],[250,L+750,yA-260,yA+330,-430,430,'前フレーム']];
+    const colR=[[-L-tr,-L+tr,0,2*tr,-T2-tw/2,-T2+tw/2,'左後タイヤ'],[-L-tr,-L+tr,0,2*tr,T2-tw/2,T2+tw/2,'右後タイヤ'],
+      [crx,cbx+40,cbY,p.cabTop,-p.cabW/2,p.cabW/2,'キャブ'],[-rE,crx,yA+300,hH,-bw,bw,'エンジンフード'],[-rE,-rE+520,yA-350,hH-340,-cwW,cwW,'カウンタウェイト']];
+    this.model={mesh,rg,colF,colR};
     this.clamp();
   },
   clamp(){
@@ -1966,8 +1972,24 @@ const WLC={
     put('bShell',fr.bm,COL.body); put('bSide',fr.bm,COL.body); put('bEdge',fr.bm,COL.frame); put('bBr',fr.bm,COL.body);
     return {items,info:fr};
   },
+  // 干渉判定：バケットの代表点と車体（前フレーム・タイヤ・キャブ・フード等）のめり込み量（mm）
+  collide(s){
+    const p=this.p, md=this.model, D=Math.PI/180;
+    const am=M4.chain(M4.T(p.apX,p.apY,0),M4.RZ(s.arm*D)), bm=M4.chain(am,M4.T(p.armLen,0,0),M4.RZ(s.bkt*D)), ff=M4.RY(s.art*D);
+    let depth=0, what='';
+    const boxPen=(q,r,bx)=>{ const dx=Math.max(bx[0]-q[0],0,q[0]-bx[1]), dy=Math.max(bx[2]-q[1],0,q[1]-bx[3]), dz=Math.max(bx[4]-q[2],0,q[2]-bx[5]);
+      const out=Math.hypot(dx,dy,dz); if(out>0) return Math.max(0,r-out);
+      return r+Math.min(q[0]-bx[0],bx[1]-q[0],q[1]-bx[2],bx[3]-q[1],q[2]-bx[4],bx[5]-q[2]); };
+    for(const q0 of this.bPts){
+      const q=M4.xp(bm,...q0), qr=M4.xp(ff,...q);
+      for(const bx of md.colF){ const d=boxPen(q,40,bx); if(d>0){ depth+=d; if(!what) what='バケット と '+bx[6]; } }
+      for(const bx of md.colR){ const d=boxPen(qr,40,bx); if(d>0){ depth+=d; if(!what) what='バケット と '+bx[6]; } }
+    }
+    return {depth,what};
+  },
   update(dt,K,sp){
     const s=this.st, p=this.p, v=this.v||(this.v={arm:0,bkt:0});
+    const prev={arm:s.arm,bkt:s.bkt,art:s.art,x:s.x,z:s.z,h:s.h};
     const thr=K('KeyW')-K('KeyS'), vmax=2800*sp;
     let moved=false;
     if(thr){ s.v=clamp(s.v+thr*1600*sp*dt,-vmax*0.6,vmax); moved=true; }
@@ -1984,8 +2006,14 @@ const WLC={
     const tg={arm:(K('ArrowDown')*15-K('ArrowUp')*18), bkt:(K('ArrowLeft')*30-K('ArrowRight')*35)}, a=Math.min(1,dt*7);
     for(const j in tg){ v[j]+=(tg[j]*sp-v[j])*a; if(Math.abs(v[j])<1e-3&&!tg[j]) v[j]=0; if(v[j]) moved=true; }
     if(!moved) return false;
+    const chk=$('ex-coll').checked, c0=chk?this.collide(s).depth:0;
     s.arm=clamp(s.arm+v.arm*dt,p.armMin,p.armMax);
     const rb=this.model.rg.bkt; s.bkt=clamp(s.bkt+v.bkt*dt,rb[0],rb[1]);
+    this.blocked='';
+    if(chk){ const c1=this.collide(s);
+      if(c1.depth>c0+0.5){ s.arm=prev.arm; s.bkt=prev.bkt; v.arm=v.bkt=0;
+        if(s.art!==prev.art){ s.art=prev.art; s.x=prev.x; s.z=prev.z; s.h=prev.h; }
+        this.blocked=c1.what; } }
     if(s.v){
       const D=Math.PI/180, L=p.wb/2, ps=(s.h+s.art/2)*D, ds=s.v*dt;
       s.x+=Math.cos(ps)*ds/1000; s.z+=-Math.sin(ps)*ds/1000;
@@ -2004,7 +2032,7 @@ const WLC={
 ${cy(' リフト  ',k.Ll,rg.Ll)}
 ${isFinite(k.Lk)?cy(' バケット',k.Lk,rg.Lk):' バケット  リンク不成立'}
 車速 ${fmt(s.v*3.6/1000,1)} km/h
-${fr.tilt.ang>0.05?`ジャッキアップ ${f(fr.tilt.ang)}°\n`:''}機体位置 X ${m(s.x*1000)} m  Z ${m(s.z*1000)} m  向き ${f(((s.h%360)+540)%360-180)}°`;
+${(()=>{ const c=this.collide(s); return this.blocked?`⚠ 干渉のため停止：${this.blocked}\n`:c.depth>0.5?`⚠ 干渉あり：${c.what}\n`:''; })()}${fr.tilt.ang>0.05?`ジャッキアップ ${f(fr.tilt.ang)}°\n`:''}機体位置 X ${m(s.x*1000)} m  Z ${m(s.z*1000)} m  向き ${f(((s.h%360)+540)%360-180)}°`;
   },
   keyPoints(){
     const p=this.p, fr=this.frames(), W=fr.root, pts=[];
