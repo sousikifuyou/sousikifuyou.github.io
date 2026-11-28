@@ -1336,38 +1336,43 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
    ================================================================== */
 const EX_DIMS=[
   ['#','下部走行体'],
-  ['trackLen','クローラ全長',4450],['gauge','トラックゲージ（左右中心間）',2390],['shoeW','シュー幅',600],['trackH','クローラ高さ',920],
+  ['trackLen','クローラ全長',4160],['gauge','トラックゲージ（左右中心間）',2190],['shoeW','シュー幅',600],['trackH','クローラ高さ',900],
   ['#','上部旋回体'],
-  ['swingH','旋回体下面の高さ（地上）',1050],['tailR','後端旋回半径',2750],['upperW','旋回体幅',2540],['upperFront','キャブ前端（旋回中心から）',1650],
-  ['hoodH','エンジンフード高さ（地上）',2350],['cabTop','キャブ高さ（地上）',3000],['cabW','キャブ幅',1000],
+  ['swingH','旋回体下面の高さ（地上）',990],['tailR','後端旋回半径',2910],['upperW','旋回体幅',2700],['upperFront','キャブ前端（旋回中心から）',1650],
+  ['hoodH','エンジンフード高さ（地上）',2500],['railH','手すり上端の高さ（地上）',3030],['cabTop','キャブ高さ（地上）',2950],['cabW','キャブ幅',1000],
   ['#','ブーム'],
-  ['bfX','フートピン 前方位置（旋回中心から）',150],['bfY','フートピン 高さ（地上）',1950],['bfZ','フートピン 左右位置（右+）',120],
-  ['boomLen','ブーム長（ピン間）',5700],['kneeR','屈曲位置（ピン間に対する比）',0.55,'比'],['kneeH','屈曲高さ（ピン間線から）',750],
+  ['bfX','フートピン 前方位置（旋回中心から）',95],['bfY','フートピン 高さ（地上）',1985],['bfZ','フートピン 左右位置（右+）',120],
+  ['boomLen','ブーム長（ピン間）',5680],['kneeR','屈曲位置（ピン間に対する比）',0.55,'比'],['kneeH','屈曲高さ（ピン間線から）',750],
   ['boomW','ブーム幅',520],['boomD','ブーム断面高さ（最大）',660],
   ['#','アーム'],
-  ['armLen','アーム長（ピン間）',2920],['armW','アーム幅',400],
+  ['armLen','アーム長（ピン間）',2910],['armW','アーム幅',400],
   ['#','バケット・アタッチメント'],
-  ['bktLen','バケット長（ピン〜刃先）',1450],['bktW','バケット幅',1000],['hitchH','クイックヒッチ高さ（上下ピン間）',320],
+  ['bktLen','バケット長（ピン〜刃先）',1425],['bktW','バケット幅',1030],['hitchH','クイックヒッチ高さ（上下ピン間）',320],
   ['#','可動範囲'],
-  ['boomMin','ブーム角 最小',-50,'°'],['boomMax','ブーム角 最大',62,'°'],['armMin','アーム角 最小（引き側）',-155,'°'],['armMax','アーム角 最大（出し側）',-35,'°'],
+  ['boomMin','ブーム角 最小',-49.5,'°'],['boomMax','ブーム角 最大',61.5,'°'],['armMin','アーム角 最小（引き側）',-147.5,'°'],['armMax','アーム角 最大（出し側）',-18,'°'],
   ['bktMin','バケット角 最小（掘削側）',-160,'°'],['bktMax','バケット角 最大（ダンプ側）',20,'°'],
   ['+','シリンダ・リンク取付位置（詳細）'],
-  ['cbX','ブームシリンダ ボトム X（旋回体）',750],['cbY','　〃 Y（地上高）',1150],
-  ['pbX','ブームシリンダ ロッド x（ブーム座標）',2350],['pbY','　〃 y',170],
-  ['paX','アームシリンダ ボトム x（ブーム座標）',3100],['paY','　〃 y',1250],
-  ['atX','アームシリンダ ロッド x（アーム座標）',-775],['atY','　〃 y',140],
+  ['cbX','ブームシリンダ ボトム X（旋回体）',400],['cbY','　〃 Y（地上高）',1100],
+  ['pbX','ブームシリンダ ロッド x（ブーム座標）',3000],['pbY','　〃 y',225],
+  ['paX','アームシリンダ ボトム x（ブーム座標）',2800],['paY','　〃 y',1350],
+  ['atX','アームシリンダ ロッド x（アーム座標）',-800],['atY','　〃 y',360],
   ['ckX','バケットシリンダ ボトム x（アーム座標）',490],['ckY','　〃 y',530],
   ['p1X','サイドリンク支点 x（アーム座標）',2425],['p1Y','　〃 y',100],
   ['kX','バケットリンク支点 x（バケット座標）',-195],['kY','　〃 y',250],
   ['l1','サイドリンク長',565],['l2','バケットリンク（Hリンク）長',725],
 ];
 // バケット側面形状（作図用座標：開口を右に向けた側面図、ピン原点、mm）
-const EXB={ T:[600,-1350], K:[-380,60], F:[260,-140],
+const EXB={ T:[600,-1350], K:[-380,60], F:[10,-160],
   wrap:[[410,-1290],[150,-1252],[-150,-1212],[-450,-1100],[-680,-895],[-815,-620],[-832,-360],[-720,-140]] };
 function exBktMap(L){ // 作図座標 → バケット座標（ピン原点、x＝刃先方向、y＝リンクピン側）
   const xh=P2.norm(EXB.T), yh=[-xh[1],xh[0]], s=L/P2.len(EXB.T);
   return q=>[s*(q[0]*xh[0]+q[1]*xh[1]), -s*(q[0]*yh[0]+q[1]*yh[1])];
 }
+function exArmPolys(p){ const La=p.armLen, n=[La-800,30,115];
+  return [hullC([[p.atX,p.atY,135],[0,0,185],[p.p1X,p.p1Y,100],n],24), hullC([n,[p.p1X,p.p1Y,100],[La,0,105]],24)]; }
+function exBktOuter(p){ const f=exBktMap(p.bktLen); return spline(EXB.wrap.map(f),6).concat([f(EXB.F)]); }
+function inPoly(P,q){ let c=false; for(let i=0,j=P.length-1;i<P.length;j=i++){ const a=P[i],b=P[j]; if((a[1]>q[1])!==(b[1]>q[1])&&q[0]<(b[0]-a[0])*(q[1]-a[1])/(b[1]-a[1])+a[0]) c=!c; } return c; }
+function polyDepth(P,q){ let d=1e9; for(let i=0,j=P.length-1;i<P.length;j=i++){ const a=P[j],b=P[i],ab=P2.sub(b,a),t=clamp(((q[0]-a[0])*ab[0]+(q[1]-a[1])*ab[1])/(ab[0]*ab[0]+ab[1]*ab[1]||1),0,1); d=Math.min(d,P2.len(P2.sub(q,P2.add(a,P2.mul(ab,t))))); } return d; }
 function exKin(p,s){
   const D=Math.PI/180, b=s.boom*D, a=s.arm*D, k=s.bkt*D;
   const F=[p.bfX,p.bfY], T=P2.add(F,P2.rot([p.boomLen,0],b)), B=P2.add(T,P2.rot([p.armLen,0],b+a));
@@ -1384,6 +1389,9 @@ function exRanges(p){
   for(let v=p.bktMin;v<=p.bktMax+1e-9;v+=0.5){ s.bkt=v; const L=exKin(p,s).Lk; if(!isFinite(L)) continue;
     if(r.bkt[0]===null) r.bkt[0]=v; r.bkt[1]=v; r.Lk=[Math.min(r.Lk[0],L),Math.max(r.Lk[1],L)]; }
   if(r.bkt[0]===null) r.bkt=[0,0];
+  const A=exArmPolys(p), O=exBktOuter(p).concat([exBktMap(p.bktLen)(EXB.T)]), D=Math.PI/180;
+  for(let v=r.bkt[1];v>=r.bkt[0];v-=0.5){
+    if(O.some(q=>{ const w=P2.add([p.armLen,0],P2.rot(q,v*D)); return A.some(P=>inPoly(P,w)); })){ r.bkt[0]=Math.min(r.bkt[1],v+0.5); r.bktArm=true; break; } }
   return r;
 }
 const ATT_NAME={bucket:'バケット',breaker:'ブレーカ',crusher:'破砕機'};
@@ -1392,7 +1400,7 @@ const EXC={
   id:'ex', label:'油圧ショベル', dims:EX_DIMS, pose0:{swing:0,boom:20,arm:-100,bkt:-60}, st0:{x:0,z:0,h:0,trL:0,trR:0},
   poseFields:[['swing','旋回'],['boom','ブーム角'],['arm','アーム角'],['bkt','バケット角']],
   poseNote:'ブーム角：フートピン→トップピンを結ぶ線の水平からの角度。アーム角・バケット角：一つ前のリンクの延長線からの相対角（＋がアーム出し／ダンプ側）。バケット角はピン〜刃先の線（ヒッチ・他アタッチメントでもリンク位置は共通）。',
-  dimNote:'寸法は入力後「寸法を反映」で 3D モデルを再生成します（ブラウザに自動保存）。初期値は 20t クラス相当のおおよその値です。',
+  dimNote:'寸法は入力後「寸法を反映」で 3D モデルを再生成します（ブラウザに自動保存）。初期値は 20t クラス相当で、主要寸法と作業範囲（最大掘削半径・深さ・高さ、最小ダンプ高さ、フロント最小旋回半径）がカタログ値程度になるよう合わせています。',
   keys:['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyQ','KeyZ','KeyE','KeyC','KeyR','KeyF'],
   help:`操作パターン：ISO（JIS）<br>
     左レバー <span class="kbd">W</span>アーム出し <span class="kbd">S</span>アーム引き <span class="kbd">A</span>左旋回 <span class="kbd">D</span>右旋回<br>
@@ -1451,7 +1459,7 @@ const EXC={
     M.uframe=box(Math.max(xcw-300,-tR+200),p.upperFront-250,y0,yd,-W2+40,W2-40);
     const cwP=(r,w2)=>{ const o=[]; for(let i=0;i<=24;i++){ const z=-w2+i/24*2*w2; o.push([-Math.sqrt(Math.max(0,r*r-z*z)),z]); } o.push([xcw,w2],[xcw,-w2]); return o; };
     M.cw=new Geo().add(extrudeY(cwP(tR,W2),y0+40,hH-170)).add(loftY(cwP(tR,W2),hH-170,cwP(tR-120,W2-120),hH-30,false,true))
-      .add(loftY(cwP(tR-60,W2-60),y0-60,cwP(tR,W2),y0+40,true,false));
+      .add(loftY(cwP(tR-60,W2-60),y0,cwP(tR,W2),y0+40,true,false));
     const cr=-260, cf=p.upperFront, ch=p.cabTop-yd, cz0=-W2, cz1=-W2+p.cabW;
     M.hood=chamBox(xcw-10,cr,yd,hH-10,-W2+25,W2-15,110);
     M.grille=new Geo().add(box(-tR*0.62,-tR*0.38,hH-12,hH+6,0,W2-200)).add(box(-tR*0.62,-tR*0.38,yd+250,hH-250,W2-16,W2-4));
@@ -1472,7 +1480,7 @@ const EXC={
     M.roof=box(cr+120,cf-220,p.cabTop-5,p.cabTop+18,cz0+30,cz1-30);
     M.exhaust=extrudeY(circ(-tR*0.50,W2-330,55,16),hH-10,hH+260);
     // 手すり・ミラー
-    const rz=W2-55, rh=hH+430;
+    const rz=W2-55, rh=Math.max(hH+150,p.railH||hH+430);
     M.rail=new Geo().add(tube([[xt-60,yd+560,rz],[xt-60,rh,rz],[-tR*0.62,rh,rz],[-tR*0.62,hH,rz]],22))
       .add(tube([[cf-180,yd+560,rz],[cf-180,yd+1000,rz],[xt-60,yd+1000+((rh-yd-1000)*0.0),rz]],22))
       .add(tube([[cf-60,yd+ch*0.25,cz0+20],[cf+30,yd+ch*0.32,cz0-220],[cf+30,yd+ch*0.55,cz0-220]],18))
@@ -1495,7 +1503,7 @@ const EXC={
     for(const z of [-zb+70,-zb+130,zb-70,zb-130]) M.bhose.add(tube([[ht[0][0]+250,ht[0][1]-20,z],ht[1].concat(z),[ht[2][0]-450,ht[2][1],z]].map(q=>q.length===2?[q[0],q[1],z]:q),24,8));
     /* --- アーム --- */
     const La=p.armLen, za=p.armW/2, at=[p.atX,p.atY], ck=[p.ckX,p.ckY], p1=[p.p1X,p.p1Y];
-    M.arm=new Geo().add(extrude(hullC([[at[0],at[1],135],[0,0,185],[p1[0],p1[1],100],[La,0,135]],24),-za,za))
+    M.arm=new Geo(); exArmPolys(p).forEach(P=>M.arm.add(extrude(P,-za,za))); M.arm
       .add(pair(hullC([[ck[0],ck[1],110],[ck[0]-320,40,20],[ck[0]+320,40,20]]),100,135)); // バケットシリンダ ボトムのブラケット（アーム上面に立つ）
     M.apins=new Geo().add(cylZ(0,0,72,-za-40,za+40,24)).add(cylZ(La,0,66,-za-90,za+90,24)).add(cylZ(p1[0],p1[1],56,-za-55,za+55,20))
       .add(cylZ(at[0],at[1],58,-160,160,20)).add(cylZ(ck[0],ck[1],56,-145,145,20));
@@ -1511,7 +1519,7 @@ const EXC={
     const C={}; // 接地判定用の点（各アタッチの座標）
     // バケット
     const f=exBktMap(p.bktLen), Wb=p.bktW/2;
-    const outer=spline(EXB.wrap.map(f),6).concat([f(EXB.F)]);
+    const outer=exBktOuter(p);
     const thk=Math.max(16,p.bktLen*0.018);
     M.bShell=extrude(outer.concat(offsetLine(outer,area2(outer)>0?thk:-thk).reverse()),-Wb+22,Wb-22);
     M.bSide=pair(outer,Wb-22,Wb);
@@ -1555,7 +1563,7 @@ const EXC={
     if(zt<W2-120) colU.push([cr,cf-80,yd,hH-60,zt,W2,'タンク・工具箱']);
     const colL=[[-p.trackLen/2,p.trackLen/2,0,p.trackH,-p.gauge/2-W/2,-p.gauge/2+W/2,'左クローラ'],[-p.trackLen/2,p.trackLen/2,0,p.trackH,p.gauge/2-W/2,p.gauge/2+W/2,'右クローラ'],
       [-a*0.5,a*0.5,R*0.8,p.trackH,-gz,gz,'センターフレーム']];
-    this.model={mesh,rg,a,R,rc,per,Ns,pitch,zc,MA,HO,C,hitchC,K,colU,colL,Kn:[p.boomLen*p.kneeR,p.kneeH],bHd:p.boomD*0.42};
+    this.model={mesh,rg,a,R,rc,per,Ns,pitch,zc,MA,HO,C,hitchC,K,colU,colL,armPolys:exArmPolys(p),Kn:[p.boomLen*p.kneeR,p.kneeH],bHd:p.boomD*0.42};
     this.clamp();
   },
   clamp(){
@@ -1661,6 +1669,10 @@ const EXC={
     for(const [q,r,name,isAtt] of S){
       md.colU.forEach(bx=>hit(boxPen(q,r,bx),name,bx[6]));
       const qb=M4.xp(sw,...q); md.colL.forEach(bx=>hit(boxPen(qb,r,bx),name,bx[6]));
+      if(isAtt&&Math.abs(q[2]-p.bfZ)<p.armW/2+r){ // アーム（アーム座標の 2D 形状）
+        const qa=P2.rot([q[0]-k.T[0],q[1]-k.T[1]],-(s.boom+s.arm)*D);
+        for(const P of md.armPolys) if(inPoly(P,qa)) hit(r+polyDepth(P,qa),name,'アーム');
+      }
       if(isAtt&&Math.abs(q[2]-p.bfZ)<p.boomW/2+r){
         const q2=P2.rot([q[0]-k.F[0],q[1]-k.F[1]],-s.boom*D);
         hit(md.bHd+r-Math.min(segD(q2,[0,0],md.Kn),segD(q2,md.Kn,[p.boomLen,0])),name,'ブーム');
@@ -1758,21 +1770,21 @@ ${(()=>{ const c=this.collide(s); return this.blocked?`⚠ 干渉のため停止
    ================================================================== */
 const WL_DIMS=[
   ['#','車体'],
-  ['wb','ホイールベース',3550],['tread','トレッド',2250],['tireD','タイヤ外径',1750],['tireW','タイヤ幅',670],
-  ['rearEnd','後端位置（中折れ中心から）',3900],['bodyW','エンジンフード幅',1650],['cwW','カウンタウェイト幅',2500],['hoodH','エンジンフード高さ（地上）',2600],
-  ['cabTop','キャブ高さ（地上）',3600],['cabW','キャブ幅',1500],['cabX','キャブ前端（中折れ中心から後方）',150],['cabL','キャブ長さ',1550],
+  ['wb','ホイールベース',3540],['tread','トレッド',2230],['tireD','タイヤ外径',1750],['tireW','タイヤ幅',700],
+  ['rearEnd','後端位置（中折れ中心から）',3855],['bodyW','エンジンフード幅',1650],['cwW','カウンタウェイト幅',2500],['hoodH','エンジンフード高さ（地上）',2600],
+  ['cabTop','キャブ高さ（地上）',3530],['cabW','キャブ幅',1500],['cabX','キャブ前端（中折れ中心から後方）',150],['cabL','キャブ長さ',1550],
   ['#','フロント'],
   ['apX','リフトアーム支点 前方位置（中折れ中心から）',1300],['apY','リフトアーム支点 高さ（地上）',2100],
-  ['armLen','リフトアーム長（ピン間）',3050],['armZ','リフトアーム左右間隔（中心間）',1300],
-  ['bktLen','バケット ヒンジピン〜刃先',1600],['bktW','バケット幅',3100],
+  ['armLen','リフトアーム長（ピン間）',2940],['armZ','リフトアーム左右間隔（中心間）',1300],
+  ['bktLen','バケット ヒンジピン〜刃先',1580],['bktW','バケット幅',3100],
   ['#','可動範囲'],
-  ['armMin','リフトアーム角 最小',-36,'°'],['armMax','リフトアーム角 最大',49,'°'],
-  ['bktMin','バケット角 最小（ダンプ側）',-110,'°'],['bktMax','バケット角 最大（チルト側）',85,'°'],['artMax','中折れ角 最大（片側）',40,'°'],
+  ['armMin','リフトアーム角 最小',-40,'°'],['armMax','リフトアーム角 最大',52,'°'],
+  ['bktMin','バケット角 最小（ダンプ側）',-105,'°'],['bktMax','バケット角 最大（チルト側）',85,'°'],['artMax','中折れ角 最大（片側）',37,'°'],
   ['+','リンク・シリンダ取付位置（詳細）'],
-  ['cX','ベルクランク支点 x（アーム座標）',2285],['cY','　〃 y',430],
-  ['cq','ベルクランク 下側長さ',745],['cu','ベルクランク 上側長さ',900],['ca','ベルクランク 上下の開き角',160,'°'],
-  ['kX','バケットリンク支点 x（バケット座標）',-70],['kY','　〃 y',405],['lq','バケットリンク長',540],
-  ['fcX','バケットシリンダ ボトム X（前フレーム）',515],['fcY','　〃 Y（地上高）',2140],
+  ['cX','ベルクランク支点 x（アーム座標）',2265],['cY','　〃 y',595],
+  ['cq','ベルクランク 下側長さ',725],['cu','ベルクランク 上側長さ',820],['ca','ベルクランク 上下の開き角',180,'°'],
+  ['kX','バケットリンク支点 x（バケット座標）',60],['kY','　〃 y',425],['lq','バケットリンク長',600],
+  ['fcX','バケットシリンダ ボトム X（前フレーム）',840],['fcY','　〃 Y（地上高）',1970],
   ['flX','リフトシリンダ ボトム X（前フレーム）',500],['flY','　〃 Y（地上高）',650],
   ['lrX','リフトシリンダ ロッド x（アーム座標）',1500],['lrY','　〃 y',-300],
 ];
@@ -1803,10 +1815,10 @@ function wlRanges(p){
   return r;
 }
 const WLC={
-  id:'wl', label:'ホイールローダ', dims:WL_DIMS, pose0:{art:0,arm:-30,bkt:33}, st0:{x:0,z:0,h:0,v:0,rollF:0,rollR:0},
+  id:'wl', label:'ホイールローダ', dims:WL_DIMS, pose0:{art:0,arm:-37,bkt:37}, st0:{x:0,z:0,h:0,v:0,rollF:0,rollR:0},
   poseFields:[['art','中折れ角'],['arm','リフトアーム角'],['bkt','バケット角']],
   poseNote:'中折れ角：＋が左。リフトアーム角：アーム支点→バケットヒンジピンの線の水平からの角度。バケット角：アームの線からの相対角（＋がチルト（すくい込み）側）。底面の対地角＝アーム角＋バケット角。',
-  dimNote:'寸法は入力後「寸法を反映」で 3D モデルを再生成します（ブラウザに自動保存）。初期値は運転質量 24t クラス相当のおおよその値です。',
+  dimNote:'寸法は入力後「寸法を反映」で 3D モデルを再生成します（ブラウザに自動保存）。初期値は運転質量 24t クラス相当で、主要寸法・作業範囲（ヒンジピン最大高さ・ダンピングクリアランス・ダンピングリーチ・掘削深さ・全長）がカタログ値程度になるよう合わせています。',
   keys:['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'],
   help:`<span class="kbd">W</span>前進 <span class="kbd">S</span>後進（離すと減速） <span class="kbd">A</span>左ステア <span class="kbd">D</span>右ステア<br>
     フロント <span class="kbd">↑</span>アーム下げ <span class="kbd">↓</span>アーム上げ <span class="kbd">←</span>チルト（すくい込み） <span class="kbd">→</span>ダンプ`,
