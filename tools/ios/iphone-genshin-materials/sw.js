@@ -8,7 +8,7 @@
  * アプリが Cache Storage の "icon-settings" に設定値（on/off）を書き、ここで読む。
  * キャッシュの削除はアプリ側（保存しない設定にしたとき等）で caches.delete() する。
  */
-const CACHE = "icons-v1";
+const CACHE = "icons-v2";
 const SETTINGS = "icon-settings";
 const FLAG_URL = "/__icon-cache-enabled";
 
@@ -35,9 +35,12 @@ self.addEventListener("fetch", (e) => {
     const cache = await caches.open(CACHE);
     const hit = await cache.match(req.url);
     if (hit) return hit;                       // 保存済み → 通信しない
-    const res = await fetch(req);
-    // <img> の読み込みは中身を確認できない形式（opaque）で返るため、そのまま保存する。
-    // 読み込みに失敗した画像は、アプリ側がキャッシュから削除する。
+    // まず CORS で取得（配信サーバーが許可していれば、成否とサイズが分かる形式で保存できる）。
+    // 許可されていなければ、<img> と同じ形式（opaque：中身・成否が見えない）で取得する。
+    // opaque で読み込みに失敗した画像は、アプリ側がキャッシュから削除する。
+    let res;
+    try { res = await fetch(req.url, { mode: "cors", credentials: "omit" }); }
+    catch { res = await fetch(req); }
     if (res.ok || res.type === "opaque") {
       cache.put(req.url, res.clone()).catch(() => {});
     }

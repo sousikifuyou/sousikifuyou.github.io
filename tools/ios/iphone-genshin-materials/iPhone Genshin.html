@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#0d1120">
-<title>原神素材_R0.52</title>
+<title>原神素材_R0.53</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
@@ -405,11 +405,11 @@ const FALLBACK_DATA={schema:1,generatedAt:null,source:{name:"内蔵データ",ve
   weaponSeries:[],characters:[],weapons:[]};
 
 /* ===== ストレージキー ===== */
-const APP_VERSION="R0.52";
+const APP_VERSION="R0.53";
 const K={ DATA:"genshin-data-v4", FETCHED_AT:"genshin-data-fetched-at-v4", FROM:"genshin-data-from-v4", LOCAL_OVERRIDES:"local-overrides-v2", THEME:"theme-pref-v1", FOLD:"fold-state-v1", ORDER:"region-order-v1", LAYOUT:"layout-pref-v1", ICONS:"icons-pref-v1", ICON_SAVE:"icon-save-pref-v1" };
 // 旧バージョンのキャッシュを掃除
 // local-overrides-v1 は旧版が同梱の characters.local.json を自動保存したもの（古い天賦本・旧キー名を含む）なので破棄する
-(function cleanupOld(){try{localStorage.removeItem("genshin-app-v3");localStorage.removeItem("local-overrides-v1");localStorage.removeItem("jump-confirm-v1");for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith("ambr-avatar-"))localStorage.removeItem(k);}}catch{}})();
+(function cleanupOld(){try{localStorage.removeItem("genshin-app-v3");localStorage.removeItem("local-overrides-v1");localStorage.removeItem("jump-confirm-v1");if(window.caches)caches.delete("icons-v1").catch(()=>{});for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith("ambr-avatar-"))localStorage.removeItem(k);}}catch{}})();
 
 /* ===== ユーティリティ ===== */
 const $=(s)=>document.querySelector(s);
@@ -521,7 +521,7 @@ function keepChip(container,value){if(value==null)return;const b=[...container.q
 const ICON_HOSTS=["https://gi.yatta.moe/assets/UI/","https://enka.network/ui/"];
 const iconsOn=()=>localStorage.getItem(K.ICONS)!=="off";
 // 1つ目の配信サーバーで読めなければ次へ。全部だめなら画像を消す（キャラは頭文字が残る）
-const ICON_CACHE="icons-v1";
+const ICON_CACHE="icons-v2";
 function icFail(img){
   // 読み込みに失敗した画像はキャッシュに残さない（サービスワーカーは成否を判別できないため）
   if(window.caches) caches.open(ICON_CACHE).then(c=>c.delete(img.currentSrc||img.src)).catch(()=>{});
@@ -793,9 +793,33 @@ $("#charList").addEventListener("click",(e)=>{ const b=e.target.closest("button.
 
 /* ===== 画面: 情報 ===== */
 /* ===== アイコン画像のキャッシュ（sw.js が一度読んだ画像を保存し、次回は通信せずに表示） ===== */
+let swError=null;   // サービスワーカーの登録に失敗したときの理由（情報画面に表示）
 function registerIconCache(){
   if(!("serviceWorker" in navigator)||!/^https?:$/.test(location.protocol)) return;
-  navigator.serviceWorker.register("./sw.js").catch(e=>console.warn("sw register failed:",e));
+  navigator.serviceWorker.register("./sw.js").catch(e=>{ swError=e; console.warn("sw register failed:",e); });
+}
+// 保存済み画像の合計サイズ（opaque 形式で保存した画像はサイズを取得できないため個数だけ数える）
+async function iconCacheSize(){
+  try{
+    const c=await caches.open(ICON_CACHE); let bytes=0, unknown=0;
+    for(const req of await c.keys()){
+      const r=await c.match(req);
+      if(!r||r.type==="opaque"){ unknown++; continue; }
+      const len=+(r.headers.get("content-length")||0);
+      bytes+=len>0?len:(await r.blob()).size;
+    }
+    return {bytes,unknown};
+  }catch{ return null; }
+}
+const fmtBytes=(n)=>n<1024?`${n} B`:n<1024*1024?`${(n/1024).toFixed(1)} KB`:`${(n/1024/1024).toFixed(2)} MB`;
+// 保存の仕組みが動いていない理由
+async function iconCacheProblem(){
+  if(location.protocol==="file:") return "ファイルとして開いているため、画像を保存できません（公開サイトのURLから開くと保存されます）。";
+  if(swError) return `保存の仕組みを起動できませんでした（${swError.name||"Error"}: ${swError.message||swError}）。ブラウザの設定で、このサイトの Cookie・サイトデータの保存が許可されているか確認してください（プライベートウィンドウでは保存できません）。`;
+  let reg=null; try{ reg=await navigator.serviceWorker.getRegistration("./"); }catch{}
+  if(reg&&reg.active) return "保存の仕組みは起動していますが、このページは対象外で読み込まれています。通常の再読み込み（F5）をしてください（Ctrl+F5・Shift+再読み込みなどの強制再読み込みでは保存されません）。";
+  if(reg) return "保存の仕組みを準備中です。少し待ってからページを再読み込みしてください。";
+  return "保存の仕組みがまだ起動していません。ページを再読み込みすると保存が始まります。";
 }
 async function iconCacheCount(){ try{ if(!window.caches) return null; if(!(await caches.has(ICON_CACHE))) return 0; return (await (await caches.open(ICON_CACHE)).keys()).length; }catch{ return null; } }
 async function clearIconCache(){ try{ if(window.caches) await caches.delete(ICON_CACHE); }catch{} }
@@ -819,8 +843,17 @@ async function showIconCacheInfo(){
   el.textContent=!iconsOn()?"アイコンを表示しない設定のため、画像は読み込みません。"
     :n==null||!sw?"このブラウザでは画像を保存できません（毎回読み込みます）。"
     :!iconSaveOn()?"画像を保存しない設定です（毎回読み込みます）。"
-    :!navigator.serviceWorker.controller?`保存の仕組みがまだ起動していません。ページを再読み込みすると保存が始まります（保存済み ${n} 個）。`
+    :!navigator.serviceWorker.controller?`${await iconCacheProblem()}（保存済み ${n} 個）`
     :`保存済みのアイコン：${n} 個（次回からは通信せずに表示）`;
+  // 合計サイズ（保存済みがあるときだけ）
+  if(iconsOn()&&n){
+    const sz=await iconCacheSize();
+    if(sz){
+      const known=n-sz.unknown;
+      el.textContent+=known>0?` 合計 約${fmtBytes(sz.bytes)}`:"";
+      if(sz.unknown) el.textContent+=`（うち ${sz.unknown} 個はサイズ不明）`;
+    }
+  }
 }
 function syncIconSaveSeg(){const v=iconSaveOn()?"on":"off";document.querySelectorAll("#iconSaveSeg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.save===v)));}
 document.querySelectorAll("#iconSaveSeg button").forEach(b=>b.onclick=async()=>{
