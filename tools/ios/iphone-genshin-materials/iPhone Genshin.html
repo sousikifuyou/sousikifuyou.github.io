@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#0d1120">
-<title>原神素材_R0.48</title>
+<title>原神素材_R0.50</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
@@ -135,17 +135,21 @@
   .tag.wep{display:inline-flex;align-items:center}
   .kv .iv{display:flex;align-items:center;gap:6px}
   button.person:hover{background:color-mix(in srgb,var(--accent) 16%,var(--surface-2))}
-  /* キャラ画面に飛んだときの強調 */
-  .card.flash{animation:flash 1.6s ease}
-  @keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--accent),var(--shadow)}100%{box-shadow:var(--shadow)}}
+  /* キャラ画面のカード（押すと素材シートを表示） */
+  button.card.char{display:block;width:100%;text-align:left;font-family:inherit;color:inherit;cursor:pointer}
+  button.card.char .go{margin-left:auto;font-size:22px;line-height:1;color:var(--muted)}
   /* キャラの必要素材シート（今日画面の上に重ねて表示） */
   .sheet-back{position:fixed;inset:0;z-index:200;display:flex;align-items:flex-end;justify-content:center;
-    background:rgba(5,8,16,.5);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
-    opacity:0;pointer-events:none;transition:opacity .2s ease}
-  .sheet-back.open{opacity:1;pointer-events:auto}
+    --dim:1;background:rgba(5,8,16,0);visibility:hidden;pointer-events:none;
+    transition:background .3s ease,visibility 0s linear .3s}
+  .sheet-back.open{background:rgba(5,8,16,calc(.5 * var(--dim)));visibility:visible;pointer-events:auto;transition:background .3s ease,visibility 0s}
+  .sheet-back::before{content:"";position:absolute;inset:0;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .3s ease}
+  .sheet-back.open::before{opacity:var(--dim)}
   .sheet{width:100%;max-width:560px;max-height:82vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-bottom:0;
     border-radius:22px 22px 0 0;padding:8px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px rgba(0,0,0,.4);
-    border-top:4px solid var(--el,var(--accent));transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+    border-top:4px solid var(--el,var(--accent));transform:translateY(100%);transition:transform .3s cubic-bezier(.2,.8,.2,1);
+    position:relative;z-index:1;overscroll-behavior:contain;touch-action:pan-y}
+  .sheet.dragging{transition:none}
   .sheet-back.open .sheet{transform:none}
   .grabber{width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 12px;background:color-mix(in srgb,var(--muted) 45%,transparent)}
   .sheet .card-head{gap:8px}
@@ -160,8 +164,8 @@
   /* PC では画面中央のカード */
   html.pc .sheet-back{align-items:center;padding:24px}
   html.pc .sheet{border-radius:20px;border:1px solid var(--line);border-top:4px solid var(--el,var(--accent));max-width:460px;
-    padding:20px 22px;transform:translateY(12px) scale(.98);box-shadow:0 20px 60px rgba(0,0,0,.45)}
-  html.pc .sheet-back.open .sheet{transform:none}
+    padding:20px 22px;transform:translateY(16px) scale(.98);opacity:0;box-shadow:0 20px 60px rgba(0,0,0,.45);transition:transform .25s ease,opacity .2s ease}
+  html.pc .sheet-back.open .sheet{transform:none;opacity:1}
   html.pc .grabber{display:none}
   .empty{color:var(--muted);font-size:13px;padding:4px 0}
 
@@ -396,7 +400,7 @@ const FALLBACK_DATA={schema:1,generatedAt:null,source:{name:"内蔵データ",ve
   weaponSeries:[],characters:[],weapons:[]};
 
 /* ===== ストレージキー ===== */
-const APP_VERSION="R0.48";
+const APP_VERSION="R0.50";
 const K={ DATA:"genshin-data-v4", FETCHED_AT:"genshin-data-fetched-at-v4", FROM:"genshin-data-from-v4", LOCAL_OVERRIDES:"local-overrides-v2", THEME:"theme-pref-v1", FOLD:"fold-state-v1", ORDER:"region-order-v1", LAYOUT:"layout-pref-v1", ICONS:"icons-pref-v1" };
 // 旧バージョンのキャッシュを掃除
 // local-overrides-v1 は旧版が同梱の characters.local.json を自動保存したもの（古い天賦本・旧キー名を含む）なので破棄する
@@ -624,9 +628,7 @@ function renderCharacters(){
   makeChips(ec,[{value:"All",label:"全元素"},...Object.keys(ELABEL).map(e=>({value:e,cls:`el-${e}`,html:`<span class="dot"></span>${ELABEL[e]}`}))],list);
   makeChips(wc,[{value:"All",label:"全武器"},...Object.keys(WLABEL).map(w=>({value:w,label:WLABEL[w]}))],list);
   makeChips(oc,[{value:"all",label:"すべて"},{value:"today",label:"今日天賦を上げられるキャラ"}],list);
-  const focusKey=pendingFocus; pendingFocus=null;
-  if(focusKey) $("#searchInput").value="";   // 移動時は絞り込みを解除して必ず表示
-  else { keepChip(ec,prevE); keepChip(wc,prevW); keepChip(oc,prevO); }
+  keepChip(ec,prevE); keepChip(wc,prevW); keepChip(oc,prevO);
   $("#searchInput").oninput=()=>list();
   const seriesByKey=new Map(data.talentSeries.map(s=>[s.key,s]));
   const today=gameDayKey();
@@ -646,46 +648,21 @@ function renderCharacters(){
 
     for(const c of arr){
       const books=asArray(c.talentBooks).map(k=>seriesByKey.get(k)).filter(Boolean);
-      const a=c.ascension||{};
-      const row=(label,v,ic)=>v?`<div>${label}</div><div class="iv">${ic?itemIcon(v):""}${safe(v)}</div>`:"";
-      const det=document.createElement("details"); det.className=`card char el-${safe(c.element)}`; det.dataset.char=c.key;
-      det.innerHTML=`<summary>
-          <div class="card-head">${avatar(c,40)}<h3 class="card-title">${safe(c.name)}</h3>
+      const card=document.createElement("button"); card.type="button";
+      card.className=`card char el-${safe(c.element)}`; card.dataset.char=c.key;
+      card.setAttribute("aria-label",`${c.name}の必要素材を表示`);
+      card.innerHTML=`<span class="card-head">${avatar(c,40)}<span class="card-title">${safe(c.name)}</span>
             ${c.rarity?`<span class="tag ${c.rarity===5?"r5":"r4"}">★${c.rarity}</span>`:""}
             ${isOpen(c)?'<span class="tag ok">今日OK</span>':""}
-            ${CHEV.replace('chev"','chev" style="margin-left:auto"')}</div>
-          <div class="meta"><span class="tag">${ELABEL[c.element]||safe(c.element)||"?"}</span><span class="tag">${WLABEL[c.weapon]||safe(c.weapon)||"?"}</span>${books.map(s=>`<span class="tag">${safe(s.name)} ${daysText(s.days.filter(d=>d!=="Sun"))}</span>`).join("")}</div>
-        </summary>
-        <div class="kv">
-          ${row("週ボス",c.weeklyBoss,true)}
-          ${row("天賦 敵素材",c.talentCommon,true)}
-          ${row("突破 宝石",a.gem,true)}
-          ${row("突破 ボス",a.boss,true)}
-          ${row("地域特産",a.local,true)}
-          ${row("突破 敵素材",a.common,true)}
-          ${row("地域",c.region)}
-          ${row("実装",c.version?`Ver.${c.version}`:"")}
-        </div>`;
-      out.appendChild(det);
+            <span class="go" aria-hidden="true">›</span></span>
+          <span class="meta"><span class="tag">${ELABEL[c.element]||safe(c.element)||"?"}</span><span class="tag">${WLABEL[c.weapon]||safe(c.weapon)||"?"}</span>${books.map(s=>`<span class="tag">${safe(s.name)} ${daysText(s.days.filter(d=>d!=="Sun"))}</span>`).join("")}</span>`;
+      out.appendChild(card);
     }
   }
   list();
-  if(focusKey){
-    const det=[...$("#charList").children].find(d=>d.dataset.char===focusKey);
-    if(det){
-      det.open=true;
-      requestAnimationFrame(()=>{
-        const y=det.getBoundingClientRect().top+window.scrollY-(document.querySelector("header").offsetHeight+12);
-        window.scrollTo({top:Math.max(0,y),behavior:"smooth"});
-        det.classList.remove("flash"); void det.offsetWidth; det.classList.add("flash");
-      });
-    }
-  }
 }
 
-/* ===== 「今日」のキャラ名 → 必要素材シートを重ねて表示 ===== */
-let pendingFocus=null;
-function jumpToCharacter(key){ pendingFocus=key; setRoute("characters"); }
+/* ===== キャラ名（今日画面・キャラ画面）→ 必要素材シートを重ねて表示 ===== */
 function openCharSheet(key){
   const data=view(); const c=data.characters.find(x=>x.key===key); if(!c) return;
   const seriesByKey=new Map(data.talentSeries.map(s=>[s.key,s]));
@@ -710,19 +687,60 @@ function openCharSheet(key){
       ${row("突破 敵素材",a.common,true)}
       ${row("実装",c.version?`Ver.${c.version}`:"")}
     </div>
-    <div class="sheet-actions"><button id="sheetGo">キャラ一覧で開く</button><button id="sheetOk" class="primary">閉じる</button></div>`;
+    <div class="sheet-actions"><button id="sheetOk" class="primary">閉じる</button></div>`;
   const back=$("#charSheet");
+  sheet.style.transform=""; back.style.removeProperty("--dim");
   back.classList.add("open"); back.setAttribute("aria-hidden","false");
   document.body.style.overflow="hidden";
-  const close=()=>{ back.classList.remove("open"); back.setAttribute("aria-hidden","true"); document.body.style.overflow=""; document.removeEventListener("keydown",onKey); };
-  const onKey=(e)=>{ if(e.key==="Escape") close(); };
-  document.addEventListener("keydown",onKey);
-  back.onclick=(e)=>{ if(e.target===back) close(); };   // カードの外側をタップで閉じる
-  $("#sheetClose").onclick=close; $("#sheetOk").onclick=close;
-  $("#sheetGo").onclick=()=>{ close(); jumpToCharacter(key); };
+  $("#sheetClose").onclick=closeCharSheet; $("#sheetOk").onclick=closeCharSheet;
   sheet.scrollTop=0;
 }
+// 閉じる（×・閉じる・外側タップ・Esc・下スワイプ共通）：カードは下へ滑って閉じる
+function closeCharSheet(){
+  const back=$("#charSheet"), sheet=back.querySelector(".sheet");
+  if(!back.classList.contains("open")) return;
+  sheet.classList.remove("dragging");
+  sheet.style.transform="";            // スワイプ途中の位置から、CSS の translateY(100%) へ滑らせる
+  back.style.removeProperty("--dim");
+  back.classList.remove("open"); back.setAttribute("aria-hidden","true");
+  document.body.style.overflow="";
+}
+$("#charSheet").addEventListener("click",(e)=>{ if(e.target.id==="charSheet") closeCharSheet(); });   // カードの外側をタップ
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeCharSheet(); });
+
+/* スマホ：カードを下にスワイプして閉じる（中身を一番上までスクロールしているときだけ） */
+(function(){
+  const back=$("#charSheet"), sheet=back.querySelector(".sheet");
+  let startY=0, startT=0, dy=0, dragging=false, tracking=false;
+  sheet.addEventListener("touchstart",(e)=>{
+    if(document.documentElement.classList.contains("pc")||e.touches.length!==1) return;
+    tracking=true; dragging=false; dy=0; startY=e.touches[0].clientY; startT=Date.now();
+  },{passive:true});
+  sheet.addEventListener("touchmove",(e)=>{
+    if(!tracking) return;
+    const d=e.touches[0].clientY-startY;
+    if(!dragging){
+      // 上方向、または中身がスクロール途中なら通常のスクロールに任せる
+      if(d<=0||sheet.scrollTop>0){ if(Math.abs(d)>8) tracking=false; return; }
+      if(d<6) return;
+      dragging=true; sheet.classList.add("dragging");
+    }
+    e.preventDefault();
+    dy=Math.max(0,d);
+    sheet.style.transform=`translateY(${dy}px)`;
+    back.style.setProperty("--dim",String(Math.max(0,1-dy/(sheet.offsetHeight||1))));
+  },{passive:false});
+  const end=()=>{
+    if(!tracking) return; tracking=false;
+    if(!dragging) return; dragging=false;
+    const v=dy/Math.max(1,Date.now()-startT);       // px/ms
+    if(dy>Math.min(120,sheet.offsetHeight*.3)||v>0.6) closeCharSheet();
+    else { sheet.classList.remove("dragging"); sheet.style.transform=""; back.style.removeProperty("--dim"); }  // 元の位置に戻す
+  };
+  sheet.addEventListener("touchend",end); sheet.addEventListener("touchcancel",end);
+})();
 $("#todayTalent").addEventListener("click",(e)=>{ const b=e.target.closest("button.person[data-char]"); if(b) openCharSheet(b.dataset.char); });
+$("#charList").addEventListener("click",(e)=>{ const b=e.target.closest("button.card.char[data-char]"); if(b) openCharSheet(b.dataset.char); });
 
 /* ===== 画面: 情報 ===== */
 function syncIconSeg(){const v=iconsOn()?"on":"off";document.querySelectorAll("#iconSeg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.icons===v)));}
