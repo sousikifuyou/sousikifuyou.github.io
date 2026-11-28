@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#0d1120">
-<title>原神素材_R0.51</title>
+<title>原神素材_R0.52</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
@@ -330,8 +330,13 @@
             <button data-icons="on">表示する</button><button data-icons="off">表示しない</button>
           </div>
         </div>
+        <div class="row"><span>画像を保存</span>
+          <div class="seg" id="iconSaveSeg" role="group" aria-label="画像を保存">
+            <button data-save="on">する</button><button data-save="off">しない</button>
+          </div>
+        </div>
       </div>
-      <div class="note">キャラ・素材・武器の画像は、ファン向けの画像配信サーバー（Project Amber / Enka.Network）から初回だけ読み込み、ブラウザに保存して使い回します。「表示しない」にすると保存した画像も削除します。<br><span id="iconCacheInfo"></span></div>
+      <div class="note">キャラ・素材・武器の画像は、ファン向けの画像配信サーバー（Project Amber / Enka.Network）から読み込みます。「画像を保存：する」なら一度読んだ画像をブラウザに保存し、次回からは通信せずに表示します（通信量を節約）。「しない」なら保存せず毎回読み込みます（保存容量を節約）。初期設定はスマホ表示で「する」、PC表示で「しない」です。アイコンを「表示しない」か画像を保存「しない」にすると、保存した画像は削除します。<br><span id="iconCacheInfo"></span></div>
 
 
       <div class="group-label">データ</div>
@@ -400,8 +405,8 @@ const FALLBACK_DATA={schema:1,generatedAt:null,source:{name:"内蔵データ",ve
   weaponSeries:[],characters:[],weapons:[]};
 
 /* ===== ストレージキー ===== */
-const APP_VERSION="R0.51";
-const K={ DATA:"genshin-data-v4", FETCHED_AT:"genshin-data-fetched-at-v4", FROM:"genshin-data-from-v4", LOCAL_OVERRIDES:"local-overrides-v2", THEME:"theme-pref-v1", FOLD:"fold-state-v1", ORDER:"region-order-v1", LAYOUT:"layout-pref-v1", ICONS:"icons-pref-v1" };
+const APP_VERSION="R0.52";
+const K={ DATA:"genshin-data-v4", FETCHED_AT:"genshin-data-fetched-at-v4", FROM:"genshin-data-from-v4", LOCAL_OVERRIDES:"local-overrides-v2", THEME:"theme-pref-v1", FOLD:"fold-state-v1", ORDER:"region-order-v1", LAYOUT:"layout-pref-v1", ICONS:"icons-pref-v1", ICON_SAVE:"icon-save-pref-v1" };
 // 旧バージョンのキャッシュを掃除
 // local-overrides-v1 は旧版が同梱の characters.local.json を自動保存したもの（古い天賦本・旧キー名を含む）なので破棄する
 (function cleanupOld(){try{localStorage.removeItem("genshin-app-v3");localStorage.removeItem("local-overrides-v1");localStorage.removeItem("jump-confirm-v1");for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith("ambr-avatar-"))localStorage.removeItem(k);}}catch{}})();
@@ -468,6 +473,7 @@ function applyLayout(){
   document.documentElement.classList.toggle("pc",pc);
   document.querySelectorAll("#layoutSeg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.layout===pref)));
   if(pc) document.querySelector("nav.tabbar")?.classList.remove("compact");
+  setTimeout(()=>{ syncIconCacheFlag().then(()=>{ if(currentRoute==="about"){ syncIconSaveSeg(); showIconCacheInfo(); } }); },0);
 }
 if(mqlWide&&mqlWide.addEventListener) mqlWide.addEventListener("change",applyLayout);
 applyLayout();
@@ -793,22 +799,46 @@ function registerIconCache(){
 }
 async function iconCacheCount(){ try{ if(!window.caches) return null; if(!(await caches.has(ICON_CACHE))) return 0; return (await (await caches.open(ICON_CACHE)).keys()).length; }catch{ return null; } }
 async function clearIconCache(){ try{ if(window.caches) await caches.delete(ICON_CACHE); }catch{} }
+// 画像を保存するか：未設定ならスマホ表示は「する」、PC表示は「しない」
+function iconSaveOn(){
+  const v=localStorage.getItem(K.ICON_SAVE);
+  if(v==="on"||v==="off") return v==="on";
+  return !document.documentElement.classList.contains("pc");
+}
+// サービスワーカーに設定を伝える（Cache Storage に on/off を書く）。保存しないなら保存済みの画像も削除
+async function syncIconCacheFlag(){
+  if(!window.caches) return;
+  const on=iconsOn()&&iconSaveOn();
+  try{ await (await caches.open("icon-settings")).put("/__icon-cache-enabled",new Response(on?"on":"off")); }catch{}
+  if(!on) await clearIconCache();
+}
 async function showIconCacheInfo(){
   const el=$("#iconCacheInfo"); if(!el) return;
   const n=await iconCacheCount();
+  const sw="serviceWorker" in navigator;
   el.textContent=!iconsOn()?"アイコンを表示しない設定のため、画像は読み込みません。"
-    :n==null?"この環境では画像を保存できません（毎回読み込みます）。":`保存済みのアイコン：${n} 個（次回からは通信せずに表示）`;
+    :n==null||!sw?"このブラウザでは画像を保存できません（毎回読み込みます）。"
+    :!iconSaveOn()?"画像を保存しない設定です（毎回読み込みます）。"
+    :!navigator.serviceWorker.controller?`保存の仕組みがまだ起動していません。ページを再読み込みすると保存が始まります（保存済み ${n} 個）。`
+    :`保存済みのアイコン：${n} 個（次回からは通信せずに表示）`;
 }
+function syncIconSaveSeg(){const v=iconSaveOn()?"on":"off";document.querySelectorAll("#iconSaveSeg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.save===v)));}
+document.querySelectorAll("#iconSaveSeg button").forEach(b=>b.onclick=async()=>{
+  try{localStorage.setItem(K.ICON_SAVE,b.dataset.save);}catch{}
+  syncIconSaveSeg(); await syncIconCacheFlag();
+  toast(b.dataset.save==="on"?"画像を保存: する":"画像を保存: しない（保存した画像を削除しました）");
+  showIconCacheInfo();
+});
 function syncIconSeg(){const v=iconsOn()?"on":"off";document.querySelectorAll("#iconSeg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.icons===v)));}
 document.querySelectorAll("#iconSeg button").forEach(b=>b.onclick=async()=>{
   try{localStorage.setItem(K.ICONS,b.dataset.icons);}catch{}
-  syncIconSeg();
-  if(b.dataset.icons==="off"){ await clearIconCache(); toast("アイコン: 表示しない（保存した画像を削除しました）"); }
+  syncIconSeg(); await syncIconCacheFlag();
+  if(b.dataset.icons==="off"){ toast("アイコン: 表示しない（保存した画像を削除しました）"); }
   else toast("アイコン: 表示する");
   showIconCacheInfo();
 });
 function renderAbout(){
-  syncIconSeg(); showIconCacheInfo();
+  syncIconSeg(); syncIconSaveSeg(); showIconCacheInfo();
   const d=appData, s=d.source||{};
   const ov=getOverrides();
   const r=(k,v)=>`<div class="row"><span>${k}</span><span>${v}</span></div>`;
@@ -863,6 +893,7 @@ $("#btnExport").onclick=()=>{
 
 /* ===== 起動 ===== */
 (async function init(){
+  await syncIconCacheFlag();
   registerIconCache();
   applyTheme(localStorage.getItem(K.THEME)||"auto",{save:false});
   setupFold();
