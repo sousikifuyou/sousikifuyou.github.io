@@ -1801,12 +1801,12 @@ const WL_DIMS=[
   ['bktLen','バケット ヒンジピン〜刃先',1580],['bktW','バケット幅',3100],
   ['#','可動範囲'],
   ['armMin','リフトアーム角 最小',-40,'°'],['armMax','リフトアーム角 最大',52,'°'],
-  ['bktMin','バケット角 最小（ダンプ側）',-105,'°'],['bktMax','バケット角 最大（チルト側）',85,'°'],['artMax','中折れ角 最大（片側）',37,'°'],
+  ['tiltG','地上での最大後傾角（底面の対地角）',45,'°'],['dumpTop','最上げ時の最大ダンプ角（底面の対地角）',45,'°'],['artMax','中折れ角 最大（片側）',37,'°'],
   ['+','リンク・シリンダ取付位置（詳細）'],
-  ['cX','ベルクランク支点 x（アーム座標）',2265],['cY','　〃 y',595],
-  ['cq','ベルクランク 下側長さ',725],['cu','ベルクランク 上側長さ',820],['ca','ベルクランク 上下の開き角',180,'°'],
-  ['kX','バケットリンク支点 x（バケット座標）',60],['kY','　〃 y',425],['lq','バケットリンク長',600],
-  ['fcX','バケットシリンダ ボトム X（前フレーム）',840],['fcY','　〃 Y（地上高）',1970],
+  ['cX','ベルクランク支点 x（アーム座標）',1520],['cY','　〃 y',325],
+  ['cq','ベルクランク 下側長さ',730],['cu','ベルクランク 上側長さ',810],['ca','ベルクランク 上下の開き角',175,'°'],
+  ['kX','バケットリンク支点 x（バケット座標）',-45],['kY','　〃 y',390],['lq','バケットリンク長',1125],
+  ['fcX','バケットシリンダ ボトム X（前フレーム）',1435],['fcY','　〃 Y（地上高）',1980],
   ['flX','リフトシリンダ ボトム X（前フレーム）',500],['flY','　〃 Y（地上高）',650],
   ['lrX','リフトシリンダ ロッド x（アーム座標）',1500],['lrY','　〃 y',-300],
 ];
@@ -1814,6 +1814,8 @@ const WL_DIMS=[
 const WLB={ E:[1550,-330],
   prof:[[1550,-330],[1000,-345],[450,-355],[230,-300],[120,-120],[95,200],[140,600],[260,1000],[420,1320],[560,1430]],
   top:[[880,1520],[960,1480]] };
+// 背面の高さを 82% に（4.2 m³ 程度の断面積に合わせる）
+(()=>{ const H=0.82, f=q=>[q[0],q[1]>0?q[1]*H:q[1]]; WLB.prof=WLB.prof.map(f); WLB.top=WLB.top.map(f); })();
 function wlKin(p,s){
   const D=Math.PI/180, al=s.arm*D, th=s.bkt*D;
   const P0=[p.apX,p.apY], af=q=>P2.add(P0,P2.rot(q,al)); // アーム座標 → 前フレーム
@@ -1827,19 +1829,31 @@ function wlKin(p,s){
   return {P0,H,Ka,C,Q,U,Uf,fc,fl,lr,Ef,af, Lk:Uf?P2.len(P2.sub(Uf,fc)):NaN, Ll:P2.len(P2.sub(lr,fl)), floor:(s.arm+s.bkt)};
 }
 const wlScale=p=>p.bktLen/P2.len(WLB.E);
+// バケットシリンダ長から、指定アーム角でのバケット角（アーム基準）を求める（L はチルト側で増加）
+function wlBktForL(p,arm,L,th0=0){
+  // 現在のバケット角 th0 から連続的にたどれる解を探す（リンクが反転した別の解へ飛ばない）
+  const f=t=>{ const v=wlKin(p,{arm,bkt:t}).Lk; return isFinite(v)?v-L:NaN; };
+  const f0=f(th0); if(Math.abs(f0)<0.5) return th0;
+  let best=null;
+  for(const dir of [1,-1]){ let a=th0, fa=f0;
+    for(let i=1;i<=240;i++){ const t=th0+dir*i*0.5, ft=f(t); if(!isFinite(ft)||!isFinite(fa)){ break; }
+      if(Math.sign(ft)!==Math.sign(fa)){ let lo=a,hi=t,flo=fa; for(let j=0;j<40;j++){ const m=(lo+hi)/2, fm=f(m); if(Math.sign(fm)===Math.sign(flo)){ lo=m; flo=fm; } else hi=m; }
+        const r=(lo+hi)/2; if(best===null||Math.abs(r-th0)<Math.abs(best-th0)) best=r; break; }
+      a=t; fa=ft; } }
+  return best===null?th0:best;
+}
 function wlRanges(p){
   const r={Ll:[1e9,0],Lk:[1e9,0],bkt:[null,null]}, s={arm:0,bkt:0};
+  const LkMax=wlKin(p,{arm:p.armMin,bkt:p.tiltG-p.armMin}).Lk, LkMin=wlKin(p,{arm:p.armMax,bkt:-p.dumpTop-p.armMax}).Lk;
   for(let a=p.armMin;a<=p.armMax+1e-9;a+=1){ s.arm=a; s.bkt=0; const L=wlKin(p,s).Ll; r.Ll=[Math.min(r.Ll[0],L),Math.max(r.Ll[1],L)]; }
-  for(let b=p.bktMin;b<=p.bktMax+1e-9;b+=0.5){ s.bkt=b; s.arm=0; if(!wlKin(p,s).Q) continue;
-    if(r.bkt[0]===null) r.bkt[0]=b; r.bkt[1]=b;
-    for(let a=p.armMin;a<=p.armMax+1e-9;a+=2){ s.arm=a; const L=wlKin(p,s).Lk; r.Lk=[Math.min(r.Lk[0],L),Math.max(r.Lk[1],L)]; } }
-  if(r.bkt[0]===null){ r.bkt=[0,0]; r.Lk=[1000,1500]; }
+  if(isFinite(LkMax)&&isFinite(LkMin)&&LkMax>LkMin){ r.Lk=[LkMin,LkMax]; r.bkt=[-130,110]; }
+  else { r.Lk=[1000,1500]; r.bkt=[0,0]; r.bad=true; }
   return r;
 }
 const WLC={
   id:'wl', label:'ホイールローダ', dims:WL_DIMS, pose0:{art:0,arm:-37,bkt:37}, st0:{x:0,z:0,h:0,v:0,rollF:0,rollR:0},
   poseFields:[['art','中折れ角'],['arm','リフトアーム角'],['bkt','バケット角']],
-  poseNote:'中折れ角：＋が左。リフトアーム角：アーム支点→バケットヒンジピンの線の水平からの角度。バケット角：アームの線からの相対角（＋がチルト（すくい込み）側）。底面の対地角＝アーム角＋バケット角。',
+  poseNote:'中折れ角：＋が左。リフトアーム角：アーム支点→バケットヒンジピンの線の水平からの角度。バケット角：アームの線からの相対角（＋がチルト（すくい込み）側）。底面の対地角＝アーム角＋バケット角。バケットはシリンダのストローク内で動き、アームを動かしてもシリンダ長は保たれます（実機と同じく姿勢がリンクに従って変わります）。',
   dimNote:'寸法は入力後「寸法を反映」で 3D モデルを再生成します（ブラウザに自動保存）。初期値は運転質量 24t クラス相当で、主要寸法・作業範囲（ヒンジピン最大高さ・ダンピングクリアランス・ダンピングリーチ・掘削深さ・全長）がカタログ値程度になるよう合わせています。',
   keys:['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'],
   help:`<span class="kbd">W</span>前進 <span class="kbd">S</span>後進（離すと減速） <span class="kbd">A</span>左ステア <span class="kbd">D</span>右ステア<br>
@@ -1858,7 +1872,8 @@ const WLC={
   validate(np){
     const bad=['wb','tread','tireD','tireW','rearEnd','bodyW','cwW','hoodH','cabTop','cabW','cabL','armLen','armZ','bktLen','bktW','cq','cu','lq'].filter(k=>!(np[k]>0));
     if(bad.length) return '正の値を入力してください：'+bad.join(', ');
-    if(np.armMin>=np.armMax||np.bktMin>=np.bktMax) return '可動範囲の最小・最大を確認してください';
+    if(np.armMin>=np.armMax) return '可動範囲の最小・最大を確認してください';
+    const rg=wlRanges(np); if(rg.bad) return 'この寸法ではバケットリンクが成立しません（最大後傾角・最大ダンプ角またはリンク寸法を見直してください）';
     return '';
   },
   build(){
@@ -1967,7 +1982,9 @@ const WLC={
   },
   clamp(){
     const p=this.p, s=this.st, rg=this.model.rg;
-    s.art=clamp(s.art,-p.artMax,p.artMax); s.arm=clamp(s.arm,p.armMin,p.armMax); s.bkt=clamp(s.bkt,rg.bkt[0],rg.bkt[1]);
+    s.art=clamp(s.art,-p.artMax,p.artMax); s.arm=clamp(s.arm,p.armMin,p.armMax);
+    const L=wlKin(p,s).Lk;
+    if(!isFinite(L)||L<rg.Lk[0]) s.bkt=wlBktForL(p,s.arm,rg.Lk[0],s.bkt); else if(L>rg.Lk[1]) s.bkt=wlBktForL(p,s.arm,rg.Lk[1],s.bkt);
   },
   frames(){
     const p=this.p, s=this.st, D=Math.PI/180, k=wlKin(p,s);
@@ -2041,8 +2058,11 @@ const WLC={
     for(const j in tg){ v[j]+=(tg[j]*sp-v[j])*a; if(Math.abs(v[j])<1e-3&&!tg[j]) v[j]=0; if(v[j]) moved=true; }
     if(!moved) return false;
     const chk=$('ex-coll').checked, c0=chk?this.collide(s).depth:0;
-    s.arm=clamp(s.arm+v.arm*dt,p.armMin,p.armMax);
-    const rb=this.model.rg.bkt; s.bkt=clamp(s.bkt+v.bkt*dt,rb[0],rb[1]);
+    const rg=this.model.rg, L0=wlKin(p,s).Lk;
+    const na=clamp(s.arm+v.arm*dt,p.armMin,p.armMax);
+    if(na!==s.arm){ s.arm=na; if(isFinite(L0)) s.bkt=wlBktForL(p,s.arm,L0,s.bkt); }   // アームを動かしてもバケットシリンダ長は変わらない
+    if(v.bkt){ const nb=s.bkt+v.bkt*dt, L1=wlKin(p,{...s,bkt:nb}).Lk;
+      if(isFinite(L1)&&L1>=rg.Lk[0]-0.5&&L1<=rg.Lk[1]+0.5) s.bkt=nb; else { s.bkt=wlBktForL(p,s.arm,clamp(isFinite(L1)?L1:L0,rg.Lk[0],rg.Lk[1]),s.bkt); v.bkt=0; } }
     this.blocked='';
     if(chk){ const c1=this.collide(s);
       if(c1.depth>c0+0.5){ s.arm=prev.arm; s.bkt=prev.bkt; v.arm=v.bkt=0;
