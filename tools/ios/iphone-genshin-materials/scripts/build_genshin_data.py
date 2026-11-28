@@ -30,6 +30,21 @@ TRAVELER_ELEMENT = {
 }
 ELEMENT_JA = {"Pyro": "炎", "Hydro": "水", "Electro": "雷", "Cryo": "氷", "Anemo": "風", "Geo": "岩", "Dendro": "草"}
 
+# 漢字を含む名前の読み（ひらがな）。アプリのあいまい検索用。genshin-db には読みが無いため手動で管理。
+# 新しい漢字名のキャラが増えたらここに追加する（無くても名前・英語キーでは検索できる）。
+NAME_READINGS = {
+    "aratakiitto": "あらたきいっと", "baizhu": "びゃくじゅつ", "beidou": "ほくと", "chiori": "ちおり",
+    "chongyun": "ちょううん", "gaming": "かみん かめい", "ganyu": "かんう", "hutao": "ふーたお",
+    "kaedeharakazuha": "かえではらかずは", "kamisatoayaka": "かみさとあやか", "kamisatoayato": "かみさとあやと",
+    "keqing": "こくせい", "kirara": "きらら", "kujousara": "くじょうさら", "kukishinobu": "くきしのぶ",
+    "lanyan": "らんやん", "ningguang": "ぎょうこう", "qiqi": "なな", "raidenshogun": "らいでんしょうぐん",
+    "sangonomiyakokomi": "さんごのみやここみ", "sayu": "さゆ", "shenhe": "しんかく",
+    "shikanoinheizou": "しかのいんへいぞう", "wanderer": "ほうろうしゃ", "xiangling": "しゃんりん こうりん",
+    "xianyun": "かんうん", "xiao": "しょう", "xingqiu": "ゆくあき", "xinyan": "しんえん", "yaemiko": "やえみこ",
+    "yanfei": "えんひ", "yelan": "いぇらん", "yoimiya": "よいみや", "yumemizukimizuki": "ゆめみづきみずき",
+    "yunjin": "うんきん", "zhongli": "しょうり", "zibai": "ずーばい じはく",
+}
+
 TYPE_TALENT_BOOK = "キャラクター天賦素材"
 TYPE_WEAPON_MAT = "武器突破素材"
 TYPE_GEM = "キャラクター突破素材"
@@ -176,6 +191,8 @@ def build(raw, source_version):
             "version": char_ver.get(key, ""),
             "icon": char_icon(key),
         }
+        if key in NAME_READINGS:
+            entry["kana"] = NAME_READINGS[key]
         entry.update(talent_info(ja["talents"].get(key)))
         entry["ascension"] = ascension_info(ch)
         characters.append(entry)
@@ -195,6 +212,7 @@ def build(raw, source_version):
                 "region": "",
                 "version": "",
                 "icon": char_icon("aether") or char_icon("lumine"),
+                "kana": "たびびと そら ほたる",
             }
             entry.update(talent_info(tal))
             entry["ascension"] = ascension_info(traveler)

@@ -17,6 +17,7 @@
         ├── iphone-angle/       方位・水準器
         └── iphone-genshin-materials/  原神素材
             ├── genshin-data.json       自動生成データ（毎日更新）
+            ├── sw.js                   アイコン画像のキャッシュ（サービスワーカー）
             └── scripts/                データ生成スクリプト
 ```
 
