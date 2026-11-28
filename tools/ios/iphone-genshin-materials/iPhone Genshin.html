@@ -5,7 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#0d1120">
-<title>原神素材_R0.53</title>
+<script>
+  // URL のフォルダ区切りが「%2F」になっていると（例: /tools%2Fios%2F...）、ブラウザは一番上の階層のページとみなし、
+  // 同じフォルダの sw.js や genshin-data.json を見つけられない。正しい形の URL に置き換えて開き直す。
+  if(/%2f/i.test(location.pathname)) location.replace(location.pathname.replace(/%2f/gi,"/")+location.search+location.hash);
+</script>
+<title>原神素材_R0.54</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
@@ -405,7 +410,7 @@ const FALLBACK_DATA={schema:1,generatedAt:null,source:{name:"内蔵データ",ve
   weaponSeries:[],characters:[],weapons:[]};
 
 /* ===== ストレージキー ===== */
-const APP_VERSION="R0.53";
+const APP_VERSION="R0.54";
 const K={ DATA:"genshin-data-v4", FETCHED_AT:"genshin-data-fetched-at-v4", FROM:"genshin-data-from-v4", LOCAL_OVERRIDES:"local-overrides-v2", THEME:"theme-pref-v1", FOLD:"fold-state-v1", ORDER:"region-order-v1", LAYOUT:"layout-pref-v1", ICONS:"icons-pref-v1", ICON_SAVE:"icon-save-pref-v1" };
 // 旧バージョンのキャッシュを掃除
 // local-overrides-v1 は旧版が同梱の characters.local.json を自動保存したもの（古い天賦本・旧キー名を含む）なので破棄する
