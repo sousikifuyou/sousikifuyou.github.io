@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#0d1120">
-<title>原神素材_R0.45</title>
+<title>原神素材_R0.46</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
@@ -119,6 +119,23 @@
   .person{display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 6px;border-radius:999px;background:var(--surface-2);font-size:13px;font-weight:600}
   .person::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--el,var(--muted));box-shadow:0 0 0 3px color-mix(in srgb,var(--el,var(--muted)) 25%,transparent)}
   .person.r5{color:var(--r5);font-weight:700}  /* ★5は金色の文字 */
+  button.person{border:0;font-family:inherit;cursor:pointer;transition:background .15s ease}
+  button.person:hover{background:color-mix(in srgb,var(--accent) 16%,var(--surface-2))}
+  /* キャラ画面に飛んだときの強調 */
+  .card.flash{animation:flash 1.6s ease}
+  @keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--accent),var(--shadow)}100%{box-shadow:var(--shadow)}}
+  /* 確認ダイアログ */
+  .modal-back{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;padding:24px;
+    background:rgba(5,8,16,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+  .modal-back.open{display:flex;animation:fade .15s ease}
+  .modal{width:100%;max-width:340px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+  .modal h2{margin:0 0 6px;font-size:17px;font-weight:800}
+  .modal p{margin:0 0 14px;color:var(--muted);font-size:13px}
+  .modal label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:16px;cursor:pointer}
+  .modal input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
+  .modal-actions{display:flex;gap:10px}
+  .modal-actions button{flex:1;padding:11px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);font-weight:700;cursor:pointer}
+  .modal-actions .primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
   .empty{color:var(--muted);font-size:13px;padding:4px 0}
 
   details.card>summary{list-style:none;cursor:pointer}
@@ -277,6 +294,16 @@
       </div>
       <div class="note">自動：画面の幅が広いとき（900px以上）はPC用のレイアウトで表示します。</div>
 
+      <div class="group-label">操作</div>
+      <div class="list-group">
+        <div class="row"><span>キャラ移動時の確認</span>
+          <div class="seg" id="jumpSeg" role="group" aria-label="キャラ移動時の確認">
+            <button data-jump="on">表示する</button><button data-jump="off">表示しない</button>
+          </div>
+        </div>
+      </div>
+      <div class="note">「今日」画面でキャラ名をタップしたとき、必要素材を確認するかどうかを尋ねます。</div>
+
       <div class="group-label">データ</div>
       <div class="list-group" id="dataInfo"></div>
       <div class="note">GitHub Actions が毎日 genshin-db から genshin-data.json を自動生成しています。</div>
@@ -291,6 +318,18 @@
       <input id="fileLocal" type="file" accept=".json,application/json" style="display:none" />
     </section>
   </main>
+
+  <div class="modal-back" id="jumpModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="jumpTitle">
+      <h2 id="jumpTitle"></h2>
+      <p>キャラ画面に移動して、天賦・突破に必要な素材を表示します。</p>
+      <label><input type="checkbox" id="jumpNoAsk"> 今後表示しない</label>
+      <div class="modal-actions">
+        <button id="jumpNo">いいえ</button>
+        <button id="jumpYes" class="primary">はい</button>
+      </div>
+    </div>
+  </div>
 
   <nav class="tabbar" aria-label="ナビゲーション">
     <div class="brand"><b>原神 曜日素材</b><span>天賦本・武器素材ビュー</span></div>
@@ -336,8 +375,8 @@ const FALLBACK_DATA={schema:1,generatedAt:null,source:{name:"内蔵データ",ve
   weaponSeries:[],characters:[],weapons:[]};
 
 /* ===== ストレージキー ===== */
-const APP_VERSION="R0.45";
-const K={ DATA:"genshin-data-v4", FETCHED_AT:"genshin-data-fetched-at-v4", FROM:"genshin-data-from-v4", LOCAL_OVERRIDES:"local-overrides-v2", THEME:"theme-pref-v1", FOLD:"fold-state-v1", ORDER:"region-order-v1", LAYOUT:"layout-pref-v1" };
+const APP_VERSION="R0.46";
+const K={ DATA:"genshin-data-v4", FETCHED_AT:"genshin-data-fetched-at-v4", FROM:"genshin-data-from-v4", LOCAL_OVERRIDES:"local-overrides-v2", THEME:"theme-pref-v1", FOLD:"fold-state-v1", ORDER:"region-order-v1", LAYOUT:"layout-pref-v1", JUMP_CONFIRM:"jump-confirm-v1" };
 // 旧バージョンのキャッシュを掃除
 // local-overrides-v1 は旧版が同梱の characters.local.json を自動保存したもの（古い天賦本・旧キー名を含む）なので破棄する
 (function cleanupOld(){try{localStorage.removeItem("genshin-app-v3");localStorage.removeItem("local-overrides-v1");for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith("ambr-avatar-"))localStorage.removeItem(k);}}catch{}})();
@@ -447,7 +486,7 @@ function makeChips(container,options,onChange){
 }
 const chipValue=(container)=>container.querySelector('.chip[aria-pressed="true"]')?.dataset.value;
 function keepChip(container,value){if(value==null)return;const b=[...container.querySelectorAll(".chip")].find(c=>c.dataset.value===value);if(b){container.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true");}}
-const person=(c)=>`<span class="person el-${safe(c.element)} ${c.rarity===5?"r5":""}">${safe(c.name)}</span>`;
+const person=(c)=>`<button type="button" class="person el-${safe(c.element)} ${c.rarity===5?"r5":""}" data-char="${safe(c.key)}" aria-label="${safe(c.name)}の必要素材を見る">${safe(c.name)}</button>`;
 const dayPills=(days,hl)=>`<span class="days">${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].filter(d=>(days||[]).includes(d)).map(d=>`<i class="${d===hl?"on":""}">${WEEK_JA[d]}</i>`).join("")}</span>`;
 const daysText=(days)=>(days||[]).map(d=>WEEK_JA[d]).join("・");
 const CHEV='<span class="chev">▾</span>';
@@ -555,7 +594,9 @@ function renderCharacters(){
   makeChips(ec,[{value:"All",label:"全元素"},...Object.keys(ELABEL).map(e=>({value:e,cls:`el-${e}`,html:`<span class="dot"></span>${ELABEL[e]}`}))],list);
   makeChips(wc,[{value:"All",label:"全武器"},...Object.keys(WLABEL).map(w=>({value:w,label:WLABEL[w]}))],list);
   makeChips(oc,[{value:"all",label:"すべて"},{value:"today",label:"今日天賦を上げられるキャラ"}],list);
-  keepChip(ec,prevE); keepChip(wc,prevW); keepChip(oc,prevO);
+  const focusKey=pendingFocus; pendingFocus=null;
+  if(focusKey) $("#searchInput").value="";   // 移動時は絞り込みを解除して必ず表示
+  else { keepChip(ec,prevE); keepChip(wc,prevW); keepChip(oc,prevO); }
   $("#searchInput").oninput=()=>list();
   const seriesByKey=new Map(data.talentSeries.map(s=>[s.key,s]));
   const today=gameDayKey();
@@ -577,7 +618,7 @@ function renderCharacters(){
       const books=asArray(c.talentBooks).map(k=>seriesByKey.get(k)).filter(Boolean);
       const a=c.ascension||{};
       const row=(label,v)=>v?`<div>${label}</div><div>${safe(v)}</div>`:"";
-      const det=document.createElement("details"); det.className=`card char el-${safe(c.element)}`;
+      const det=document.createElement("details"); det.className=`card char el-${safe(c.element)}`; det.dataset.char=c.key;
       det.innerHTML=`<summary>
           <div class="card-head"><h3 class="card-title">${safe(c.name)}</h3>
             ${c.rarity?`<span class="tag ${c.rarity===5?"r5":"r4"}">★${c.rarity}</span>`:""}
@@ -599,10 +640,47 @@ function renderCharacters(){
     }
   }
   list();
+  if(focusKey){
+    const det=[...$("#charList").children].find(d=>d.dataset.char===focusKey);
+    if(det){
+      det.open=true;
+      requestAnimationFrame(()=>{
+        const y=det.getBoundingClientRect().top+window.scrollY-(document.querySelector("header").offsetHeight+12);
+        window.scrollTo({top:Math.max(0,y),behavior:"smooth"});
+        det.classList.remove("flash"); void det.offsetWidth; det.classList.add("flash");
+      });
+    }
+  }
 }
+
+/* ===== 「今日」のキャラ名 → キャラ画面へ移動（確認ダイアログ付き） ===== */
+let pendingFocus=null;
+function jumpToCharacter(key){ pendingFocus=key; setRoute("characters"); }
+function askJump(key){
+  const c=view().characters.find(x=>x.key===key); if(!c) return;
+  if(localStorage.getItem(K.JUMP_CONFIRM)==="off"){ jumpToCharacter(key); return; }
+  const m=$("#jumpModal");
+  $("#jumpTitle").textContent=`${c.name}の必要素材を確認しますか？`;
+  $("#jumpNoAsk").checked=false;
+  m.classList.add("open"); m.setAttribute("aria-hidden","false");
+  const close=()=>{ m.classList.remove("open"); m.setAttribute("aria-hidden","true"); document.removeEventListener("keydown",onKey); };
+  const onKey=(e)=>{ if(e.key==="Escape") close(); };
+  document.addEventListener("keydown",onKey);
+  $("#jumpNo").onclick=close;
+  m.onclick=(e)=>{ if(e.target===m) close(); };
+  $("#jumpYes").onclick=()=>{
+    if($("#jumpNoAsk").checked){ try{localStorage.setItem(K.JUMP_CONFIRM,"off");}catch{} }
+    close(); jumpToCharacter(key);
+  };
+  setTimeout(()=>$("#jumpYes").focus(),0);
+}
+$("#todayTalent").addEventListener("click",(e)=>{ const b=e.target.closest("button.person[data-char]"); if(b) askJump(b.dataset.char); });
+function syncJumpSeg(){ const v=localStorage.getItem(K.JUMP_CONFIRM)==="off"?"off":"on"; document.querySelectorAll("#jumpSeg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.jump===v))); }
+document.querySelectorAll("#jumpSeg button").forEach(b=>b.onclick=()=>{ try{localStorage.setItem(K.JUMP_CONFIRM,b.dataset.jump);}catch{} syncJumpSeg(); toast(`キャラ移動時の確認: ${b.textContent}`); });
 
 /* ===== 画面: 情報 ===== */
 function renderAbout(){
+  syncJumpSeg();
   const d=appData, s=d.source||{};
   const ov=getOverrides();
   const r=(k,v)=>`<div class="row"><span>${k}</span><span>${v}</span></div>`;
