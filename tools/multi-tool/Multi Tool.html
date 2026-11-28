@@ -241,6 +241,14 @@ details>summary{cursor:pointer;color:#334;font-weight:600;margin:6px 0}
    <div class="note" id="ex-help" style="line-height:1.7;margin-top:6px"></div>
    <div class="note" style="line-height:1.7">マウス：左ドラッグ 回転／右ドラッグ・Shift+ドラッグ 移動／ホイール 拡大縮小／ダブルクリック 全体表示</div>
   </div>
+  <div class="card" id="ex-levercard">
+   <h3>操作パターン（油圧ショベル）</h3>
+   <div class="form">
+    <label>パターン</label><select id="ex-pattern"><option value="iso">ISO（JIS）</option><option value="sae">SAE（BHL）</option><option value="custom">カスタム</option></select><span></span>
+   </div>
+   <details style="margin-top:6px"><summary>レバーごとの割当（カスタム）</summary><div class="form" id="ex-levermap" style="grid-template-columns:minmax(0,1fr) 100px auto"></div></details>
+   <p class="note">割当を変更すると「カスタム」になります（ブラウザに自動保存）。画面ボタンと操作説明も割当に合わせて変わります。</p>
+  </div>
   <div class="card" id="ex-attcard">
    <h3>アタッチメント</h3>
    <div class="form">
@@ -1395,6 +1403,15 @@ function exRanges(p){
   return r;
 }
 const ATT_NAME={bucket:'バケット',breaker:'ブレーカ',crusher:'破砕機'};
+// 操作レバーの割当（arm +＝アーム出し、boom +＝ブーム上げ、bkt +＝ダンプ、swing +＝左旋回）
+const EX_ACTS={armOut:['arm',1,'アーム出し'],armIn:['arm',-1,'アーム引き'],boomUp:['boom',1,'ブーム上げ'],boomDown:['boom',-1,'ブーム下げ'],
+  bktDig:['bkt',-1,'バケット掘削'],bktDump:['bkt',1,'バケットダンプ'],swL:['swing',1,'左旋回'],swR:['swing',-1,'右旋回'],none:[null,0,'（なし）']};
+const EX_LKEYS=[['KeyW','左レバー 前'],['KeyS','左レバー 後'],['KeyA','左レバー 左'],['KeyD','左レバー 右'],['ArrowUp','右レバー 前'],['ArrowDown','右レバー 後'],['ArrowLeft','右レバー 左'],['ArrowRight','右レバー 右']];
+const EX_KEYLBL={KeyW:'W',KeyS:'S',KeyA:'A',KeyD:'D',ArrowUp:'↑',ArrowDown:'↓',ArrowLeft:'←',ArrowRight:'→'};
+const EX_PATTERNS={
+  iso:{name:'ISO（JIS）',map:{KeyW:'armOut',KeyS:'armIn',KeyA:'swL',KeyD:'swR',ArrowUp:'boomDown',ArrowDown:'boomUp',ArrowLeft:'bktDig',ArrowRight:'bktDump'}},
+  sae:{name:'SAE（BHL）',map:{KeyW:'boomDown',KeyS:'boomUp',KeyA:'swL',KeyD:'swR',ArrowUp:'armOut',ArrowDown:'armIn',ArrowLeft:'bktDig',ArrowRight:'bktDump'}},
+};
 
 const EXC={
   id:'ex', label:'油圧ショベル', dims:EX_DIMS, pose0:{swing:0,boom:20,arm:-100,bkt:-60}, st0:{x:0,z:0,h:0,trL:0,trR:0},
@@ -1402,26 +1419,26 @@ const EXC={
   poseNote:'ブーム角：フートピン→トップピンを結ぶ線の水平からの角度。アーム角・バケット角：一つ前のリンクの延長線からの相対角（＋がアーム出し／ダンプ側）。バケット角はピン〜刃先の線（ヒッチ・他アタッチメントでもリンク位置は共通）。',
   dimNote:'寸法は入力後「寸法を反映」で 3D モデルを再生成します（ブラウザに自動保存）。初期値は 20t クラス相当で、主要寸法と作業範囲（最大掘削半径・深さ・高さ、最小ダンプ高さ、フロント最小旋回半径）がカタログ値程度になるよう合わせています。',
   keys:['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyQ','KeyZ','KeyE','KeyC','KeyR','KeyF'],
-  help:`操作パターン：ISO（JIS）<br>
-    左レバー <span class="kbd">W</span>アーム出し <span class="kbd">S</span>アーム引き <span class="kbd">A</span>左旋回 <span class="kbd">D</span>右旋回<br>
-    右レバー <span class="kbd">↑</span>ブーム下げ <span class="kbd">↓</span>ブーム上げ <span class="kbd">←</span>バケット掘削 <span class="kbd">→</span>バケットダンプ<br>
+  lever:{pattern:'iso',map:null},
+  help(){
+    const m=this.lever.map, L=k=>`<span class="kbd">${EX_KEYLBL[k]}</span>${EX_ACTS[m[k]]?EX_ACTS[m[k]][2]:'－'}`;
+    return `操作パターン：${(EX_PATTERNS[this.lever.pattern]||{name:'カスタム'}).name}<br>
+    左レバー ${['KeyW','KeyS','KeyA','KeyD'].map(L).join(' ')}<br>
+    右レバー ${['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].map(L).join(' ')}<br>
     走行 <span class="kbd">Q</span>/<span class="kbd">Z</span>左 前進/後進 <span class="kbd">E</span>/<span class="kbd">C</span>右 前進/後進<br>
-    アタッチ <span class="kbd">R</span>/<span class="kbd">F</span>（破砕機 開/閉、ブレーカ 打撃＝R）`,
-  pads:`<div class="pad">
-    <button style="grid-column:2;grid-row:1" data-key="KeyW">W<br>アーム出し</button>
-    <button style="grid-column:1;grid-row:2" data-key="KeyA">A<br>左旋回</button><div class="ttl">左<br>レバー</div>
-    <button style="grid-column:3;grid-row:2" data-key="KeyD">D<br>右旋回</button>
-    <button style="grid-column:2;grid-row:3" data-key="KeyS">S<br>アーム引き</button></div>
-   <div class="crawl"><div class="ttl">走行（左 / 右）</div>
+    アタッチ <span class="kbd">R</span>/<span class="kbd">F</span>（破砕機 開/閉、ブレーカ 打撃＝R）`;
+  },
+  pads(){
+    const m=this.lever.map, B=(k,pos)=>`<button style="${pos}" data-key="${k}">${EX_KEYLBL[k]}<br>${EX_ACTS[m[k]]?EX_ACTS[m[k]][2]:'－'}</button>`;
+    const pad=(t,u,d,l,r,ttl)=>`<div class="pad">${B(u,'grid-column:2;grid-row:1')}${B(l,'grid-column:1;grid-row:2')}<div class="ttl">${ttl}</div>${B(r,'grid-column:3;grid-row:2')}${B(d,'grid-column:2;grid-row:3')}</div>`;
+    return pad('l','KeyW','KeyS','KeyA','KeyD','左<br>レバー')+
+   `<div class="crawl"><div class="ttl">走行（左 / 右）</div>
     <button data-key="KeyQ">Q<br>左 前進</button><button data-key="KeyE">E<br>右 前進</button>
     <button data-key="KeyZ">Z<br>左 後進</button><button data-key="KeyC">C<br>右 後進</button></div>
    <div class="crawl" style="grid-template-columns:64px"><div class="ttl">アタッチ</div>
-    <button data-key="KeyR">R<br>開・打撃</button><button data-key="KeyF">F<br>閉じる</button></div>
-   <div class="pad">
-    <button style="grid-column:2;grid-row:1" data-key="ArrowUp">↑<br>ブーム下げ</button>
-    <button style="grid-column:1;grid-row:2" data-key="ArrowLeft">←<br>バケット掘削</button><div class="ttl">右<br>レバー</div>
-    <button style="grid-column:3;grid-row:2" data-key="ArrowRight">→<br>バケットダンプ</button>
-    <button style="grid-column:2;grid-row:3" data-key="ArrowDown">↓<br>ブーム上げ</button></div>`,
+    <button data-key="KeyR">R<br>開・打撃</button><button data-key="KeyF">F<br>閉じる</button></div>`+
+    pad('r','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','右<br>レバー');
+  },
   camOff:[1.8,1.6,0],
   att:{type:'bucket',hitch:false,attached:true,parked:[],jaw:0.3,ham:false,hamPh:0,msg:''},
 
@@ -1682,8 +1699,10 @@ const EXC={
   },
   update(dt,K,sp){
     const s=this.st, v=this.v||(this.v={swing:0,boom:0,arm:0,bkt:0,L:0,R:0}), p=this.p, at=this.att;
-    const tg={swing:(K('KeyA')-K('KeyD'))*36, arm:(K('KeyW')-K('KeyS'))*26, boom:(K('ArrowDown')-K('ArrowUp'))*22,
-      bkt:(K('ArrowRight')-K('ArrowLeft'))*42, L:(K('KeyQ')-K('KeyZ'))*1200, R:(K('KeyE')-K('KeyC'))*1200};
+    const ax={swing:0,arm:0,boom:0,bkt:0};
+    for(const [k] of EX_LKEYS){ const act=EX_ACTS[this.lever.map[k]]; if(act&&act[0]&&K(k)) ax[act[0]]+=act[1]; }
+    const tg={swing:clamp(ax.swing,-1,1)*36, arm:clamp(ax.arm,-1,1)*26, boom:clamp(ax.boom,-1,1)*22,
+      bkt:clamp(ax.bkt,-1,1)*42, L:(K('KeyQ')-K('KeyZ'))*1200, R:(K('KeyE')-K('KeyC'))*1200};
     const a=Math.min(1,dt*7); let moved=false;
     for(const j in tg){ v[j]+=(tg[j]*sp-v[j])*a; if(Math.abs(v[j])<1e-3&&!tg[j]) v[j]=0; if(v[j]) moved=true; }
     if(at.attached&&at.type==='crusher'){ const dj=(K('KeyR')-K('KeyF'))*0.9*sp*dt; if(dj){ at.jaw=clamp(at.jaw+dj,0,1); moved=true; } }
@@ -1758,7 +1777,10 @@ ${(()=>{ const c=this.collide(s); return this.blocked?`⚠ 干渉のため停止
     return M4.mul(M4.RZ(-P2.ang(XA)),M4.T(-K[0]/2,-K[1]/2,0));
   },
   saveExtra(){ const a=this.att; lsSet('ex.att',JSON.stringify({type:a.type,hitch:a.hitch,attached:a.attached,jaw:a.jaw})); },
-  loadExtra(){ try{ const j=JSON.parse(lsGet('ex.att')||'null'); if(j) Object.assign(this.att,j); }catch(e){} if(!this.att.hitch) this.att.attached=true; },
+  loadExtra(){ try{ const j=JSON.parse(lsGet('ex.att')||'null'); if(j) Object.assign(this.att,j); }catch(e){} if(!this.att.hitch) this.att.attached=true;
+    try{ const j=JSON.parse(lsGet('ex.lever')||'null'); if(j&&j.map) this.lever=j; }catch(e){}
+    if(!this.lever.map) this.lever={pattern:'iso',map:{...EX_PATTERNS.iso.map}}; },
+  saveLever(){ lsSet('ex.lever',JSON.stringify(this.lever)); },
 };
 </script>
 
@@ -2195,8 +2217,8 @@ function exBuildForms(){
   $('ex-posenote').textContent=MC.poseNote; $('ex-dimnote').textContent=MC.dimNote;
 }
 function exBuildPads(){
-  $('ex-pads').innerHTML=MC.pads; $('ex-help').innerHTML=MC.help;
-  $('ex-attcard').style.display=MC.id==='ex'?'':'none';
+  $('ex-pads').innerHTML=typeof MC.pads==='function'?MC.pads():MC.pads; $('ex-help').innerHTML=typeof MC.help==='function'?MC.help():MC.help;
+  $('ex-attcard').style.display=MC.id==='ex'?'':'none'; $('ex-levercard').style.display=MC.id==='ex'?'':'none';
   document.querySelectorAll('#ex-pads [data-key]').forEach(b=>{
     const on=e=>{ e.preventDefault(); vkeys[b.dataset.key]=true; b.setPointerCapture&&b.setPointerCapture(e.pointerId); };
     const off=()=>{ vkeys[b.dataset.key]=false; };
@@ -2210,6 +2232,14 @@ function exAttUI(msg){
   $('ex-clearpark').disabled=!a.parked.length;
   if(msg!==undefined) $('ex-attmsg').textContent=msg;
   EXC.saveExtra();
+}
+function exLeverUI(){
+  const lv=EXC.lever;
+  $('ex-pattern').value=EX_PATTERNS[lv.pattern]?lv.pattern:'custom';
+  const opts=Object.entries(EX_ACTS).map(([k,a])=>`<option value="${k}">${a[2]}</option>`).join('');
+  $('ex-levermap').innerHTML=EX_LKEYS.map(([k,n])=>`<label>${n}（${EX_KEYLBL[k]}）</label><select data-k="${k}" style="grid-column:2/4">${opts}</select>`).join('');
+  $('ex-levermap').querySelectorAll('select').forEach(s=>s.value=lv.map[s.dataset.k]||'none');
+  if(MC.id==='ex') exBuildPads();
 }
 function exSelectMachine(id){
   MC=MACHINES[id]||EXC; $('ex-mach').value=MC.id;
@@ -2231,7 +2261,7 @@ function exInit(){
   const cv=$('ex-canvas');
   try{ if(!rdInit(cv)) throw new Error('WebGL2 が利用できません'); MC.build(); EX.ok=true; }
   catch(err){ console.error(err); $('ex-err').style.display='flex'; $('ex-err').textContent='3D 表示を初期化できませんでした：'+(err.message||err); return; }
-  exBuildForms(); exBuildPads(); exViewBtns(); exAttUI('');
+  exBuildForms(); exBuildPads(); exViewBtns(); exAttUI(''); exLeverUI();
   let drag=null;
   cv.addEventListener('contextmenu',e=>e.preventDefault());
   cv.addEventListener('pointerdown',e=>{
@@ -2273,6 +2303,11 @@ function exInit(){
   $('ex-dimreset').addEventListener('click',()=>{ if(confirm('寸法を初期値に戻しますか？')) exApply({...MC.def}); });
   $('ex-posereset').addEventListener('click',()=>{ Object.assign(MC.st,MC.pose0); MC.clamp(); exPoseSync(); savePose(); redraw(); });
   $('ex-posrst').addEventListener('click',()=>{ Object.assign(MC.st,{x:0,z:0,h:0}); savePose(); redraw(); });
+  // 操作レバーの割当
+  $('ex-pattern').addEventListener('change',()=>{ const v=$('ex-pattern').value; if(EX_PATTERNS[v]) EXC.lever={pattern:v,map:{...EX_PATTERNS[v].map}}; else EXC.lever.pattern='custom'; EXC.saveLever(); exLeverUI(); });
+  $('ex-levermap').addEventListener('change',e=>{ const k=e.target.dataset.k; if(!k) return; EXC.lever.map[k]=e.target.value; EXC.lever.pattern='custom';
+    for(const [id,pt] of Object.entries(EX_PATTERNS)) if(EX_LKEYS.every(([kk])=>pt.map[kk]===EXC.lever.map[kk])) EXC.lever.pattern=id;
+    EXC.saveLever(); exLeverUI(); });
   // アタッチメント
   $('ex-att').addEventListener('change',()=>{ const a=EXC.att; a.type=$('ex-att').value; a.attached=true; a.ham=false; exAttUI(ATT_NAME[a.type]+'を装着しました'); redraw(); });
   $('ex-hitch').addEventListener('change',()=>{ const a=EXC.att; a.hitch=$('ex-hitch').checked; if(!a.hitch) a.attached=true; exAttUI(''); redraw(); });
