@@ -57,8 +57,8 @@ details>summary{cursor:pointer;color:#334;font-weight:600;margin:6px 0}
 /* ===== 3D 建機 ===== */
 #ex-side{width:330px;flex:0 0 330px;overflow:auto;background:#f7f9fb;border-right:1px solid var(--line);padding:10px}
 #ex-side .card{padding:10px;margin-bottom:10px}
-#ex-side .form{grid-template-columns:1fr 120px auto}
-#ex-side .form label.full{white-space:normal}
+#ex-side .form{grid-template-columns:minmax(0,1fr) 100px auto}
+#ex-side .form label{white-space:normal;line-height:1.3}
 #ex-main{flex:1;position:relative;min-width:0;overflow:hidden;background:#cfd6df}
 #ex-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;outline:none}
 #ex-hud{position:absolute;left:8px;top:8px;background:rgba(255,255,255,.88);border:1px solid #c5cdd8;border-radius:6px;padding:6px 8px;font:12px/1.5 ui-monospace,Consolas,monospace;pointer-events:none;white-space:pre}
@@ -1768,10 +1768,10 @@ const WL_DIMS=[
   ['armMin','リフトアーム角 最小',-36,'°'],['armMax','リフトアーム角 最大',49,'°'],
   ['bktMin','バケット角 最小（ダンプ側）',-110,'°'],['bktMax','バケット角 最大（チルト側）',85,'°'],['artMax','中折れ角 最大（片側）',40,'°'],
   ['+','リンク・シリンダ取付位置（詳細）'],
-  ['cX','ベルクランク支点 x（アーム座標）',2100],['cY','　〃 y',460],
-  ['cq','ベルクランク 下側長さ',725],['cu','ベルクランク 上側長さ',455],['ca','ベルクランク 上下の開き角',159,'°'],
-  ['kX','バケットリンク支点 x（バケット座標）',-40],['kY','　〃 y',605],['lq','バケットリンク長',1150],
-  ['fcX','バケットシリンダ ボトム X（前フレーム）',1330],['fcY','　〃 Y（地上高）',2550],
+  ['cX','ベルクランク支点 x（アーム座標）',2285],['cY','　〃 y',430],
+  ['cq','ベルクランク 下側長さ',745],['cu','ベルクランク 上側長さ',900],['ca','ベルクランク 上下の開き角',160,'°'],
+  ['kX','バケットリンク支点 x（バケット座標）',-70],['kY','　〃 y',405],['lq','バケットリンク長',540],
+  ['fcX','バケットシリンダ ボトム X（前フレーム）',515],['fcY','　〃 Y（地上高）',2140],
   ['flX','リフトシリンダ ボトム X（前フレーム）',500],['flY','　〃 Y（地上高）',650],
   ['lrX','リフトシリンダ ロッド x（アーム座標）',1500],['lrY','　〃 y',-300],
 ];
@@ -1844,15 +1844,21 @@ const WLC={
     M.fFrame=new Geo().add(chamBox(250,L+750,yA-260,yA+330,-430,430,60))
       .add(cylZ(L,yA,170,-T2+tw*0.3,T2-tw*0.3,20)).add(extrudeY(circ(L,0,330,24).map(q=>[q[0],q[1]]),yA-260,yA-150))
       .add(box(-40,320,yA-200,yA+300,-280,280));
-    const tw2=[[250,yA-150],[L+420,yA-150],[L+420,yA+330],[p.apX+260,p.apY-140],[p.apX+170,p.apY+230],[p.fcX+170,p.fcY+150],[p.fcX-200,p.fcY+120],[330,yA+900]];
-    M.tower=new Geo().add(pair(tw2,az-150,az-90)).add(box(p.fcX-230,p.fcX+170,p.fcY-260,p.fcY+60,-(az-90),az-90))
-      .add(pair(hullC([[p.fcX,p.fcY,120],[p.fcX-150,p.fcY-200,0],[p.fcX+150,p.fcY-200,0]]),95,135))
+    // タワー：前タイヤ後方で立ち上がり、リフトアーム支点とバケットシリンダ支点を支える
+    const tw2=[[180,yA-220],[L+460,yA-220],[L+460,yA+230],[L-tr*0.62,yA+260],[p.apX+230,p.apY-170],[p.apX+170,p.apY+210],
+      [Math.max(p.apX-150,p.fcX+260),Math.max(p.apY,p.fcY)+220],[p.fcX-60,p.fcY+200],[Math.min(180,p.fcX-160),p.fcY-40]];
+    M.tower=new Geo().add(pair(tw2,az-150,az-90))
+      .add(chamBox(Math.min(180,p.fcX-160),p.apX+120,yA+250,Math.max(p.apY,p.fcY)+120,-(az-90),az-90,80))
+      .add(pair(hullC([[p.fcX,p.fcY,125],[p.fcX-150,p.fcY-260,0],[p.fcX+220,p.fcY-260,0]]),95,135))
+      .add(box(p.apX-260,p.apX-60,Math.max(p.apY,p.fcY)+120,Math.max(p.apY,p.fcY)+300,-az+20,-az+180))
+      .add(box(p.apX-260,p.apX-60,Math.max(p.apY,p.fcY)+120,Math.max(p.apY,p.fcY)+300,az-180,az-20))
       .add(pair(hullC([[p.flX,p.flY,110],[p.flX-120,yA-150,0],[p.flX+200,yA-150,0]]),az-90,az-50))
       .add(box(L+600,L+780,yA-200,yA+250,-560,560));
     M.fPins=new Geo().add(cylZ(p.apX,p.apY,80,-az-80,az+80,24)).add(cylZ(p.fcX,p.fcY,62,-140,140,20)).add(cylZ(p.flX,p.flY,62,-az-80,az+80,20));
     M.fFender=new Geo();
-    for(const sd of [-1,1]) M.fFender.add(extrude(arcBand(L,yA,tr+45,tr+75,20,165),sd*T2-tw/2-50,sd*T2+tw/2+50));
-    M.fFender.add(pair([[L-tr*0.9,yA+tr*0.30],[L-tr*0.2,yA+tr*0.55],[L-tr*0.2,yA+tr*0.62],[L-tr*0.9,yA+tr*0.40]],440,T2-tw/2-40));
+    for(const sd of [-1,1]) M.fFender.add(extrude(arcBand(L,yA,tr+45,tr+80,62,178),sd*T2-tw/2-50,sd*T2+tw/2+50))
+      .add(box(L-tr-80,L-tr-45,yA-tr*0.62,yA+20,sd*T2-tw/2-30,sd*T2+tw/2+30));
+    M.fFender.add(pair([[L-tr*0.95,yA+tr*0.25],[L-tr*0.45,yA+tr*0.80],[L-tr*0.40,yA+tr*0.86],[L-tr*0.95,yA+tr*0.36]],430,T2-tw/2-40));
     /* --- 後フレーム --- */
     const rE=p.rearEnd, hH=p.hoodH, bw=p.bodyW/2, cwW=p.cwW/2;
     M.rFrame=new Geo().add(chamBox(-rE+500,-250,yA-250,yA+300,-480,480,60))
@@ -1891,9 +1897,9 @@ const WLC={
     for(let i=0;i<4;i++){ const y=350+i*(cb-350)/4; M.rail.add(box(-L+tr+40,-L+tr+260,y,y+30,lz-380,lz-60)); }
     M.rail.add(box(-L+tr+30,-L+tr+50,330,cb,lz-380,lz-360)).add(box(-L+tr+250,-L+tr+270,330,cb,lz-380,lz-360));
     /* --- リフトアーム・リンク --- */
-    const La=p.armLen, ab=bentBar(La,0.55,-260,200,330,170);
+    const La=p.armLen, ab=bentBar(La,0.68,260,200,330,175);
     M.arm=pair(ab.poly,az-60,az+60);
-    M.cross=new Geo().add(cylZ(p.cX,p.cY*0.55,150,-az+60,az-60,24)).add(pair(hullC([[p.cX,p.cY,110],[p.cX-260,0,60],[p.cX+260,0,60]]),az-60,az-20));
+    M.cross=new Geo().add(cylZ(p.cX-120,p.cY-230,140,-az+60,az-60,24)).add(pair(hullC([[p.cX,p.cY,115],[p.cX-380,p.cY-330,40],[p.cX+220,p.cY-330,40]]),95,135));
     M.aPins=new Geo().add(cylZ(La,0,75,-az-90,az+90,24)).add(cylZ(p.cX,p.cY,72,-120,120,20)).add(pair(hullC([[p.lrX,p.lrY,100],[p.lrX-250,-100,30],[p.lrX+250,-60,30]]),az-60,az+60))
       .add(cylZ(p.lrX,p.lrY,58,-az-70,az+70,20));
     const U0=P2.mul([Math.cos(p.ca*Math.PI/180),Math.sin(p.ca*Math.PI/180)],p.cu);
@@ -2140,7 +2146,7 @@ function exBuildForms(){
   let h='', open=false;
   MC.dims.forEach(d=>{
     if(d[0]==='#'){ h+=`<div class="full"><h4>${d[1]}</h4></div>`; return; }
-    if(d[0]==='+'){ h+=`<details class="full"><summary>${d[1]}</summary><p class="note">ブーム・アーム・バケット座標：根元のピンが原点、x＝先端ピン（刃先）方向、y＝それに直角上向き。</p><div class="form" style="grid-template-columns:1fr 90px auto">`; open=true; return; }
+    if(d[0]==='+'){ h+=`<details class="full"><summary>${d[1]}</summary><p class="note">ブーム・アーム・バケット座標：根元のピンが原点、x＝先端ピン（刃先）方向、y＝それに直角上向き。</p><div class="form" style="grid-template-columns:minmax(0,1fr) 100px auto">`; open=true; return; }
     h+=`<label for="exd-${d[0]}">${d[1]}</label><input type="number" step="any" id="exd-${d[0]}" value="${MC.p[d[0]]}"><span class="u">${d[3]||'mm'}</span>`;
   });
   if(open) h+='</div></details>';
