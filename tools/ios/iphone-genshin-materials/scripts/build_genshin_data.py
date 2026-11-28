@@ -76,7 +76,8 @@ def build(raw, source_version):
     item_icons = {}  # 素材名 → ファイル名（アプリで使う素材だけ）
 
     def reg(item):
-        icon = mat_icon_by_id.get(item["id"])
+        # 素材一覧に未登録の新素材は、ゲームの命名規則（UI_ItemIcon_ID）でアイコン名を補う
+        icon = mat_icon_by_id.get(item["id"]) or (f"UI_ItemIcon_{item['id']}" if item.get("_stub") else None)
         if icon:
             item_icons[item["name"]] = icon
         return item["name"]
@@ -132,13 +133,23 @@ def build(raw, source_version):
     weapon_series, weapon_id2key = series(TYPE_WEAPON_MAT, WeaponKey())
 
     # ---- 素材分類ヘルパー ----
+    # genshin-db の素材一覧に未登録の新素材（実装直後のキャラで起きる）は、ID の番号帯から種類を推定する
+    #   101xxx: 地域特産 / 112xxx: 敵ドロップ素材 / 113xxx: ボス素材（突破は通常ボス、天賦は週ボス）
+    def stub(it):
+        prefix = it["id"] // 1000
+        guess = {101: {"category": "EXCHANGE", "typeText": "地域の特産"},
+                 112: {"typeText": TYPE_COMMON}, 113: {"typeText": TYPE_BOSS}}.get(prefix, {})
+        return {"id": it["id"], "name": it["name"], "_stub": True, **guess}
+
     def collect(cost_groups):
-        ids = []
+        seen, out = set(), []
         for group in cost_groups:
             for it in group or []:
-                if it["id"] not in ids:
-                    ids.append(it["id"])
-        return [mats[i] for i in ids if i in mats]
+                if it["id"] in seen or it["id"] == 202:  # 202 = モラ
+                    continue
+                seen.add(it["id"])
+                out.append(mats.get(it["id"]) or stub(it))
+        return out
 
     def pick(items, type_text, highest=True, exclude_days=False, rarity=None):
         c = [x for x in items if x.get("typeText") == type_text]
@@ -148,7 +159,8 @@ def build(raw, source_version):
             c = [x for x in c if x.get("rarity") == rarity]
         if not c:
             return None
-        c.sort(key=lambda x: x.get("rarity", 0))
+        # 同系統の素材は ID がレア度順に並ぶので、未登録素材（レア度不明）も含めて ID 順で比べる
+        c.sort(key=lambda x: (x.get("rarity") or 0, x["id"]) if not any(y.get("_stub") for y in c) else x["id"])
         return reg(c[-1] if highest else c[0])
 
     def talent_info(tal):
@@ -161,7 +173,7 @@ def build(raw, source_version):
                 books.append(k)
         return {
             "talentBooks": books,
-            "weeklyBoss": pick(items, TYPE_BOSS, rarity=5),
+            "weeklyBoss": pick(items, TYPE_BOSS, rarity=5) or pick(items, TYPE_BOSS),
             "talentCommon": pick(items, TYPE_COMMON, highest=False),
         }
 
