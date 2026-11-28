@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#0d1120">
-<title>原神素材_R0.50</title>
+<title>原神素材_R0.51</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
@@ -305,7 +305,7 @@
     <section id="view-characters" class="view">
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input id="searchInput" type="search" placeholder="キャラ名で検索（例：宵宮）" enterkeyhint="search" />
+        <input id="searchInput" type="search" placeholder="キャラ名・読みで検索（例：よいみや）" enterkeyhint="search" />
       </div>
       <div class="scroller" id="elementChips"></div>
       <div class="scroller" id="weaponChips"></div>
@@ -331,7 +331,7 @@
           </div>
         </div>
       </div>
-      <div class="note">キャラ・素材・武器の画像は、ファン向けの画像配信サーバー（Project Amber / Enka.Network）から読み込みます。通信量を抑えたいときは「表示しない」にしてください。</div>
+      <div class="note">キャラ・素材・武器の画像は、ファン向けの画像配信サーバー（Project Amber / Enka.Network）から初回だけ読み込み、ブラウザに保存して使い回します。「表示しない」にすると保存した画像も削除します。<br><span id="iconCacheInfo"></span></div>
 
 
       <div class="group-label">データ</div>
@@ -400,7 +400,7 @@ const FALLBACK_DATA={schema:1,generatedAt:null,source:{name:"内蔵データ",ve
   weaponSeries:[],characters:[],weapons:[]};
 
 /* ===== ストレージキー ===== */
-const APP_VERSION="R0.50";
+const APP_VERSION="R0.51";
 const K={ DATA:"genshin-data-v4", FETCHED_AT:"genshin-data-fetched-at-v4", FROM:"genshin-data-from-v4", LOCAL_OVERRIDES:"local-overrides-v2", THEME:"theme-pref-v1", FOLD:"fold-state-v1", ORDER:"region-order-v1", LAYOUT:"layout-pref-v1", ICONS:"icons-pref-v1" };
 // 旧バージョンのキャッシュを掃除
 // local-overrides-v1 は旧版が同梱の characters.local.json を自動保存したもの（古い天賦本・旧キー名を含む）なので破棄する
@@ -515,7 +515,11 @@ function keepChip(container,value){if(value==null)return;const b=[...container.q
 const ICON_HOSTS=["https://gi.yatta.moe/assets/UI/","https://enka.network/ui/"];
 const iconsOn=()=>localStorage.getItem(K.ICONS)!=="off";
 // 1つ目の配信サーバーで読めなければ次へ。全部だめなら画像を消す（キャラは頭文字が残る）
-function icFail(img){const i=+(img.dataset.i||0)+1;if(i<ICON_HOSTS.length){img.dataset.i=i;img.src=ICON_HOSTS[i]+img.dataset.f+".png";}else img.remove();}
+const ICON_CACHE="icons-v1";
+function icFail(img){
+  // 読み込みに失敗した画像はキャッシュに残さない（サービスワーカーは成否を判別できないため）
+  if(window.caches) caches.open(ICON_CACHE).then(c=>c.delete(img.currentSrc||img.src)).catch(()=>{});
+  const i=+(img.dataset.i||0)+1;if(i<ICON_HOSTS.length){img.dataset.i=i;img.src=ICON_HOSTS[i]+img.dataset.f+".png";}else img.remove();}
 const imgTag=(f,cls)=>f?`<img class="${cls||""}" src="${ICON_HOSTS[0]}${safe(f)}.png" data-f="${safe(f)}" alt="" loading="lazy" decoding="async" onerror="icFail(this)">`:"";
 const avatar=(c,size)=>iconsOn()?`<span class="av el-${safe(c.element)}" style="--s:${size||24}px" aria-hidden="true">${safe(String(c.name||"?").replace(/^旅人（(.)）$/,"$1").slice(0,1))}${imgTag(c.icon)}</span>`:"";
 const itemIcon=(name)=>{if(!iconsOn())return"";const f=(appData.itemIcons||{})[name];return f?imgTag(f,"ii"):"";};
@@ -634,7 +638,7 @@ function renderCharacters(){
   const today=gameDayKey();
 
   function list(){
-    const q=($("#searchInput").value||"").trim().toLowerCase();
+    const q=normKana(($("#searchInput").value||"").trim());
     const e=chipValue(ec)||"All", w=chipValue(wc)||"All", o=chipValue(oc)||"all";
     const out=$("#charList"); out.innerHTML="";
     const isOpen=(c)=>asArray(c.talentBooks).map(k=>seriesByKey.get(k)).filter(Boolean).some(s=>today==="Sun"||s.days.includes(today));
@@ -642,8 +646,10 @@ function renderCharacters(){
       .filter(c=>e==="All"||c.element===e)
       .filter(c=>w==="All"||c.weapon===w)
       .filter(c=>o==="all"||isOpen(c))
-      .filter(c=>!q||String(c.name).toLowerCase().includes(q)||String(c.key).includes(q))
-      .slice().reverse(); // 新しいキャラを上に
+      .slice().reverse()   // 新しいキャラを上に
+      .map(c=>[c,searchScore(c,q)]).filter(([,sc])=>sc>0)
+      .sort((x,y)=>y[1]-x[1])   // 検索中は一致度の高い順（同じ一致度なら新しい順のまま）
+      .map(([c])=>c);
     if(!arr.length){out.innerHTML='<div class="empty">該当キャラが見つかりません。</div>'; return;}
 
     for(const c of arr){
@@ -660,6 +666,43 @@ function renderCharacters(){
     }
   }
   list();
+}
+
+/* ===== あいまい検索 =====
+   ひらがな/カタカナ・全角/半角・大文字/小文字を区別せず、伸ばし棒「ー」・中黒・空白・小さい文字（ァ→ア）・
+   ヴ（ヴェ→べ）・ヂ/ヅ（→ジ/ズ）の違いを吸収。漢字名はデータの読み（kana）でも検索できる。 */
+function normKana(str){
+  let t=String(str||"").normalize("NFKC").toLowerCase();
+  t=t.replace(/[\u30a1-\u30f6]/g,ch=>String.fromCharCode(ch.charCodeAt(0)-0x60));   // カタカナ→ひらがな
+  t=t.replace(/ゔぁ/g,"ば").replace(/ゔぃ/g,"び").replace(/ゔぇ/g,"べ").replace(/ゔぉ/g,"ぼ").replace(/ゔ/g,"ぶ");
+  t=t.replace(/ぢ/g,"じ").replace(/づ/g,"ず");
+  t=t.replace(/[ぁぃぅぇぉっゃゅょゎ]/g,ch=>({"ぁ":"あ","ぃ":"い","ぅ":"う","ぇ":"え","ぉ":"お","っ":"つ","ゃ":"や","ゅ":"ゆ","ょ":"よ","ゎ":"わ"}[ch]));
+  t=t.replace(/[\s\-・･'’"「」（）()、。.,]/g,"");
+  // 伸ばす音の書き方の違いを吸収（りー/りい→り、しょう/しょー→しょ）：直前と同じ母音の「ー・あいうえお」と、お段の後の「う」を省く
+  let out="", prev="";
+  for(const ch of t){
+    const v=KANA_VOWEL[ch];
+    if(prev && (ch==="ー" || (v && v===ch && (v===prev || (ch==="う" && prev==="お"))))) continue;
+    out+=ch; prev=v||(ch==="ー"?prev:"");
+  }
+  return out;
+}
+// ひらがな → 母音（あいうえお）
+const KANA_VOWEL=(()=>{const m={};const rows={"あ":"あかさたなはまやらわがざだばぱ","い":"いきしちにひみりぎじぢびぴ","う":"うくすつぬふむゆるぐずづぶぷ","え":"えけせてねへめれげぜでべぺ","お":"おこそとのほもよろをごぞどぼぽ"};
+  for(const [v,chars] of Object.entries(rows)) for(const ch of chars) m[ch]=v; return m;})();
+const isSubseq=(q,h)=>{let i=0;for(const ch of h){if(ch===q[i])i++;if(i===q.length)return true;}return false;};
+// 0=一致なし、3=前方一致、2=部分一致、1=文字が順番どおり含まれる（3文字以上のとき）
+function searchScore(c,q){
+  if(!q) return 1;
+  const hays=[c.name,...String(c.kana||"").split(/\s+/)].map(normKana).filter(Boolean);
+  hays.push(String(c.key||"").toLowerCase());
+  let best=0;
+  for(const h of hays){
+    if(h.startsWith(q)) return 3;
+    if(h.includes(q)) best=Math.max(best,2);
+    else if(q.length>=3&&isSubseq(q,h)) best=Math.max(best,1);
+  }
+  return best;
 }
 
 /* ===== キャラ名（今日画面・キャラ画面）→ 必要素材シートを重ねて表示 ===== */
@@ -743,10 +786,29 @@ $("#todayTalent").addEventListener("click",(e)=>{ const b=e.target.closest("butt
 $("#charList").addEventListener("click",(e)=>{ const b=e.target.closest("button.card.char[data-char]"); if(b) openCharSheet(b.dataset.char); });
 
 /* ===== 画面: 情報 ===== */
+/* ===== アイコン画像のキャッシュ（sw.js が一度読んだ画像を保存し、次回は通信せずに表示） ===== */
+function registerIconCache(){
+  if(!("serviceWorker" in navigator)||!/^https?:$/.test(location.protocol)) return;
+  navigator.serviceWorker.register("./sw.js").catch(e=>console.warn("sw register failed:",e));
+}
+async function iconCacheCount(){ try{ if(!window.caches) return null; if(!(await caches.has(ICON_CACHE))) return 0; return (await (await caches.open(ICON_CACHE)).keys()).length; }catch{ return null; } }
+async function clearIconCache(){ try{ if(window.caches) await caches.delete(ICON_CACHE); }catch{} }
+async function showIconCacheInfo(){
+  const el=$("#iconCacheInfo"); if(!el) return;
+  const n=await iconCacheCount();
+  el.textContent=!iconsOn()?"アイコンを表示しない設定のため、画像は読み込みません。"
+    :n==null?"この環境では画像を保存できません（毎回読み込みます）。":`保存済みのアイコン：${n} 個（次回からは通信せずに表示）`;
+}
 function syncIconSeg(){const v=iconsOn()?"on":"off";document.querySelectorAll("#iconSeg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.icons===v)));}
-document.querySelectorAll("#iconSeg button").forEach(b=>b.onclick=()=>{try{localStorage.setItem(K.ICONS,b.dataset.icons);}catch{} syncIconSeg(); toast(`アイコン: ${b.textContent}`);});
-function renderAbout(){
+document.querySelectorAll("#iconSeg button").forEach(b=>b.onclick=async()=>{
+  try{localStorage.setItem(K.ICONS,b.dataset.icons);}catch{}
   syncIconSeg();
+  if(b.dataset.icons==="off"){ await clearIconCache(); toast("アイコン: 表示しない（保存した画像を削除しました）"); }
+  else toast("アイコン: 表示する");
+  showIconCacheInfo();
+});
+function renderAbout(){
+  syncIconSeg(); showIconCacheInfo();
   const d=appData, s=d.source||{};
   const ov=getOverrides();
   const r=(k,v)=>`<div class="row"><span>${k}</span><span>${v}</span></div>`;
@@ -801,6 +863,7 @@ $("#btnExport").onclick=()=>{
 
 /* ===== 起動 ===== */
 (async function init(){
+  registerIconCache();
   applyTheme(localStorage.getItem(K.THEME)||"auto",{save:false});
   setupFold();
   loadCached();               // まずキャッシュで即表示
