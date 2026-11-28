@@ -54,6 +54,21 @@ def build(raw, source_version):
     en_mats = {v["id"]: v for v in en["materials"].values()}
     domains = {v["id"]: v for v in ja["domains"].values()}
 
+    # ---- アイコン（画像ファイル名。例: UI_ItemIcon_104332。画像本体はアプリ側で配信サーバーから読む） ----
+    images = raw.get("image", {})
+    img_chars, img_mats, img_weapons = (images.get(k, {}) for k in ("characters", "materials", "weapons"))
+    mat_icon_by_id = {v["id"]: (img_mats.get(k) or {}).get("filename_icon") for k, v in ja["materials"].items()}
+    item_icons = {}  # 素材名 → ファイル名（アプリで使う素材だけ）
+
+    def reg(item):
+        icon = mat_icon_by_id.get(item["id"])
+        if icon:
+            item_icons[item["name"]] = icon
+        return item["name"]
+
+    def char_icon(key):
+        return (img_chars.get(key) or {}).get("filename_icon")
+
     def region_of(item):
         return domains.get(item.get("dropDomainId"), {}).get("regionName", "")
 
@@ -73,7 +88,8 @@ def build(raw, source_version):
                 "name": key_fn.name_ja(low, items),
                 "region": region_of(low),
                 "days": days_of(low),
-                "items": [x["name"] for x in items],
+                "items": [reg(x) for x in items],
+                "icon": mat_icon_by_id.get(items[-1]["id"]),
             })
             for x in items:
                 id2key[x["id"]] = key
@@ -118,7 +134,7 @@ def build(raw, source_version):
         if not c:
             return None
         c.sort(key=lambda x: x.get("rarity", 0))
-        return (c[-1] if highest else c[0])["name"]
+        return reg(c[-1] if highest else c[0])
 
     def talent_info(tal):
         costs = (tal or {}).get("costs", {})
@@ -136,7 +152,7 @@ def build(raw, source_version):
 
     def ascension_info(ch):
         items = collect((ch.get("costs") or {}).values())
-        local = [x["name"] for x in items if x.get("category") == "EXCHANGE" or "特産" in (x.get("typeText") or "")]
+        local = [reg(x) for x in items if x.get("category") == "EXCHANGE" or "特産" in (x.get("typeText") or "")]
         return {
             "gem": pick(items, TYPE_GEM),
             "boss": pick(items, TYPE_BOSS, rarity=4) or pick(items, TYPE_BOSS),
@@ -158,6 +174,7 @@ def build(raw, source_version):
             "rarity": ch.get("rarity"),
             "region": ch.get("region") or "",
             "version": char_ver.get(key, ""),
+            "icon": char_icon(key),
         }
         entry.update(talent_info(ja["talents"].get(key)))
         entry["ascension"] = ascension_info(ch)
@@ -177,6 +194,7 @@ def build(raw, source_version):
                 "rarity": 5,
                 "region": "",
                 "version": "",
+                "icon": char_icon("aether") or char_icon("lumine"),
             }
             entry.update(talent_info(tal))
             entry["ascension"] = ascension_info(traveler)
@@ -199,6 +217,7 @@ def build(raw, source_version):
             "rarity": w.get("rarity"),
             "weapon": WEAPON.get(w.get("weaponType"), ""),
             "series": sk,
+            "icon": (img_weapons.get(key) or {}).get("filename_icon"),
         })
     weapons.sort(key=lambda w: (-w["rarity"], w["key"]))
 
@@ -213,6 +232,7 @@ def build(raw, source_version):
         "weaponSeries": weapon_series,
         "characters": characters,
         "weapons": weapons,
+        "itemIcons": dict(sorted(item_icons.items())),
     }
 
 
