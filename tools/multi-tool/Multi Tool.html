@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multi Tool_R0.1</title>
+<style>
+:root{
+  --bg:#eef1f5; --panel:#fff; --text:#1d2430; --muted:#6a7687; --line:#d5dbe3;
+  --accent:#1f6feb; --head:#1c2330; --ok:#1a7f37; --ng:#cf222e;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI","Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif;font-size:14px}
+header{display:flex;align-items:center;gap:16px;background:var(--head);color:#e8edf5;padding:0 12px;height:44px}
+header h1{font-size:15px;margin:0;font-weight:600;white-space:nowrap}
+header h1 small{color:#8fa0b8;font-weight:400;margin-left:6px}
+nav.tabs{display:flex;gap:2px;height:100%}
+nav.tabs button{background:none;border:none;color:#b8c4d6;padding:0 14px;font-size:14px;cursor:pointer;border-bottom:3px solid transparent;height:100%}
+nav.tabs button:hover{color:#fff}
+nav.tabs button.on{color:#fff;border-bottom-color:#4ea1ff}
+header .sp{flex:1}
+header a{color:#8fb8ff;font-size:12px}
+main{height:calc(100% - 44px);overflow:auto}
+.panel{display:none;padding:14px;max-width:1500px;margin:0 auto}
+.panel.on{display:block}
+#tab-ex.on{display:flex;max-width:none;padding:0;height:100%}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.card h3{margin:0 0 10px;font-size:14px;border-left:4px solid var(--accent);padding-left:8px}
+.card h4{margin:12px 0 6px;font-size:13px;color:#334}
+.form{display:grid;grid-template-columns:auto 1fr auto;gap:6px 8px;align-items:center}
+.form label{color:#334;white-space:nowrap}
+.form .u{color:var(--muted);font-size:12px;white-space:nowrap}
+.form .full{grid-column:1/-1}
+input[type=number],input[type=text],select{font:inherit;padding:4px 6px;border:1px solid #c3ccd8;border-radius:4px;background:#fff;min-width:0}
+input[type=number]{width:100%;text-align:right}
+button{font:inherit;cursor:pointer}
+.btn{padding:5px 12px;border:1px solid #b9c3d0;background:#f6f8fa;border-radius:5px;color:#1d2430}
+.btn:hover{background:#eaeef2}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.pri:hover{filter:brightness(1.1)}
+.btn.on{background:#dbe9ff;border-color:#7aa7f0}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+table.res{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+table.res th,table.res td{border-bottom:1px solid #e4e8ee;padding:4px 6px;text-align:right;white-space:nowrap}
+table.res th{background:#f3f5f8;font-weight:600;color:#334;text-align:center}
+table.res td:first-child{text-align:left;color:#334}
+table.res tr.hl td{background:#fff7d6}
+.big{font-size:20px;font-weight:700;color:#0b3d91}
+.note{color:var(--muted);font-size:12px;line-height:1.6}
+.err{color:var(--ng);font-weight:600}
+canvas.chart{width:100%;display:block;background:#fff;border:1px solid var(--line);border-radius:4px}
+details>summary{cursor:pointer;color:#334;font-weight:600;margin:6px 0}
+.kbd{display:inline-block;border:1px solid #aab;border-bottom-width:2px;border-radius:3px;padding:0 4px;font-size:11px;background:#fafbfc;font-family:monospace}
+
+/* ===== 3D 建機 ===== */
+#ex-side{width:330px;flex:0 0 330px;overflow:auto;background:#f7f9fb;border-right:1px solid var(--line);padding:10px}
+#ex-side .card{padding:10px;margin-bottom:10px}
+#ex-side .form{grid-template-columns:1fr 90px auto}
+#ex-main{flex:1;position:relative;min-width:0;overflow:hidden;background:#cfd6df}
+#ex-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;outline:none}
+#ex-hud{position:absolute;left:8px;top:8px;background:rgba(255,255,255,.88);border:1px solid #c5cdd8;border-radius:6px;padding:6px 8px;font:12px/1.5 ui-monospace,Consolas,monospace;pointer-events:none;white-space:pre}
+#ex-views{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:4px}
+#ex-views .btn{background:rgba(255,255,255,.92);font-size:12px;padding:3px 8px}
+#ex-pads{position:absolute;left:0;right:0;bottom:8px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 10px;pointer-events:none}
+.pad{pointer-events:auto;display:grid;grid-template-columns:repeat(3,58px);grid-template-rows:repeat(3,42px);gap:3px;background:rgba(255,255,255,.55);padding:5px;border-radius:8px}
+.pad button,.crawl button{border:1px solid #8b97a8;background:rgba(255,255,255,.92);border-radius:5px;font-size:11px;line-height:1.15;padding:0;user-select:none;touch-action:none}
+.pad button.act,.crawl button.act{background:#ffd34d;border-color:#b58a00}
+.pad .ttl{grid-column:2;grid-row:2;display:flex;align-items:center;justify-content:center;font-size:11px;color:#334;font-weight:600;text-align:center}
+.crawl{pointer-events:auto;display:grid;grid-template-columns:repeat(2,64px);grid-template-rows:18px 40px 40px;gap:3px;background:rgba(255,255,255,.55);padding:5px;border-radius:8px}
+.crawl .ttl{grid-column:1/-1;text-align:center;font-size:11px;font-weight:600;color:#334}
+#ex-err{position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#900;font-weight:700;background:#fff}
+
+/* ===== FFT ===== */
+#ff-wave{height:120px;cursor:crosshair}
+#ff-spec{height:340px}
+#ff-gram{height:240px}
+.chartwrap{position:relative}
+.tip{position:absolute;pointer-events:none;background:rgba(20,26,36,.88);color:#fff;font:12px ui-monospace,Consolas,monospace;padding:3px 6px;border-radius:4px;display:none;white-space:nowrap}
+</style>
+</head>
+<body>
+<header>
+  <h1>Multi Tool<small>R0.1</small></h1>
+  <nav class="tabs" id="tabs">
+    <button data-tab="cyl">油圧シリンダ推力</button>
+    <button data-tab="eng">エンジン音 周波数</button>
+    <button data-tab="fft">FFT解析（試作）</button>
+    <button data-tab="ex">3D 油圧ショベル</button>
+  </nav>
+  <div class="sp"></div>
+  <a href="../../index.html">トップへ</a>
+</header>
+<main>
+
+<!-- ================= 油圧シリンダ ================= -->
+<section class="panel" id="tab-cyl">
+ <div class="cols">
+  <div class="card">
+   <h3>入力</h3>
+   <div class="form">
+    <label>チューブ内径 D</label><input id="cy-D" type="number" step="any" value="120" data-persist><span class="u">mm</span>
+    <label>ロッド外径 d</label><input id="cy-d" type="number" step="any" value="85" data-persist><span class="u">mm</span>
+    <label>圧力の単位</label>
+    <select id="cy-pu" data-persist><option value="MPa">MPa</option><option value="bar">bar</option><option value="kgf">kgf/cm²</option><option value="psi">psi</option></select><span></span>
+    <label>作動圧 P</label><input id="cy-P" type="number" step="any" value="34.3" data-persist><span class="u cy-unit">MPa</span>
+    <label>背圧 Pb</label><input id="cy-Pb" type="number" step="any" value="0" data-persist><span class="u cy-unit">MPa</span>
+    <label>効率 η</label><input id="cy-eta" type="number" step="any" value="100" data-persist><span class="u">%</span>
+    <label>シリンダ本数</label><input id="cy-n" type="number" step="1" min="1" value="1" data-persist><span class="u">本</span>
+   </div>
+   <h4>速度計算（任意）</h4>
+   <div class="form">
+    <label>供給流量 Q（合計）</label><input id="cy-Q" type="number" step="any" value="200" data-persist><span class="u">L/min</span>
+    <label>ストローク S</label><input id="cy-S" type="number" step="any" value="1200" data-persist><span class="u">mm</span>
+   </div>
+   <h4>逆算</h4>
+   <div class="form">
+    <label>必要推力 F</label><input id="cy-Ft" type="number" step="any" value="200" data-persist><span class="u">kN</span>
+   </div>
+   <p class="note">推力 = 圧力 × 受圧面積 × 効率 × 本数（背圧は反対側の面積に作用）。1 MPa × 1 mm² = 1 N。<br>tf は 1 tf = 9.80665 kN で換算。</p>
+  </div>
+  <div class="card">
+   <h3>結果</h3>
+   <div id="cy-msg"></div>
+   <table class="res" id="cy-out"></table>
+   <h4>圧力別 推力表</h4>
+   <table class="res" id="cy-ptab"></table>
+  </div>
+  <div class="card">
+   <h3>寸法イメージ</h3>
+   <svg id="cy-svg" viewBox="0 0 520 220" style="width:100%;background:#fff"></svg>
+  </div>
+ </div>
+</section>
+
+<!-- ================= エンジン音 ================= -->
+<section class="panel" id="tab-eng">
+ <div class="cols">
+  <div class="card">
+   <h3>エンジン諸元</h3>
+   <div class="form">
+    <label>サイクル</label>
+    <select id="eg-cycle" data-persist><option value="4">4 サイクル</option><option value="2">2 サイクル</option></select><span></span>
+    <label>気筒数</label><input id="eg-cyl" type="number" step="1" min="1" value="4" data-persist><span class="u">気筒</span>
+    <label>エンジン回転数</label><input id="eg-rpm" type="number" step="any" value="2000" data-persist><span class="u">rpm</span>
+    <div class="full"><input id="eg-rpmr" type="range" min="0" max="4000" step="10" value="2000" style="width:100%"></div>
+    <label>高調波の数</label><input id="eg-harm" type="number" step="1" min="1" max="10" value="4" data-persist><span class="u">次まで</span>
+   </div>
+   <h4>その他の回転体（ファン・ポンプ・ギヤなど）</h4>
+   <table class="res" id="eg-src"></table>
+   <div class="row" style="margin-top:6px"><button class="btn" id="eg-add">＋ 行を追加</button></div>
+   <p class="note">周波数 = エンジン回転[rpm] ÷ 60 × 速度比 × 枚数（羽根・歯・ピストン数）。<br>
+   爆発一次 = 回転1次 × 気筒数 ÷ 2（4サイクル）／× 気筒数（2サイクル）。等間隔爆発を前提。</p>
+  </div>
+  <div class="card">
+   <h3>結果 <span class="note" id="eg-sum"></span></h3>
+   <table class="res" id="eg-out"></table>
+   <div class="row" style="margin-top:8px">
+    <button class="btn" id="eg-tone">▶ 爆発一次の音を鳴らす</button>
+    <span class="note">（参考：音色は簡易合成）</span>
+   </div>
+   <h4>逆算（測定周波数 → 回転数）</h4>
+   <div class="form">
+    <label>測定周波数</label><input id="eg-fm" type="number" step="any" value="66.7" data-persist><span class="u">Hz</span>
+    <label>成分</label><select id="eg-fmsel"></select><span></span>
+   </div>
+   <div id="eg-rev" class="big" style="margin-top:6px"></div>
+  </div>
+  <div class="card" style="grid-column:1/-1">
+   <h3>回転数 − 周波数 線図（キャンベル線図）</h3>
+   <div class="row" style="margin-bottom:6px">
+    <label>回転範囲 <input id="eg-rmin" type="number" value="0" style="width:80px" data-persist> 〜 <input id="eg-rmax" type="number" value="3000" style="width:80px" data-persist> rpm</label>
+    <label>周波数上限 <input id="eg-fmax" type="number" value="0" style="width:80px" data-persist> Hz <span class="note">(0 = 自動)</span></label>
+   </div>
+   <div class="chartwrap"><canvas class="chart" id="eg-chart" style="height:380px"></canvas><div class="tip" id="eg-tip"></div></div>
+  </div>
+ </div>
+</section>
+
+<!-- ================= FFT ================= -->
+<section class="panel" id="tab-fft">
+ <div class="cols" style="grid-template-columns:330px 1fr">
+  <div class="card">
+   <h3>データ読込</h3>
+   <input type="file" id="ff-file" accept="audio/*,video/*,.wav,.mp3,.m4a,.mp4,.mov,.csv,.txt,.tsv">
+   <p class="note">音声・動画ファイル（音声トラック）または CSV/テキスト（振動データなど）。</p>
+   <div id="ff-csvopt" style="display:none">
+    <div class="form">
+     <label>データ列</label><select id="ff-col"></select><span></span>
+     <label>時間列</label><select id="ff-tcol"></select><span></span>
+     <label>サンプリング周波数</label><input id="ff-fs" type="number" step="any" value="1000" data-persist><span class="u">Hz</span>
+    </div>
+    <button class="btn" id="ff-csvapply" style="margin-top:6px">この設定で読込</button>
+   </div>
+   <div id="ff-info" class="note" style="margin-top:6px"></div>
+   <h4>解析設定</h4>
+   <div class="form">
+    <label>チャンネル</label><select id="ff-ch"></select><span></span>
+    <label>FFT点数</label><select id="ff-n" data-persist>
+      <option>1024</option><option>2048</option><option>4096</option><option selected>8192</option><option>16384</option><option>32768</option><option>65536</option></select><span></span>
+    <label>窓関数</label><select id="ff-win" data-persist><option value="hann">Hann</option><option value="hamming">Hamming</option><option value="flattop">Flat-top</option><option value="rect">矩形</option></select><span></span>
+    <label>区間 開始</label><input id="ff-t0" type="number" step="any" value="0"><span class="u">s</span>
+    <label>区間 終了</label><input id="ff-t1" type="number" step="any" value="0"><span class="u">s</span>
+    <label>表示上限</label><input id="ff-fmax" type="number" step="any" value="0" data-persist><span class="u">Hz (0=全域)</span>
+    <label>縦軸</label><select id="ff-y" data-persist><option value="db">dB</option><option value="lin">リニア</option></select><span></span>
+    <label>横軸</label><select id="ff-x" data-persist><option value="lin">リニア</option><option value="log">対数</option></select><span></span>
+   </div>
+   <div class="row" style="margin-top:6px">
+    <label><input type="checkbox" id="ff-eng" checked data-persist> エンジン音タブの計算周波数を重ねる</label>
+   </div>
+   <div class="row" style="margin-top:8px">
+    <button class="btn pri" id="ff-run">解析</button>
+    <button class="btn" id="ff-csv">スペクトルCSV保存</button>
+   </div>
+   <p class="note">波形をドラッグして区間を選択できます。音声はブラウザの再生用レートに変換されて読み込まれます。</p>
+  </div>
+  <div class="card">
+   <h3>波形 / スペクトル / スペクトログラム</h3>
+   <canvas class="chart" id="ff-wave"></canvas>
+   <div class="chartwrap" style="margin-top:8px"><canvas class="chart" id="ff-spec"></canvas><div class="tip" id="ff-tip"></div></div>
+   <div class="chartwrap" style="margin-top:8px"><canvas class="chart" id="ff-gram"></canvas><div class="tip" id="ff-tip2"></div></div>
+   <h4>ピーク（上位10）</h4>
+   <table class="res" id="ff-peaks"></table>
+  </div>
+ </div>
+</section>
+
+<!-- ================= 3D 油圧ショベル ================= -->
+<section class="panel" id="tab-ex">
+ <div id="ex-side">
+  <div class="card">
+   <h3>操作</h3>
+   <div class="note" style="line-height:1.7">
+    操作パターン：ISO（JIS）<br>
+    左レバー <span class="kbd">W</span>アーム出し <span class="kbd">S</span>アーム引き <span class="kbd">A</span>左旋回 <span class="kbd">D</span>右旋回<br>
+    右レバー <span class="kbd">↑</span>ブーム下げ <span class="kbd">↓</span>ブーム上げ <span class="kbd">←</span>バケット掘削 <span class="kbd">→</span>バケットダンプ<br>
+    走行 <span class="kbd">Q</span>/<span class="kbd">Z</span>左 前進/後進 <span class="kbd">E</span>/<span class="kbd">C</span>右 前進/後進<br>
+    マウス：左ドラッグ 回転／右ドラッグ・Shift+ドラッグ 移動／ホイール 拡大縮小／ダブルクリック 全体表示
+   </div>
+   <div class="form" style="margin-top:6px">
+    <label>操作速度</label><input id="ex-speed" type="number" step="0.1" min="0.1" value="1" data-persist><span class="u">倍</span>
+   </div>
+  </div>
+  <div class="card">
+   <h3>姿勢（数値指定）</h3>
+   <div class="form" id="ex-pose"></div>
+   <div class="row" style="margin-top:6px">
+    <button class="btn" id="ex-posereset">初期姿勢</button>
+    <button class="btn" id="ex-posrst">位置・向きをリセット</button>
+   </div>
+   <p class="note">ブーム角：フートピン→トップピンを結ぶ線の水平からの角度。アーム角・バケット角：一つ前のリンクの延長線からの相対角（＋がアーム出し／ダンプ側）。</p>
+  </div>
+  <div class="card">
+   <h3>表示・画像保存</h3>
+   <div class="form">
+    <label>表示モード</label>
+    <select id="ex-mode" data-persist>
+     <option value="color">カラー</option>
+     <option value="colorline">カラー＋輪郭線</option>
+     <option value="line">線画（白塗り）</option>
+     <option value="gray">線画（グレー塗り）</option>
+     <option value="black">黒塗り（シルエット）</option>
+     <option value="blackw">黒塗り＋白線</option>
+    </select><span></span>
+    <label>線幅</label><input id="ex-lw" type="number" step="0.25" min="0.5" max="4" value="1.25" data-persist><span class="u">px</span>
+    <label>背景</label>
+    <select id="ex-bg" data-persist><option value="sky">グレー</option><option value="white">白</option><option value="trans">透明（PNG）</option></select><span></span>
+    <label>投影</label>
+    <select id="ex-proj"><option value="persp">透視</option><option value="ortho">平行（正投影）</option></select><span></span>
+    <label class="full"><input type="checkbox" id="ex-grid" checked data-persist> 地面グリッド（1 m）</label>
+    <label class="full"><input type="checkbox" id="ex-follow" checked data-persist> カメラを機体に追従</label>
+    <label>保存倍率</label>
+    <select id="ex-scale" data-persist><option>1</option><option selected>2</option><option>3</option><option>4</option></select><span class="u">× 画面</span>
+   </div>
+   <div class="row" style="margin-top:6px"><button class="btn pri" id="ex-png">PNG 画像を保存</button></div>
+   <p class="note">真横・真上の図は右上の「左側面」「上面」などで平行投影に切替えて保存してください。</p>
+  </div>
+  <div class="card">
+   <h3>寸法（mm）</h3>
+   <div class="form" id="ex-dims"></div>
+   <div class="row" style="margin-top:8px">
+    <button class="btn pri" id="ex-apply">寸法を反映</button>
+    <button class="btn" id="ex-dimreset">初期値に戻す</button>
+   </div>
+   <div class="row" style="margin-top:6px">
+    <button class="btn" id="ex-export">設定をJSON保存</button>
+    <label class="btn" style="display:inline-block">JSON読込<input type="file" id="ex-import" accept=".json,application/json" style="display:none"></label>
+   </div>
+   <p class="note">寸法は入力後「寸法を反映」で 3D モデルを再生成します（ブラウザに自動保存）。初期値は 20t クラス相当のおおよその値です。</p>
+  </div>
+ </div>
+ <div id="ex-main">
+  <canvas id="ex-canvas" tabindex="0"></canvas>
+  <div id="ex-hud"></div>
+  <div id="ex-views">
+   <button class="btn" data-view="iso">斜視（透視）</button>
+   <button class="btn" data-view="left">左側面</button>
+   <button class="btn" data-view="right">右側面</button>
+   <button class="btn" data-view="front">正面</button>
+   <button class="btn" data-view="back">背面</button>
+   <button class="btn" data-view="top">上面</button>
+   <button class="btn" data-view="fit">全体表示</button>
+  </div>
+  <div id="ex-pads">
+   <div class="pad">
+    <button style="grid-column:2;grid-row:1" data-key="KeyW">W<br>アーム出し</button>
+    <button style="grid-column:1;grid-row:2" data-key="KeyA">A<br>左旋回</button>
+    <div class="ttl">左<br>レバー</div>
+    <button style="grid-column:3;grid-row:2" data-key="KeyD">D<br>右旋回</button>
+    <button style="grid-column:2;grid-row:3" data-key="KeyS">S<br>アーム引き</button>
+   </div>
+   <div class="crawl">
+    <div class="ttl">走行（左 / 右）</div>
+    <button data-key="KeyQ">Q<br>左 前進</button><button data-key="KeyE">E<br>右 前進</button>
+    <button data-key="KeyZ">Z<br>左 後進</button><button data-key="KeyC">C<br>右 後進</button>
+   </div>
+   <div class="pad">
+    <button style="grid-column:2;grid-row:1" data-key="ArrowUp">↑<br>ブーム下げ</button>
+    <button style="grid-column:1;grid-row:2" data-key="ArrowLeft">←<br>バケット掘削</button>
+    <div class="ttl">右<br>レバー</div>
+    <button style="grid-column:3;grid-row:2" data-key="ArrowRight">→<br>バケットダンプ</button>
+    <button style="grid-column:2;grid-row:3" data-key="ArrowDown">↓<br>ブーム上げ</button>
+   </div>
+  </div>
+  <div id="ex-err">WebGL2 が利用できないため 3D 表示できません。</div>
+ </div>
+</section>
+
+</main>
+
+<script>
+'use strict';
+/* ==================================================================
+   共通
+   ================================================================== */
+const $ = id => document.getElementById(id);
+const num = id => { const v = parseFloat($(id).value); return isFinite(v) ? v : NaN; };
+const LS = 'multitool.v1.';
+function lsGet(k){ try{ return localStorage.getItem(LS+k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(LS+k,v); }catch(e){} }
+function fmt(v,d=2){
+  if(!isFinite(v)) return '—';
+  return v.toLocaleString('ja-JP',{minimumFractionDigits:d,maximumFractionDigits:d});
+}
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function download(name, blobOrUrl){
+  const a=document.createElement('a');
+  const url = typeof blobOrUrl==='string' ? blobOrUrl : URL.createObjectURL(blobOrUrl);
+  a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  if(typeof blobOrUrl!=='string') setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+function stamp(){ const d=new Date(),p=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds()); }
+
+// 入力値の保存・復元
+document.querySelectorAll('[data-persist]').forEach(el=>{
+  const k='in.'+el.id, s=lsGet(k);
+  if(s!==null){ if(el.type==='checkbox') el.checked = s==='1'; else el.value = s; }
+  const save=()=>lsSet(k, el.type==='checkbox' ? (el.checked?'1':'0') : el.value);
+  el.addEventListener('change',save); el.addEventListener('input',save);
+});
+
+// キャンバスを CSS サイズ × devicePixelRatio に合わせる
+function fitCanvas(c){
+  const dpr=window.devicePixelRatio||1, r=c.getBoundingClientRect();
+  const w=Math.max(10,Math.round(r.width)), h=Math.max(10,Math.round(r.height));
+  if(c.width!==Math.round(w*dpr)||c.height!==Math.round(h*dpr)){ c.width=Math.round(w*dpr); c.height=Math.round(h*dpr); }
+  const ctx=c.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx,w,h};
+}
+function niceStep(range, n){
+  const raw=range/Math.max(1,n), p=Math.pow(10,Math.floor(Math.log10(raw))), m=raw/p;
+  return (m<1.5?1:m<3?2:m<7?5:10)*p;
+}
+
+// タブ
+const tabHooks={};
+let currentTab='';
+function showTab(t){
+  currentTab=t;
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='tab-'+t));
+  lsSet('tab',t);
+  if(tabHooks[t]) tabHooks[t]();
+}
+document.querySelectorAll('#tabs button').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
+window.addEventListener('resize',()=>{ if(tabHooks[currentTab]) tabHooks[currentTab](); });
+
+/* ==================================================================
+   油圧シリンダ推力
+   ================================================================== */
+const PU = { MPa:{k:1,l:'MPa',d:2}, bar:{k:0.1,l:'bar',d:1}, kgf:{k:0.0980665,l:'kgf/cm²',d:1}, psi:{k:0.00689476,l:'psi',d:0} };
+const G = 9.80665;
+function forceCells(N){ return `<td>${fmt(N/1000,2)}</td><td>${fmt(N/1000/G,3)}</td><td>${fmt(N/G,0)}</td>`; }
+function cylCalc(){
+  const pu=PU[$('cy-pu').value]||PU.MPa;
+  document.querySelectorAll('.cy-unit').forEach(e=>e.textContent=pu.l);
+  const D=num('cy-D'), d=num('cy-d'), n=Math.max(1,Math.round(num('cy-n')||1));
+  const eta=(isFinite(num('cy-eta'))?num('cy-eta'):100)/100;
+  const P=num('cy-P')*pu.k, Pb=(num('cy-Pb')||0)*pu.k;
+  const Q=num('cy-Q'), S=num('cy-S'), Ft=num('cy-Ft');
+  const msg=$('cy-msg');
+  if(!(D>0)||!(d>=0)||!(P>=0)){ msg.innerHTML='<p class="err">内径・ロッド径・圧力を入力してください</p>'; $('cy-out').innerHTML=''; $('cy-ptab').innerHTML=''; return; }
+  if(d>=D){ msg.innerHTML='<p class="err">ロッド外径はチューブ内径より小さくしてください</p>'; $('cy-out').innerHTML=''; $('cy-ptab').innerHTML=''; return; }
+  msg.innerHTML='';
+  const A1=Math.PI/4*D*D, A2=Math.PI/4*(D*D-d*d), Ar=Math.PI/4*d*d;
+  const Fpush=(P*A1-Pb*A2)*eta*n, Fpull=(P*A2-Pb*A1)*eta*n, Freg=P*Ar*eta*n;
+  let h='';
+  h+=`<tr><th>項目</th><th colspan="3">値</th></tr>`;
+  h+=`<tr><td>ヘッド側受圧面積 A1</td><td colspan="3">${fmt(A1,0)} mm²（${fmt(A1/100,2)} cm²）</td></tr>`;
+  h+=`<tr><td>ロッド側受圧面積 A2</td><td colspan="3">${fmt(A2,0)} mm²（${fmt(A2/100,2)} cm²）</td></tr>`;
+  h+=`<tr><td>面積比 A1/A2</td><td colspan="3">${fmt(A1/A2,3)}</td></tr>`;
+  h+=`<tr><th>推力${n>1?`（${n}本合計）`:''}</th><th>kN</th><th>tf</th><th>kgf</th></tr>`;
+  h+=`<tr class="hl"><td>押し力（伸び）</td>${forceCells(Fpush)}</tr>`;
+  h+=`<tr class="hl"><td>引き力（縮み）</td>${forceCells(Fpull)}</tr>`;
+  h+=`<tr><td>差動回路時の押し力</td>${forceCells(Freg)}</tr>`;
+  if(Q>0){
+    const q=Q*1e6/60/n; // mm³/s per cylinder
+    const v1=q/A1, v2=q/A2, v3=q/Ar;
+    h+=`<tr><th>速度（流量 ${fmt(Q,1)} L/min）</th><th>mm/s</th><th>m/min</th><th>${S>0?'全ストローク s':''}</th></tr>`;
+    h+=`<tr><td>伸び速度</td><td>${fmt(v1,1)}</td><td>${fmt(v1*0.06,2)}</td><td>${S>0?fmt(S/v1,2):''}</td></tr>`;
+    h+=`<tr><td>縮み速度</td><td>${fmt(v2,1)}</td><td>${fmt(v2*0.06,2)}</td><td>${S>0?fmt(S/v2,2):''}</td></tr>`;
+    h+=`<tr><td>差動回路時の伸び速度</td><td>${fmt(v3,1)}</td><td>${fmt(v3*0.06,2)}</td><td>${S>0?fmt(S/v3,2):''}</td></tr>`;
+    h+=`<tr><td>伸び時の戻り流量</td><td colspan="3">${fmt(Q*A2/A1,1)} L/min</td></tr>`;
+    h+=`<tr><td>縮み時の戻り流量</td><td colspan="3">${fmt(Q*A1/A2,1)} L/min</td></tr>`;
+    if(S>0) h+=`<tr><td>シリンダ容積（1本・ヘッド側）</td><td colspan="3">${fmt(A1*S/1e6,2)} L</td></tr>`;
+  }
+  if(Ft>0){
+    const F=Ft*1000/(eta*n);
+    const pPush=(F+Pb*A2)/A1, pPull=(F+Pb*A1)/A2;
+    h+=`<tr><th>必要圧力（${fmt(Ft,1)} kN）</th><th>MPa</th><th colspan="2">${pu.l}</th></tr>`;
+    h+=`<tr><td>押しで出す場合</td><td>${fmt(pPush,2)}</td><td colspan="2">${fmt(pPush/pu.k,pu.d)}</td></tr>`;
+    h+=`<tr><td>引きで出す場合</td><td>${fmt(pPull,2)}</td><td colspan="2">${fmt(pPull/pu.k,pu.d)}</td></tr>`;
+  }
+  $('cy-out').innerHTML=h;
+  // 圧力別表
+  let t=`<tr><th>圧力 MPa</th><th>押し kN</th><th>押し tf</th><th>引き kN</th><th>引き tf</th></tr>`;
+  const ps=[]; for(let p=5;p<=40;p+=5) ps.push(p);
+  if(P>0 && !ps.some(p=>Math.abs(p-P)<1e-6)) ps.push(P);
+  ps.sort((a,b)=>a-b);
+  ps.forEach(p=>{
+    const fp=(p*A1-Pb*A2)*eta*n, fl=(p*A2-Pb*A1)*eta*n;
+    t+=`<tr${Math.abs(p-P)<1e-6?' class="hl"':''}><td>${fmt(p,2)}</td><td>${fmt(fp/1000,1)}</td><td>${fmt(fp/1000/G,2)}</td><td>${fmt(fl/1000,1)}</td><td>${fmt(fl/1000/G,2)}</td></tr>`;
+  });
+  $('cy-ptab').innerHTML=t;
+  cylSvg(D,d);
+}
+function cylSvg(D,d){
+  const W=520,H=220, cy=105;
+  const s=Math.min(140/D, 1.6); const hD=D*s/2, hd=d*s/2;
+  const x0=40, x1=300, rodEnd=470;
+  let g='';
+  g+=`<rect x="${x0}" y="${cy-hD-10}" width="${x1-x0}" height="${2*hD+20}" fill="#e9eef5" stroke="#222"/>`;
+  g+=`<rect x="${x0+6}" y="${cy-hD}" width="${x1-x0-12}" height="${2*hD}" fill="#fff" stroke="#888" stroke-dasharray="4 3"/>`;
+  g+=`<rect x="${x0+120}" y="${cy-hD}" width="22" height="${2*hD}" fill="#9aa7b8" stroke="#222"/>`; // piston
+  g+=`<rect x="${x0+142}" y="${cy-hd}" width="${rodEnd-x0-142}" height="${2*hd}" fill="#d0d5dc" stroke="#222"/>`;
+  g+=`<text x="${x0+60}" y="${cy+4}" font-size="12" text-anchor="middle">ヘッド側 A1</text>`;
+  g+=`<text x="${x0+215}" y="${cy+hD+28}" font-size="12" text-anchor="middle">ロッド側 A2（環状部）</text>`;
+  // 寸法線
+  const dx=x0-18;
+  g+=`<line x1="${dx}" y1="${cy-hD}" x2="${dx}" y2="${cy+hD}" stroke="#c00" marker-start="url(#ar)" marker-end="url(#ar)"/>`;
+  g+=`<text x="${dx-4}" y="${cy}" font-size="12" fill="#c00" text-anchor="end" transform="rotate(-90 ${dx-4} ${cy})">ΦD ${fmt(D,0)}</text>`;
+  const rx=rodEnd-30;
+  g+=`<line x1="${rx}" y1="${cy-hd}" x2="${rx}" y2="${cy+hd}" stroke="#06c" marker-start="url(#ar2)" marker-end="url(#ar2)"/>`;
+  g+=`<text x="${rx+8}" y="${cy+hd+16}" font-size="12" fill="#06c">Φd ${fmt(d,0)}</text>`;
+  $('cy-svg').innerHTML=`<defs><marker id="ar" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#c00"/></marker>
+  <marker id="ar2" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#06c"/></marker></defs>`+g;
+}
+['cy-D','cy-d','cy-pu','cy-P','cy-Pb','cy-eta','cy-n','cy-Q','cy-S','cy-Ft'].forEach(id=>{
+  $(id).addEventListener('input',cylCalc); $(id).addEventListener('change',cylCalc);
+});
+tabHooks.cyl=cylCalc;
+
+/* ==================================================================
+   エンジン音 周波数
+   ================================================================== */
+const ENG={ src:null, tone:null };
+try{ ENG.src=JSON.parse(lsGet('eng.src')||'null'); }catch(e){}
+if(!Array.isArray(ENG.src)) ENG.src=[
+  {on:false,name:'冷却ファン',ratio:1.0,count:7},
+  {on:false,name:'油圧ポンプ',ratio:1.0,count:9},
+];
+function saveSrc(){ lsSet('eng.src',JSON.stringify(ENG.src)); }
+function renderSrc(){
+  let h=`<tr><th>使用</th><th>名称</th><th>速度比</th><th>枚数等</th><th></th></tr>`;
+  ENG.src.forEach((s,i)=>{
+    h+=`<tr><td style="text-align:center"><input type="checkbox" data-i="${i}" data-f="on" ${s.on?'checked':''}></td>
+    <td><input type="text" data-i="${i}" data-f="name" value="${esc(s.name)}" style="width:100%"></td>
+    <td><input type="number" step="any" data-i="${i}" data-f="ratio" value="${s.ratio}" style="width:70px"></td>
+    <td><input type="number" step="1" data-i="${i}" data-f="count" value="${s.count}" style="width:60px"></td>
+    <td><button class="btn" data-del="${i}" title="削除">×</button></td></tr>`;
+  });
+  $('eg-src').innerHTML=h;
+}
+$('eg-src').addEventListener('input',e=>{
+  const el=e.target, i=+el.dataset.i, f=el.dataset.f; if(!f) return;
+  ENG.src[i][f] = f==='on' ? el.checked : f==='name' ? el.value : parseFloat(el.value)||0;
+  saveSrc(); engCalc();
+});
+$('eg-src').addEventListener('click',e=>{
+  const d=e.target.dataset.del; if(d===undefined) return;
+  ENG.src.splice(+d,1); saveSrc(); renderSrc(); engCalc();
+});
+$('eg-add').addEventListener('click',()=>{ ENG.src.push({on:true,name:'ギヤかみ合い',ratio:1,count:20}); saveSrc(); renderSrc(); engCalc(); });
+
+function engOrders(){
+  const cyc=+$('eg-cycle').value, z=Math.max(1,Math.round(num('eg-cyl')||1));
+  const H=Math.min(10,Math.max(1,Math.round(num('eg-harm')||1)));
+  const fire = cyc===4 ? z/2 : z;
+  const L=[];
+  if(cyc===4) L.push({name:'0.5次（1気筒の燃焼周期）',order:0.5,c:'#999'});
+  L.push({name:'回転1次',order:1,c:'#555'});
+  L.push({name:'爆発一次',order:fire,c:'#d1242f',main:true});
+  for(let k=2;k<=H;k++) L.push({name:`爆発一次 ×${k}`,order:fire*k,c:'#e8737a'});
+  const cols=['#1f6feb','#1a7f37','#8250df','#bf8700','#0598a8','#bc4c00'];
+  ENG.src.forEach((s,i)=>{ if(!s.on) return; const o=(s.ratio||0)*(s.count||0); if(!(o>0)) return;
+    L.push({name:`${s.name}`,order:o,c:cols[i%cols.length]});
+    L.push({name:`${s.name} ×2`,order:2*o,c:cols[i%cols.length],dash:true});
+  });
+  return L;
+}
+function noteName(f){
+  if(!(f>0)) return '';
+  const n=12*Math.log2(f/440)+69, r=Math.round(n), c=Math.round((n-r)*100);
+  const nm=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  return nm[(r%12+12)%12]+(Math.floor(r/12)-1)+' '+(c>=0?'+':'')+c+'¢';
+}
+// FFT タブから参照
+function engineLines(){ const rpm=num('eg-rpm')||0; return engOrders().map(o=>({...o,f:o.order*rpm/60})); }
+
+function engCalc(){
+  const rpm=num('eg-rpm');
+  if(isFinite(rpm)){
+    const r=$('eg-rpmr'); r.max=Math.max(+r.max, Math.ceil(rpm/500)*500, num('eg-rmax')||0); r.value=rpm;
+  }
+  const L=engOrders(), f1=(rpm||0)/60;
+  $('eg-sum').textContent=`（${fmt(rpm,0)} rpm = 回転 ${fmt(f1,2)} Hz）`;
+  let h=`<tr><th>成分</th><th>次数</th><th>周波数 Hz</th><th>周期 ms</th><th>音名</th></tr>`;
+  L.forEach(o=>{ const f=o.order*f1;
+    h+=`<tr${o.main?' class="hl"':''}><td><span style="color:${o.c}">■</span> ${esc(o.name)}</td><td>${fmt(o.order,o.order%1?2:0)}</td><td>${fmt(f,2)}</td><td>${f>0?fmt(1000/f,2):'—'}</td><td>${noteName(f)}</td></tr>`;
+  });
+  $('eg-out').innerHTML=h;
+  // 逆算の選択肢
+  const sel=$('eg-fmsel'), prev=sel.value || lsGet('eng.fmsel') || '爆発一次';
+  sel.innerHTML=L.map(o=>`<option value="${esc(o.name)}">${esc(o.name)}（${fmt(o.order,o.order%1?2:0)}次）</option>`).join('');
+  if(L.some(o=>o.name===prev)) sel.value=prev;
+  engRev();
+  if(ENG.tone) ENG.tone.osc.frequency.setTargetAtTime(Math.max(1,L.find(o=>o.main).order*f1), ENG.tone.ctx.currentTime, 0.03);
+  engChart();
+}
+function engRev(){
+  const L=engOrders(), o=L.find(x=>x.name===$('eg-fmsel').value), f=num('eg-fm');
+  $('eg-rev').textContent = (o&&f>0) ? `≒ ${fmt(f*60/o.order,0)} rpm` : '';
+}
+let engHover=null;
+function engChart(){
+  const c=$('eg-chart'); if(!c.offsetParent) return;
+  const {ctx,w,h}=fitCanvas(c);
+  const rmin=Math.max(0,num('eg-rmin')||0), rmax=Math.max(rmin+10,num('eg-rmax')||3000);
+  const L=engOrders(), rpm=num('eg-rpm')||0;
+  let fmax=num('eg-fmax');
+  if(!(fmax>0)) fmax=Math.max(...L.map(o=>o.order))*rmax/60*1.05 || 100;
+  const m={l:58,r:150,t:14,b:36}, pw=w-m.l-m.r, ph=h-m.t-m.b;
+  const X=r=>m.l+(r-rmin)/(rmax-rmin)*pw, Y=f=>m.t+ph-f/fmax*ph;
+  ctx.clearRect(0,0,w,h); ctx.font='11px system-ui,sans-serif';
+  // grid
+  ctx.strokeStyle='#e6e9ee'; ctx.fillStyle='#556'; ctx.lineWidth=1;
+  const sx=niceStep(rmax-rmin,10), sy=niceStep(fmax,8);
+  ctx.textAlign='center';
+  for(let r=Math.ceil(rmin/sx)*sx;r<=rmax+1e-9;r+=sx){ ctx.beginPath(); ctx.moveTo(X(r),m.t); ctx.lineTo(X(r),m.t+ph); ctx.stroke(); ctx.fillText(fmt(r,0),X(r),m.t+ph+14); }
+  ctx.textAlign='right';
+  for(let f=0;f<=fmax+1e-9;f+=sy){ ctx.beginPath(); ctx.moveTo(m.l,Y(f)); ctx.lineTo(m.l+pw,Y(f)); ctx.stroke(); ctx.fillText(fmt(f,sy<1?1:0),m.l-5,Y(f)+4); }
+  ctx.strokeStyle='#889'; ctx.strokeRect(m.l,m.t,pw,ph);
+  ctx.fillStyle='#334'; ctx.textAlign='center'; ctx.fillText('エンジン回転数 [rpm]',m.l+pw/2,h-4);
+  ctx.save(); ctx.translate(13,m.t+ph/2); ctx.rotate(-Math.PI/2); ctx.fillText('周波数 [Hz]',0,0); ctx.restore();
+  ctx.save(); ctx.beginPath(); ctx.rect(m.l,m.t,pw,ph); ctx.clip();
+  L.forEach(o=>{
+    ctx.strokeStyle=o.c; ctx.lineWidth=o.main?2.5:1.5; ctx.setLineDash(o.dash?[6,4]:[]);
+    ctx.beginPath(); ctx.moveTo(X(rmin),Y(o.order*rmin/60)); ctx.lineTo(X(rmax),Y(o.order*rmax/60)); ctx.stroke();
+  });
+  ctx.setLineDash([]);
+  if(rpm>=rmin&&rpm<=rmax){
+    ctx.strokeStyle='#000'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(X(rpm),m.t); ctx.lineTo(X(rpm),m.t+ph); ctx.stroke(); ctx.setLineDash([]);
+    L.forEach(o=>{ const f=o.order*rpm/60; if(f>fmax) return; ctx.fillStyle=o.c; ctx.beginPath(); ctx.arc(X(rpm),Y(f),3.5,0,7); ctx.fill(); });
+  }
+  if(engHover){ ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.beginPath(); ctx.moveTo(engHover.x,m.t); ctx.lineTo(engHover.x,m.t+ph); ctx.moveTo(m.l,engHover.y); ctx.lineTo(m.l+pw,engHover.y); ctx.stroke(); }
+  ctx.restore();
+  // 凡例（右）
+  ctx.textAlign='left'; ctx.font='11px system-ui,sans-serif';
+  L.forEach((o,i)=>{ const y=m.t+8+i*15; if(y>h-6) return;
+    ctx.strokeStyle=o.c; ctx.lineWidth=o.main?2.5:1.5; ctx.setLineDash(o.dash?[6,4]:[]);
+    ctx.beginPath(); ctx.moveTo(m.l+pw+8,y); ctx.lineTo(m.l+pw+26,y); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#223'; ctx.fillText(o.name.length>12?o.name.slice(0,12)+'…':o.name, m.l+pw+30, y+4);
+  });
+  engChart.map={m,pw,ph,rmin,rmax,fmax,L};
+}
+$('eg-chart').addEventListener('mousemove',e=>{
+  const mp=engChart.map; if(!mp) return;
+  const r=e.currentTarget.getBoundingClientRect(), x=e.clientX-r.left, y=e.clientY-r.top, {m,pw,ph}=mp;
+  const tip=$('eg-tip');
+  if(x<m.l||x>m.l+pw||y<m.t||y>m.t+ph){ tip.style.display='none'; engHover=null; engChart(); return; }
+  const rpm=mp.rmin+(x-m.l)/pw*(mp.rmax-mp.rmin), f=(m.t+ph-y)/ph*mp.fmax;
+  let best=null,bd=1e9; mp.L.forEach(o=>{ const d=Math.abs(o.order*rpm/60-f); if(d<bd){bd=d;best=o;} });
+  engHover={x,y};
+  tip.innerHTML=`${fmt(rpm,0)} rpm / ${fmt(f,1)} Hz<br>近い線: ${esc(best.name)} = ${fmt(best.order*rpm/60,1)} Hz`;
+  tip.style.display='block'; tip.style.left=Math.min(x+12,r.width-200)+'px'; tip.style.top=(y+12)+'px';
+  engChart();
+});
+$('eg-chart').addEventListener('mouseleave',()=>{ $('eg-tip').style.display='none'; engHover=null; engChart(); });
+$('eg-chart').addEventListener('click',e=>{
+  const mp=engChart.map; if(!mp) return;
+  const r=e.currentTarget.getBoundingClientRect(), x=e.clientX-r.left;
+  if(x<mp.m.l||x>mp.m.l+mp.pw) return;
+  const rpm=Math.round(mp.rmin+(x-mp.m.l)/mp.pw*(mp.rmax-mp.rmin));
+  $('eg-rpm').value=rpm; lsSet('in.eg-rpm',rpm); engCalc();
+});
+$('eg-rpmr').addEventListener('input',()=>{ $('eg-rpm').value=$('eg-rpmr').value; lsSet('in.eg-rpm',$('eg-rpm').value); engCalc(); });
+['eg-cycle','eg-cyl','eg-rpm','eg-harm','eg-rmin','eg-rmax','eg-fmax'].forEach(id=>{ $(id).addEventListener('input',engCalc); $(id).addEventListener('change',engCalc); });
+$('eg-fm').addEventListener('input',engRev);
+$('eg-fmsel').addEventListener('change',()=>{ lsSet('eng.fmsel',$('eg-fmsel').value); engRev(); });
+$('eg-tone').addEventListener('click',()=>{
+  if(ENG.tone){ ENG.tone.ctx.close(); ENG.tone=null; $('eg-tone').textContent='▶ 爆発一次の音を鳴らす'; return; }
+  const ctx=new (window.AudioContext||window.webkitAudioContext)();
+  const osc=ctx.createOscillator(), lp=ctx.createBiquadFilter(), g=ctx.createGain();
+  osc.type='sawtooth'; lp.type='lowpass'; lp.frequency.value=900; g.gain.value=0.12;
+  const f=engOrders().find(o=>o.main).order*(num('eg-rpm')||0)/60;
+  osc.frequency.value=Math.max(1,f);
+  osc.connect(lp).connect(g).connect(ctx.destination); osc.start();
+  ENG.tone={ctx,osc}; $('eg-tone').textContent='■ 停止';
+});
+renderSrc();
+tabHooks.eng=engCalc;
+</script>
+
+<script>
+'use strict';
+/* ==================================================================
+   FFT 解析（試作）
+   ================================================================== */
+const FF={ data:null, csv:null, spec:null, gram:null, drag:null };
+
+function fftInPlace(re,im){
+  const n=re.length;
+  for(let i=1,j=0;i<n;i++){
+    let bit=n>>1; for(;j&bit;bit>>=1) j^=bit; j^=bit;
+    if(i<j){ let t=re[i];re[i]=re[j];re[j]=t; t=im[i];im[i]=im[j];im[j]=t; }
+  }
+  for(let len=2;len<=n;len<<=1){
+    const ang=-2*Math.PI/len, wr=Math.cos(ang), wi=Math.sin(ang), h=len>>1;
+    for(let i=0;i<n;i+=len){
+      let cr=1,ci=0;
+      for(let k=0;k<h;k++){
+        const a=i+k,b=a+h;
+        const tr=re[b]*cr-im[b]*ci, ti=re[b]*ci+im[b]*cr;
+        re[b]=re[a]-tr; im[b]=im[a]-ti; re[a]+=tr; im[a]+=ti;
+        const nr=cr*wr-ci*wi; ci=cr*wi+ci*wr; cr=nr;
+      }
+    }
+  }
+}
+function makeWin(type,N){
+  const w=new Float64Array(N), T=2*Math.PI/(N-1);
+  for(let i=0;i<N;i++){
+    const x=i*T;
+    w[i]= type==='rect'?1 : type==='hamming'?0.54-0.46*Math.cos(x)
+      : type==='flattop'?0.21557895-0.41663158*Math.cos(x)+0.277263158*Math.cos(2*x)-0.083578947*Math.cos(3*x)+0.006947368*Math.cos(4*x)
+      : 0.5-0.5*Math.cos(x);
+  }
+  return w;
+}
+const pow2floor=n=>Math.pow(2,Math.floor(Math.log2(n)));
+
+$('ff-file').addEventListener('change',async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  $('ff-info').textContent='読込中…';
+  try{
+    if(/\.(csv|txt|tsv)$/i.test(f.name) || /^text\//.test(f.type)){
+      parseCsv(await f.text(), f.name);
+    }else{
+      const buf=await f.arrayBuffer();
+      const AC=window.AudioContext||window.webkitAudioContext, ctx=new AC();
+      try{
+        const ab=await ctx.decodeAudioData(buf);
+        const chs=[],names=[];
+        for(let c=0;c<ab.numberOfChannels;c++){ chs.push(ab.getChannelData(c)); names.push(ab.numberOfChannels===2?(c?'R':'L'):'ch'+(c+1)); }
+        if(chs.length>1){ const m=new Float32Array(chs[0].length); chs.forEach(c=>{for(let i=0;i<m.length;i++) m[i]+=c[i]/chs.length;}); chs.unshift(m); names.unshift('全ch平均'); }
+        $('ff-csvopt').style.display='none';
+        setData({chs,names,fs:ab.sampleRate,name:f.name,unit:'FS'});
+      }finally{ ctx.close(); }
+    }
+  }catch(err){ $('ff-info').innerHTML='<span class="err">読込に失敗しました：'+esc(err.message||err)+'</span>'; }
+});
+function parseCsv(txt,name){
+  const lines=txt.split(/\r?\n/); let head=null; const rows=[];
+  for(const ln of lines){
+    const s=ln.trim(); if(!s||s[0]==='#') continue;
+    const tk=s.split(/[,\t;]|\s+/).filter(t=>t!=='');
+    const nums=tk.map(Number);
+    if(nums.every(v=>isFinite(v))) rows.push(nums);
+    else if(!rows.length) head=tk;
+  }
+  if(!rows.length) throw new Error('数値データが見つかりません');
+  const nc=Math.max(...rows.slice(0,50).map(r=>r.length));
+  const cols=[]; for(let c=0;c<nc;c++){ const a=new Float64Array(rows.length); rows.forEach((r,i)=>a[i]=r[c]??0); cols.push(a); }
+  const names=cols.map((_,c)=>(head&&head[c])?head[c]:'列'+(c+1));
+  FF.csv={cols,names,name};
+  const opt=names.map((n,i)=>`<option value="${i}">${esc(n)}</option>`).join('');
+  $('ff-col').innerHTML=opt; $('ff-tcol').innerHTML='<option value="-1">なし（サンプリング周波数を使用）</option>'+opt;
+  // 1列目が単調増加なら時間列とみなす
+  const c0=cols[0]; let mono=nc>1 && c0.length>2; for(let i=1;i<Math.min(c0.length,1000)&&mono;i++) if(!(c0[i]>c0[i-1])) mono=false;
+  $('ff-tcol').value=mono?'0':'-1'; $('ff-col').value=String(mono?1:0);
+  $('ff-csvopt').style.display='';
+  applyCsv();
+}
+function applyCsv(){
+  const C=FF.csv; if(!C) return;
+  const ci=+$('ff-col').value, ti=+$('ff-tcol').value;
+  let fs=num('ff-fs');
+  if(ti>=0){ const t=C.cols[ti], n=t.length; if(n>1&&t[n-1]>t[0]){ fs=(n-1)/(t[n-1]-t[0]); $('ff-fs').value=+fs.toPrecision(8); } }
+  if(!(fs>0)){ $('ff-info').innerHTML='<span class="err">サンプリング周波数を入力してください</span>'; return; }
+  setData({chs:[Float32Array.from(C.cols[ci])],names:[C.names[ci]],fs,name:C.name,unit:''});
+}
+$('ff-csvapply').addEventListener('click',applyCsv);
+
+function setData(d){
+  d.n=d.chs[0].length; d.dur=d.n/d.fs; FF.data=d;
+  $('ff-ch').innerHTML=d.names.map((n,i)=>`<option value="${i}">${esc(n)}</option>`).join('');
+  $('ff-t0').value=0; $('ff-t1').value=+d.dur.toFixed(4);
+  $('ff-info').textContent=`${d.name}：${fmt(d.dur,3)} s、${fmt(d.fs,d.fs%1?3:0)} Hz、${d.n.toLocaleString()} 点、${d.names.length}ch`;
+  drawWave(); analyze();
+}
+function ffSel(){ const d=FF.data; let t0=num('ff-t0')||0, t1=num('ff-t1'); if(!(t1>t0)) t1=d.dur; t0=Math.max(0,Math.min(t0,d.dur)); t1=Math.max(t0,Math.min(t1,d.dur)); return [t0,t1]; }
+function ffX(){ return FF.data.chs[+$('ff-ch').value||0]; }
+
+function drawWave(){
+  const c=$('ff-wave'); if(!c.offsetParent) return;
+  const {ctx,w,h}=fitCanvas(c); ctx.clearRect(0,0,w,h);
+  const d=FF.data; if(!d){ ctx.fillStyle='#889'; ctx.font='13px system-ui'; ctx.fillText('ファイルを読み込んでください',12,24); return; }
+  const x=ffX(), n=d.n, m={l:50,r:10,t:6,b:18}, pw=w-m.l-m.r, ph=h-m.t-m.b;
+  let mx=0; for(let i=0;i<n;i+=Math.max(1,(n/20000)|0)) mx=Math.max(mx,Math.abs(x[i])); mx=mx||1;
+  const [t0,t1]=ffSel();
+  ctx.fillStyle='#e3efff'; ctx.fillRect(m.l+t0/d.dur*pw,m.t,(t1-t0)/d.dur*pw,ph);
+  ctx.strokeStyle='#2a5db0'; ctx.lineWidth=1; ctx.beginPath();
+  for(let px=0;px<pw;px++){
+    const a=Math.floor(px/pw*n), b=Math.max(a+1,Math.floor((px+1)/pw*n));
+    let lo=1e9,hi=-1e9; const st=Math.max(1,((b-a)/400)|0);
+    for(let i=a;i<b&&i<n;i+=st){ const v=x[i]; if(v<lo)lo=v; if(v>hi)hi=v; }
+    ctx.moveTo(m.l+px+.5,m.t+ph/2-hi/mx*ph/2); ctx.lineTo(m.l+px+.5,m.t+ph/2-lo/mx*ph/2+.5);
+  }
+  ctx.stroke();
+  ctx.strokeStyle='#889'; ctx.strokeRect(m.l,m.t,pw,ph);
+  ctx.fillStyle='#556'; ctx.font='11px system-ui'; ctx.textAlign='center';
+  const st=niceStep(d.dur,10); for(let t=0;t<=d.dur+1e-9;t+=st) ctx.fillText(fmt(t,st<1?2:0)+'s',m.l+t/d.dur*pw,h-4);
+  ctx.textAlign='right'; ctx.fillText(mx.toPrecision(3),m.l-4,m.t+10); ctx.fillText((-mx).toPrecision(3),m.l-4,m.t+ph);
+  drawWave.map={m,pw};
+}
+$('ff-wave').addEventListener('mousedown',e=>{
+  if(!FF.data||!drawWave.map) return;
+  const r=e.currentTarget.getBoundingClientRect(), {m,pw}=drawWave.map;
+  const t=Math.max(0,Math.min(1,(e.clientX-r.left-m.l)/pw))*FF.data.dur;
+  FF.drag={t};
+  const mv=ev=>{ const t2=Math.max(0,Math.min(1,(ev.clientX-r.left-m.l)/pw))*FF.data.dur;
+    $('ff-t0').value=+Math.min(t,t2).toFixed(4); $('ff-t1').value=+Math.max(t,t2).toFixed(4); drawWave(); };
+  const up=ev=>{ window.removeEventListener('mousemove',mv); window.removeEventListener('mouseup',up);
+    if(num('ff-t1')-num('ff-t0')<1e-6){ $('ff-t0').value=0; $('ff-t1').value=+FF.data.dur.toFixed(4); }
+    FF.drag=null; drawWave(); analyze(); };
+  window.addEventListener('mousemove',mv); window.addEventListener('mouseup',up);
+});
+
+function analyze(){
+  const d=FF.data; if(!d) return;
+  const x=ffX(), fs=d.fs, [t0,t1]=ffSel();
+  const i0=Math.floor(t0*fs), i1=Math.min(d.n,Math.ceil(t1*fs)), L=i1-i0;
+  if(L<16){ $('ff-info').innerHTML='<span class="err">区間が短すぎます</span>'; return; }
+  let N=+$('ff-n').value; if(L<N) N=Math.max(16,pow2floor(L));
+  const win=makeWin($('ff-win').value,N); let sw=0; for(let i=0;i<N;i++) sw+=win[i];
+  const hop=N>>1, K=Math.max(1,Math.floor((L-N)/hop)+1);
+  const acc=new Float64Array(N/2+1), re=new Float64Array(N), im=new Float64Array(N);
+  for(let k=0;k<K;k++){
+    const s=i0+k*hop; let mean=0; for(let i=0;i<N;i++) mean+=x[s+i]; mean/=N;
+    for(let i=0;i<N;i++){ re[i]=(x[s+i]-mean)*win[i]; im[i]=0; }
+    fftInPlace(re,im);
+    for(let i=0;i<=N/2;i++) acc[i]+=re[i]*re[i]+im[i]*im[i];
+  }
+  const A=new Float64Array(N/2+1);
+  for(let i=0;i<=N/2;i++) A[i]=Math.sqrt(acc[i]/K)*(i?2:1)/sw;
+  FF.spec={A,N,K,fs,df:fs/N};
+  computeGram(x,i0,L,fs,N);
+  drawSpec(); drawGram(); peakTable();
+}
+function computeGram(x,i0,L,fs,N){
+  let Ng=Math.min(N,8192); if(L<Ng) Ng=Math.max(16,pow2floor(L));
+  const C=Math.min(600,Math.max(1,Math.floor(L/(Ng/4))));
+  const win=makeWin('hann',Ng); let sw=0; for(let i=0;i<Ng;i++) sw+=win[i];
+  const re=new Float64Array(Ng), im=new Float64Array(Ng), cols=[];
+  for(let j=0;j<C;j++){
+    const s=i0+(C>1?Math.round(j*(L-Ng)/(C-1)):0); let mean=0; for(let i=0;i<Ng;i++) mean+=x[s+i]||0; mean/=Ng;
+    for(let i=0;i<Ng;i++){ re[i]=((x[s+i]||0)-mean)*win[i]; im[i]=0; }
+    fftInPlace(re,im);
+    const col=new Float32Array(Ng/2+1);
+    for(let i=0;i<=Ng/2;i++) col[i]=20*Math.log10(Math.hypot(re[i],im[i])*2/sw+1e-12);
+    cols.push(col);
+  }
+  FF.gram={cols,Ng,fs,t0:i0/fs,t1:(i0+L)/fs};
+}
+function specRange(){
+  const S=FF.spec; let fmax=num('ff-fmax'); if(!(fmax>0)||fmax>S.fs/2) fmax=S.fs/2;
+  const log=$('ff-x').value==='log'; const fmin=log?Math.max(S.df,fmax/1e4):0;
+  return {fmin,fmax,log};
+}
+let ffHover=null;
+function drawSpec(){
+  const c=$('ff-spec'); if(!c.offsetParent) return;
+  const {ctx,w,h}=fitCanvas(c); ctx.clearRect(0,0,w,h);
+  const S=FF.spec; if(!S) return;
+  const {fmin,fmax,log}=specRange(), db=$('ff-y').value==='db';
+  const m={l:58,r:12,t:10,b:34}, pw=w-m.l-m.r, ph=h-m.t-m.b;
+  const X=f=> log ? m.l+Math.log10(f/fmin)/Math.log10(fmax/fmin)*pw : m.l+(f-fmin)/(fmax-fmin)*pw;
+  const kmax=Math.min(S.A.length-1,Math.ceil(fmax/S.df));
+  let mx=0; for(let k=1;k<=kmax;k++) mx=Math.max(mx,S.A[k]);
+  let ytop,ybot,val;
+  if(db){ ytop=Math.ceil((20*Math.log10(mx||1e-12)+5)/10)*10; ybot=ytop-100; val=a=>20*Math.log10(a+1e-15); }
+  else { ytop=mx*1.1||1; ybot=0; val=a=>a; }
+  const Y=v=>m.t+ph-(Math.max(ybot,Math.min(ytop,v))-ybot)/(ytop-ybot)*ph;
+  ctx.font='11px system-ui'; ctx.strokeStyle='#e6e9ee'; ctx.fillStyle='#556';
+  // x grid
+  ctx.textAlign='center';
+  if(log){ for(let p=Math.floor(Math.log10(fmin));p<=Math.log10(fmax);p++) for(const mlt of [1,2,5]){ const f=mlt*Math.pow(10,p); if(f<fmin||f>fmax) continue;
+      ctx.beginPath(); ctx.moveTo(X(f),m.t); ctx.lineTo(X(f),m.t+ph); ctx.stroke(); ctx.fillText(f>=1000?(f/1000)+'k':String(f),X(f),m.t+ph+14); } }
+  else { const st=niceStep(fmax-fmin,10); for(let f=0;f<=fmax+1e-9;f+=st){ ctx.beginPath(); ctx.moveTo(X(f),m.t); ctx.lineTo(X(f),m.t+ph); ctx.stroke(); ctx.fillText(fmt(f,st<1?1:0),X(f),m.t+ph+14); } }
+  ctx.textAlign='right';
+  const sy=db?10:niceStep(ytop,6);
+  for(let v=Math.ceil(ybot/sy)*sy;v<=ytop+1e-12;v+=sy){ ctx.beginPath(); ctx.moveTo(m.l,Y(v)); ctx.lineTo(m.l+pw,Y(v)); ctx.stroke(); ctx.fillText(db?String(v):v.toPrecision(3),m.l-4,Y(v)+4); }
+  ctx.fillStyle='#334'; ctx.textAlign='center'; ctx.fillText('周波数 [Hz]',m.l+pw/2,h-4);
+  ctx.save(); ctx.translate(12,m.t+ph/2); ctx.rotate(-Math.PI/2); ctx.fillText(db?'振幅 [dB re 1'+(FF.data.unit?' '+FF.data.unit:'')+']':'振幅（片側ピーク）',0,0); ctx.restore();
+  ctx.save(); ctx.beginPath(); ctx.rect(m.l,m.t,pw,ph); ctx.clip();
+  // エンジン計算線
+  if($('ff-eng').checked){
+    engineLines().forEach(o=>{ if(!(o.f>=fmin&&o.f<=fmax)) return;
+      ctx.strokeStyle=o.c; ctx.globalAlpha=.75; ctx.setLineDash([4,3]); ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(X(o.f),m.t); ctx.lineTo(X(o.f),m.t+ph); ctx.stroke();
+      ctx.setLineDash([]); ctx.globalAlpha=1; ctx.fillStyle=o.c; ctx.textAlign='left';
+      ctx.save(); ctx.translate(X(o.f)+3,m.t+4); ctx.rotate(Math.PI/2); ctx.fillText(o.name,0,0); ctx.restore();
+    });
+  }
+  // スペクトル（画素ごとに最大値）
+  ctx.strokeStyle='#0b4fb3'; ctx.lineWidth=1.2; ctx.beginPath();
+  const kmin=Math.max(log?1:0,Math.floor(fmin/S.df));
+  if(kmax-kmin>pw*2){
+    let first=true;
+    for(let px=0;px<pw;px++){
+      const fa=log?fmin*Math.pow(fmax/fmin,px/pw):fmin+(fmax-fmin)*px/pw, fb=log?fmin*Math.pow(fmax/fmin,(px+1)/pw):fmin+(fmax-fmin)*(px+1)/pw;
+      let a=Math.max(kmin,Math.floor(fa/S.df)), b=Math.min(kmax,Math.max(a,Math.ceil(fb/S.df)));
+      let v=0; for(let k=a;k<=b;k++) v=Math.max(v,S.A[k]);
+      const y=Y(val(v)); if(first){ctx.moveTo(m.l+px,y);first=false;} else ctx.lineTo(m.l+px,y);
+    }
+  }else{
+    for(let k=kmin;k<=kmax;k++){ const x=X(k*S.df), y=Y(val(S.A[k])); k===kmin?ctx.moveTo(x,y):ctx.lineTo(x,y); }
+  }
+  ctx.stroke();
+  if(ffHover){ ctx.strokeStyle='rgba(0,0,0,.4)'; ctx.beginPath(); ctx.moveTo(ffHover,m.t); ctx.lineTo(ffHover,m.t+ph); ctx.stroke(); }
+  ctx.restore();
+  ctx.strokeStyle='#889'; ctx.strokeRect(m.l,m.t,pw,ph);
+  ctx.fillStyle='#556'; ctx.textAlign='right';
+  ctx.fillText(`N=${S.N}  Δf=${fmt(S.df,3)} Hz  平均${S.K}回`,m.l+pw-4,m.t+12);
+  drawSpec.map={m,pw,ph,fmin,fmax,log,val,db};
+}
+$('ff-spec').addEventListener('mousemove',e=>{
+  const mp=drawSpec.map, S=FF.spec; if(!mp||!S) return;
+  const r=e.currentTarget.getBoundingClientRect(), x=e.clientX-r.left, y=e.clientY-r.top, {m,pw}=mp, tip=$('ff-tip');
+  if(x<m.l||x>m.l+pw){ tip.style.display='none'; ffHover=null; drawSpec(); return; }
+  const f=mp.log?mp.fmin*Math.pow(mp.fmax/mp.fmin,(x-m.l)/pw):mp.fmin+(x-m.l)/pw*(mp.fmax-mp.fmin);
+  // 近傍の極大を探す
+  let k=Math.round(f/S.df); const rad=Math.max(1,Math.round(3*(mp.fmax-mp.fmin)/pw/S.df));
+  let kb=k; for(let i=Math.max(1,k-rad);i<=Math.min(S.A.length-1,k+rad);i++) if(S.A[i]>S.A[kb]) kb=i;
+  ffHover=x;
+  const fr=kb*S.df, rpmF=(()=>{ const L=engOrders().find(o=>o.main); return L?fr*60/L.order:NaN; })();
+  tip.innerHTML=`${fmt(fr,2)} Hz  ${mp.db?fmt(mp.val(S.A[kb]),1)+' dB':S.A[kb].toPrecision(4)}<br>爆発一次なら ${fmt(rpmF,0)} rpm`;
+  tip.style.display='block'; tip.style.left=Math.min(x+12,r.width-190)+'px'; tip.style.top=(y+12)+'px';
+  drawSpec();
+});
+$('ff-spec').addEventListener('mouseleave',()=>{ $('ff-tip').style.display='none'; ffHover=null; drawSpec(); });
+
+function cmap(t){ // 0..1 → 青→シアン→黄→赤
+  t=Math.max(0,Math.min(1,t));
+  const st=[[0,[10,12,40]],[.25,[30,60,180]],[.5,[20,180,190]],[.75,[250,220,40]],[1,[200,20,20]]];
+  for(let i=1;i<st.length;i++) if(t<=st[i][0]){ const [a,ca]=st[i-1],[b,cb]=st[i],u=(t-a)/(b-a); return ca.map((v,j)=>v+(cb[j]-v)*u); }
+  return st[st.length-1][1];
+}
+function drawGram(){
+  const c=$('ff-gram'); if(!c.offsetParent) return;
+  const {ctx,w,h}=fitCanvas(c); ctx.clearRect(0,0,w,h);
+  const G=FF.gram; if(!G||!FF.spec) return;
+  const {fmax}=specRange(), m={l:58,r:12,t:6,b:30}, pw=Math.max(1,Math.floor(w-m.l-m.r)), ph=Math.max(1,Math.floor(h-m.t-m.b));
+  const dpr=window.devicePixelRatio||1, iw=Math.round(pw*dpr), ih=Math.round(ph*dpr);
+  let mx=-300; G.cols.forEach(col=>{ for(let i=1;i<col.length;i++) if(col[i]>mx) mx=col[i]; });
+  const lo=mx-80, df=G.fs/G.Ng, img=ctx.createImageData(iw,ih);
+  for(let px=0;px<iw;px++){
+    const col=G.cols[Math.min(G.cols.length-1,Math.floor(px/iw*G.cols.length))];
+    for(let py=0;py<ih;py++){
+      const f0=(ih-1-py)/ih*fmax, f1=(ih-py)/ih*fmax;
+      let a=Math.floor(f0/df), b=Math.max(a,Math.min(col.length-1,Math.ceil(f1/df)));
+      let v=-300; for(let k=a;k<=b;k++) if(col[k]>v) v=col[k];
+      const rgb=cmap((v-lo)/80), o=(py*iw+px)*4;
+      img.data[o]=rgb[0]; img.data[o+1]=rgb[1]; img.data[o+2]=rgb[2]; img.data[o+3]=255;
+    }
+  }
+  ctx.putImageData(img,Math.round(m.l*dpr),Math.round(m.t*dpr));
+  ctx.strokeStyle='#889'; ctx.strokeRect(m.l,m.t,pw,ph);
+  ctx.font='11px system-ui'; ctx.fillStyle='#556'; ctx.textAlign='right';
+  const sy=niceStep(fmax,5); for(let f=0;f<=fmax+1e-9;f+=sy) ctx.fillText(fmt(f,0),m.l-4,m.t+ph-f/fmax*ph+4);
+  ctx.textAlign='center'; const dur=G.t1-G.t0, st=niceStep(dur,8);
+  for(let t=Math.ceil(G.t0/st)*st;t<=G.t1+1e-9;t+=st) ctx.fillText(fmt(t,st<1?2:0)+'s',m.l+(t-G.t0)/dur*pw,h-14);
+  ctx.fillText('スペクトログラム（時間 − 周波数、上端 '+fmt(mx,0)+' dB / 範囲 80 dB）',m.l+pw/2,h-1);
+  drawGram.map={m,pw,ph,fmax};
+}
+$('ff-gram').addEventListener('mousemove',e=>{
+  const mp=drawGram.map, G=FF.gram; if(!mp||!G) return;
+  const r=e.currentTarget.getBoundingClientRect(), x=e.clientX-r.left, y=e.clientY-r.top, {m,pw,ph}=mp, tip=$('ff-tip2');
+  if(x<m.l||x>m.l+pw||y<m.t||y>m.t+ph){ tip.style.display='none'; return; }
+  const t=G.t0+(x-m.l)/pw*(G.t1-G.t0), f=(m.t+ph-y)/ph*mp.fmax;
+  tip.innerHTML=`${fmt(t,3)} s / ${fmt(f,1)} Hz`; tip.style.display='block';
+  tip.style.left=Math.min(x+12,r.width-140)+'px'; tip.style.top=(y+12)+'px';
+});
+$('ff-gram').addEventListener('mouseleave',()=>{ $('ff-tip2').style.display='none'; });
+
+function findPeaks(){
+  const S=FF.spec, {fmin,fmax}=specRange(), A=S.A, pk=[];
+  const k0=Math.max(2,Math.floor(fmin/S.df)), k1=Math.min(A.length-2,Math.floor(fmax/S.df));
+  for(let k=k0;k<=k1;k++) if(A[k]>A[k-1]&&A[k]>=A[k+1]) pk.push(k);
+  pk.sort((a,b)=>A[b]-A[a]);
+  const out=[];
+  for(const k of pk){ if(out.some(o=>Math.abs(o.k-k)<4)) continue;
+    const a=20*Math.log10(A[k-1]+1e-15), b=20*Math.log10(A[k]+1e-15), c=20*Math.log10(A[k+1]+1e-15);
+    const den=a-2*b+c, dl=den?0.5*(a-c)/den:0;
+    out.push({k,f:(k+dl)*S.df,db:b-0.25*(a-c)*dl,amp:A[k]});
+    if(out.length>=10) break; }
+  return out;
+}
+function peakTable(){
+  if(!FF.spec){ $('ff-peaks').innerHTML=''; return; }
+  const P=findPeaks(), lines=engineLines(), main=lines.find(o=>o.main);
+  let h=`<tr><th>#</th><th>周波数 Hz</th><th>振幅 dB</th><th>爆発一次とした回転数</th><th>回転1次とした回転数</th><th>近い計算成分（エンジン音タブ）</th></tr>`;
+  P.forEach((p,i)=>{
+    let near='', bd=1e9; lines.forEach(o=>{ if(!(o.f>0)) return; const d=Math.abs(p.f-o.f)/o.f; if(d<bd){bd=d; near=`${o.name}（${fmt(o.f,1)} Hz, ${bd>=0?'差 '+fmt(bd*100,1)+'%':''}）`;} });
+    h+=`<tr><td>${i+1}</td><td>${fmt(p.f,2)}</td><td>${fmt(p.db,1)}</td><td>${main?fmt(p.f*60/main.order,0)+' rpm':'—'}</td><td>${fmt(p.f*60,0)} rpm</td><td style="text-align:left">${bd<0.05?esc(near):'<span class="note">'+esc(near)+'</span>'}</td></tr>`;
+  });
+  $('ff-peaks').innerHTML=h;
+}
+$('ff-run').addEventListener('click',analyze);
+['ff-n','ff-win','ff-ch'].forEach(id=>$(id).addEventListener('change',()=>{ drawWave(); analyze(); }));
+['ff-t0','ff-t1'].forEach(id=>$(id).addEventListener('change',()=>{ drawWave(); analyze(); }));
+['ff-fmax','ff-y','ff-x','ff-eng'].forEach(id=>$(id).addEventListener('change',()=>{ if(FF.spec){ drawSpec(); drawGram(); peakTable(); } }));
+$('ff-csv').addEventListener('click',()=>{
+  const S=FF.spec; if(!S) return;
+  let s='freq_Hz,amplitude,dB\n'; for(let k=0;k<S.A.length;k++) s+=`${(k*S.df).toFixed(4)},${S.A[k].toExponential(6)},${(20*Math.log10(S.A[k]+1e-15)).toFixed(2)}\n`;
+  download('spectrum_'+stamp()+'.csv',new Blob([s],{type:'text/csv'}));
+});
+tabHooks.fft=()=>{ drawWave(); if(FF.spec){ drawSpec(); drawGram(); peakTable(); } };
+</script>
+
+<script>
+'use strict';
+/* ==================================================================
+   3D 油圧ショベル
+   座標系：X=機体前方、Y=上、Z=機体右。内部寸法は mm、描画は m。
+   ================================================================== */
+
+/* ---------- 行列（列優先 4x4） ---------- */
+const M4={
+  id(){ const m=new Float32Array(16); m[0]=m[5]=m[10]=m[15]=1; return m; },
+  mul(a,b){ const o=new Float32Array(16);
+    for(let c=0;c<4;c++) for(let r=0;r<4;r++){ let s=0; for(let k=0;k<4;k++) s+=a[k*4+r]*b[c*4+k]; o[c*4+r]=s; } return o; },
+  chain(...ms){ return ms.reduce((a,b)=>M4.mul(a,b)); },
+  T(x,y,z){ const m=M4.id(); m[12]=x; m[13]=y; m[14]=z; return m; },
+  S(s){ const m=M4.id(); m[0]=m[5]=m[10]=s; return m; },
+  RX(a){ const c=Math.cos(a),s=Math.sin(a),m=M4.id(); m[5]=c; m[6]=s; m[9]=-s; m[10]=c; return m; },
+  RY(a){ const c=Math.cos(a),s=Math.sin(a),m=M4.id(); m[0]=c; m[2]=-s; m[8]=s; m[10]=c; return m; },
+  RZ(a){ const c=Math.cos(a),s=Math.sin(a),m=M4.id(); m[0]=c; m[1]=s; m[4]=-s; m[5]=c; return m; },
+  persp(fy,asp,n,f){ const t=1/Math.tan(fy/2),m=new Float32Array(16); m[0]=t/asp; m[5]=t; m[10]=(f+n)/(n-f); m[11]=-1; m[14]=2*f*n/(n-f); return m; },
+  ortho(l,r,b,t,n,f){ const m=M4.id(); m[0]=2/(r-l); m[5]=2/(t-b); m[10]=-2/(f-n); m[12]=-(r+l)/(r-l); m[13]=-(t+b)/(t-b); m[14]=-(f+n)/(f-n); return m; },
+  lookAt(e,c,u){
+    let z=V3.norm(V3.sub(e,c)), x=V3.norm(V3.cross(u,z)), y=V3.cross(z,x);
+    const m=M4.id(); m[0]=x[0];m[4]=x[1];m[8]=x[2]; m[1]=y[0];m[5]=y[1];m[9]=y[2]; m[2]=z[0];m[6]=z[1];m[10]=z[2];
+    m[12]=-V3.dot(x,e); m[13]=-V3.dot(y,e); m[14]=-V3.dot(z,e); return m; },
+  xp(m,x,y,z){ return [m[0]*x+m[4]*y+m[8]*z+m[12], m[1]*x+m[5]*y+m[9]*z+m[13], m[2]*x+m[6]*y+m[10]*z+m[14]]; },
+  xd(m,x,y,z){ return [m[0]*x+m[4]*y+m[8]*z, m[1]*x+m[5]*y+m[9]*z, m[2]*x+m[6]*y+m[10]*z]; },
+};
+const V3={
+  sub:(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]], add:(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]],
+  mul:(a,s)=>[a[0]*s,a[1]*s,a[2]*s], dot:(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],
+  cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],
+  norm:a=>{ const l=Math.hypot(a[0],a[1],a[2])||1; return [a[0]/l,a[1]/l,a[2]/l]; },
+};
+/* ---------- 2D ---------- */
+const P2={
+  add:(a,b)=>[a[0]+b[0],a[1]+b[1]], sub:(a,b)=>[a[0]-b[0],a[1]-b[1]], mul:(a,s)=>[a[0]*s,a[1]*s],
+  len:a=>Math.hypot(a[0],a[1]), ang:a=>Math.atan2(a[1],a[0]),
+  rot:(v,a)=>{ const c=Math.cos(a),s=Math.sin(a); return [v[0]*c-v[1]*s, v[0]*s+v[1]*c]; },
+  norm:a=>{ const l=Math.hypot(a[0],a[1])||1; return [a[0]/l,a[1]/l]; },
+};
+function circX(c0,r0,c1,r1){
+  const d=P2.len(P2.sub(c1,c0));
+  if(d<1e-9||d>r0+r1||d<Math.abs(r0-r1)) return null;
+  const a=(r0*r0-r1*r1+d*d)/(2*d), h=Math.sqrt(Math.max(0,r0*r0-a*a));
+  const u=P2.mul(P2.sub(c1,c0),1/d), b=P2.add(c0,P2.mul(u,a)), n=[-u[1],u[0]];
+  return [P2.add(b,P2.mul(n,h)), P2.sub(b,P2.mul(n,h))];
+}
+
+/* ---------- 形状生成 ---------- */
+class Geo{
+  constructor(){ this.p=[]; this.n=[]; }
+  v(p,n){ this.p.push(p[0],p[1],p[2]); this.n.push(n[0],n[1],n[2]); }
+  add(g,m){
+    for(let i=0;i<g.p.length;i+=3){
+      if(m){ const a=M4.xp(m,g.p[i],g.p[i+1],g.p[i+2]), b=M4.xd(m,g.n[i],g.n[i+1],g.n[i+2]); this.p.push(...a); this.n.push(...b); }
+      else { this.p.push(g.p[i],g.p[i+1],g.p[i+2]); this.n.push(g.n[i],g.n[i+1],g.n[i+2]); }
+    }
+    return this;
+  }
+}
+const area2=P=>{ let s=0; for(let i=0;i<P.length;i++){ const a=P[i],b=P[(i+1)%P.length]; s+=a[0]*b[1]-b[0]*a[1]; } return s/2; };
+const ccw=P=>area2(P)<0?P.slice().reverse():P;
+function triangulate(P){
+  const n=P.length, idx=[...Array(n).keys()], out=[];
+  const cr=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
+  let guard=0;
+  while(idx.length>3 && guard++<20000){
+    let found=false;
+    for(let i=0;i<idx.length;i++){
+      const L=idx.length, ia=idx[(i+L-1)%L], ib=idx[i], ic=idx[(i+1)%L], a=P[ia],b=P[ib],c=P[ic];
+      if(cr(a,b,c)<=1e-9) continue;
+      let inside=false;
+      for(const j of idx){ if(j===ia||j===ib||j===ic) continue; const p=P[j];
+        if(cr(a,b,p)>=0&&cr(b,c,p)>=0&&cr(c,a,p)>=0){ inside=true; break; } }
+      if(inside) continue;
+      out.push(ia,ib,ic); idx.splice(i,1); found=true; break;
+    }
+    if(!found){ for(let i=1;i<idx.length-1;i++) out.push(idx[0],idx[i],idx[i+1]); return out; }
+  }
+  if(idx.length===3) out.push(...idx);
+  return out;
+}
+// XY 多角形を Z 方向に押し出し（なめらかな頂点は法線を平均）
+function extrude(poly,z0,z1,crease=40){
+  const P=ccw(poly).filter((p,i,a)=>{ const q=a[(i+1)%a.length]; return Math.hypot(p[0]-q[0],p[1]-q[1])>1e-6; });
+  const g=new Geo(), n=P.length, T=triangulate(P);
+  for(let i=0;i<T.length;i+=3){
+    const a=P[T[i]],b=P[T[i+1]],c=P[T[i+2]];
+    g.v([a[0],a[1],z1],[0,0,1]); g.v([b[0],b[1],z1],[0,0,1]); g.v([c[0],c[1],z1],[0,0,1]);
+    g.v([a[0],a[1],z0],[0,0,-1]); g.v([c[0],c[1],z0],[0,0,-1]); g.v([b[0],b[1],z0],[0,0,-1]);
+  }
+  const en=[]; for(let i=0;i<n;i++){ const a=P[i],b=P[(i+1)%n]; const d=P2.norm(P2.sub(b,a)); en.push([d[1],-d[0]]); }
+  const cosC=Math.cos(crease*Math.PI/180);
+  const vn=(i,e)=>{ // 頂点 i、辺 e 側の法線
+    const ep=(i-1+n)%n, en1=i; const a=en[ep], b=en[en1];
+    if(a[0]*b[0]+a[1]*b[1]>cosC){ const m=P2.norm(P2.add(a,b)); return [m[0],m[1],0]; }
+    const s=en[e]; return [s[0],s[1],0];
+  };
+  for(let i=0;i<n;i++){
+    const j=(i+1)%n, a=P[i], b=P[j], na=vn(i,i), nb=vn(j,i);
+    g.v([a[0],a[1],z0],na); g.v([b[0],b[1],z0],nb); g.v([b[0],b[1],z1],nb);
+    g.v([a[0],a[1],z0],na); g.v([b[0],b[1],z1],nb); g.v([a[0],a[1],z1],na);
+  }
+  return g;
+}
+const rect=(x0,x1,y0,y1)=>[[x0,y0],[x1,y0],[x1,y1],[x0,y1]];
+const box=(x0,x1,y0,y1,z0,z1)=>extrude(rect(x0,x1,y0,y1),z0,z1);
+const circ=(cx,cy,r,seg=28)=>{ const o=[]; for(let i=0;i<seg;i++){ const a=i/seg*2*Math.PI; o.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]); } return o; };
+const cylZ=(cx,cy,r,z0,z1,seg=28)=>extrude(circ(cx,cy,r,seg),z0,z1);
+// XZ 平面の多角形を Y 方向に押し出し
+const extrudeY=(polyXZ,y0,y1)=>new Geo().add(extrude(polyXZ,-y1,-y0),M4.RX(Math.PI/2));
+function hull(pts){
+  const P=pts.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);
+  const lo=[],up=[];
+  for(const p of P){ while(lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0) lo.pop(); lo.push(p); }
+  for(let i=P.length-1;i>=0;i--){ const p=P[i]; while(up.length>=2&&cr(up[up.length-2],up[up.length-1],p)<=0) up.pop(); up.push(p); }
+  up.pop(); lo.pop(); return lo.concat(up);
+}
+const hullC=(cs,seg=20)=>hull(cs.flatMap(c=>c[2]>0?circ(c[0],c[1],c[2],seg):[[c[0],c[1]]]));
+function spline(pts,seg=8){
+  const out=[];
+  for(let i=0;i<pts.length-1;i++){
+    const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];
+    for(let s=0;s<seg;s++){ const t=s/seg,t2=t*t,t3=t2*t;
+      out.push([0,1].map(k=>0.5*(2*p1[k]+(-p0[k]+p2[k])*t+(2*p0[k]-5*p1[k]+4*p2[k]-p3[k])*t2+(-p0[k]+3*p1[k]-3*p2[k]+p3[k])*t3))); }
+  }
+  out.push(pts[pts.length-1]); return out;
+}
+function offsetLine(P,d){
+  return P.map((p,i)=>{ const a=P[Math.max(0,i-1)], b=P[Math.min(P.length-1,i+1)]; const t=P2.norm(P2.sub(b,a)); return [p[0]-t[1]*d,p[1]+t[0]*d]; });
+}
+// 両側に同じ板を置く（z = ±[za, zb]）
+const pair=(poly,za,zb)=>new Geo().add(extrude(poly,za,zb)).add(extrude(poly,-zb,-za));
+
+/* ---------- WebGL2 レンダラ ---------- */
+const RD={};
+const SH={
+vsS:`#version 300 es
+in vec3 aP; in vec3 aN; uniform mat4 uM,uV,uP; out vec3 vN; out vec3 vV;
+void main(){ vec4 v=uV*uM*vec4(aP,1.); vV=v.xyz; vN=mat3(uV)*mat3(uM)*aN; gl_Position=uP*v; }`,
+fsS:`#version 300 es
+precision highp float;
+in vec3 vN; in vec3 vV; uniform vec3 uCol; uniform float uId; uniform int uFlat; uniform int uOrtho;
+layout(location=0) out vec4 oC; layout(location=1) out vec4 oN;
+void main(){
+  vec3 n=normalize(vN); vec3 vd=uOrtho==1?vec3(0.,0.,1.):normalize(-vV); if(dot(n,vd)<0.) n=-n;
+  vec3 c=uCol;
+  if(uFlat==0){ vec3 L=normalize(vec3(-0.35,0.65,0.68)); float d=max(dot(n,L),0.); float h=0.5+0.5*n.y;
+    c=uCol*(0.30+0.18*h+0.62*d)+vec3(0.10)*pow(max(dot(reflect(-L,n),vd),0.),24.); }
+  oC=vec4(c,1.); oN=vec4(n*.5+.5,uId/255.);
+}`,
+vsG:`#version 300 es
+in vec3 aP; uniform mat4 uVP; void main(){ gl_Position=uVP*vec4(aP,1.); }`,
+fsG:`#version 300 es
+precision mediump float; uniform vec4 uCol; layout(location=0) out vec4 oC; void main(){ oC=uCol; }`,
+vsC:`#version 300 es
+void main(){ vec2 p=vec2(float((gl_VertexID<<1)&2),float(gl_VertexID&2)); gl_Position=vec4(p*2.-1.,0.,1.); }`,
+fsC:`#version 300 es
+precision highp float; precision highp int;
+uniform sampler2D uC,uN,uD; uniform int uSS,uR,uLineOn,uOrtho; uniform ivec2 uSize;
+uniform vec4 uBg; uniform vec3 uLine; uniform float uNear,uFar,uPx,uCrease;
+out vec4 o;
+float lin(float z){ return uOrtho==1 ? uNear+z*(uFar-uNear) : (2.*uNear*uFar)/(uFar+uNear-(2.*z-1.)*(uFar-uNear)); }
+vec4 Nt(ivec2 p){ return texelFetch(uN,clamp(p,ivec2(0),uSize-1),0); }
+float Dt(ivec2 p){ float d=lin(texelFetch(uD,clamp(p,ivec2(0),uSize-1),0).r); return uOrtho==1?d:1./d; }
+float idOf(vec4 n){ return floor(n.a*255.+.5); }
+float edge(ivec2 p){
+  vec4 c=Nt(p); float ic=idOf(c);
+  ivec2 dx=ivec2(uR,0), dy=ivec2(0,uR);
+  vec4 a=Nt(p+dx), b=Nt(p-dx), e=Nt(p+dy), f=Nt(p-dy);
+  if(idOf(a)!=ic||idOf(b)!=ic||idOf(e)!=ic||idOf(f)!=ic) return 1.;
+  if(ic==0.) return 0.;
+  vec3 nc=c.xyz*2.-1.;
+  float m=min(min(dot(nc,a.xyz*2.-1.),dot(nc,b.xyz*2.-1.)),min(dot(nc,e.xyz*2.-1.),dot(nc,f.xyz*2.-1.)));
+  if(m<uCrease) return 1.;
+  float w0=Dt(p);
+  float l=max(abs(Dt(p+dx)+Dt(p-dx)-2.*w0),abs(Dt(p+dy)+Dt(p-dy)-2.*w0));
+  float d0=uOrtho==1?w0:1./w0; if(uOrtho==0) l*=d0*d0;
+  float px=uOrtho==1?uPx:uPx*d0;
+  return l>0.03+6.*px*float(uR)?1.:0.;
+}
+void main(){
+  ivec2 base=ivec2(gl_FragCoord.xy)*uSS; vec4 acc=vec4(0.);
+  for(int j=0;j<uSS;j++) for(int i=0;i<uSS;i++){
+    ivec2 p=base+ivec2(i,j); vec4 c=texelFetch(uC,p,0);
+    vec4 q=vec4(c.rgb*c.a,c.a)+vec4(uBg.rgb*uBg.a,uBg.a)*(1.-c.a);
+    if(uLineOn==1) q=mix(q,vec4(uLine,1.),edge(p));
+    acc+=q;
+  }
+  o=acc/float(uSS*uSS);
+}`};
+function rdInit(cv){
+  const gl=cv.getContext('webgl2',{antialias:false,alpha:true,premultipliedAlpha:true,preserveDrawingBuffer:false});
+  if(!gl) return false;
+  RD.gl=gl; RD.cv=cv;
+  const prog=(vs,fs,attrs)=>{
+    const p=gl.createProgram();
+    for(const [src,t] of [[vs,gl.VERTEX_SHADER],[fs,gl.FRAGMENT_SHADER]]){
+      const s=gl.createShader(t); gl.shaderSource(s,src); gl.compileShader(s);
+      if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+      gl.attachShader(p,s);
+    }
+    Object.entries(attrs).forEach(([k,v])=>gl.bindAttribLocation(p,v,k));
+    gl.linkProgram(p); if(!gl.getProgramParameter(p,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    p.u={}; return p;
+  };
+  RD.pS=prog(SH.vsS,SH.fsS,{aP:0,aN:1}); RD.pG=prog(SH.vsG,SH.fsG,{aP:0}); RD.pC=prog(SH.vsC,SH.fsC,{});
+  RD.empty=gl.createVertexArray();
+  RD.maxTex=gl.getParameter(gl.MAX_TEXTURE_SIZE);
+  // 地面グリッド
+  const mk=(major)=>{ const a=[]; const E=60; for(let i=-E;i<=E;i++){ if((i%5===0)!==major) continue; a.push(i,0.003,-E, i,0.003,E, -E,0.003,i, E,0.003,i); }
+    const vao=gl.createVertexArray(); gl.bindVertexArray(vao); const b=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,b);
+    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(a),gl.STATIC_DRAW); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,3,gl.FLOAT,false,0,0);
+    gl.bindVertexArray(null); return {vao,count:a.length/3}; };
+  RD.gridMinor=mk(false); RD.gridMajor=mk(true);
+  return true;
+}
+const U=(p,n)=>p.u[n]!==undefined?p.u[n]:(p.u[n]=RD.gl.getUniformLocation(p,n));
+function mkMesh(g){
+  const gl=RD.gl, vao=gl.createVertexArray(); gl.bindVertexArray(vao);
+  const bufs=[g.p,g.n].map((d,i)=>{ const b=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,b); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(d),gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(i); gl.vertexAttribPointer(i,3,gl.FLOAT,false,0,0); return b; });
+  gl.bindVertexArray(null); return {vao,bufs,count:g.p.length/3};
+}
+function freeMesh(m){ const gl=RD.gl; m.bufs.forEach(b=>gl.deleteBuffer(b)); gl.deleteVertexArray(m.vao); }
+function rdTargets(w,h){
+  if(RD.fw===w&&RD.fh===h) return;
+  const gl=RD.gl;
+  [RD.tC,RD.tN,RD.tD].forEach(t=>t&&gl.deleteTexture(t)); if(RD.fbo) gl.deleteFramebuffer(RD.fbo);
+  const tex=(ifmt,fmt,type)=>{ const t=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,t);
+    gl.texImage2D(gl.TEXTURE_2D,0,ifmt,w,h,0,fmt,type,null);
+    [gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER].forEach(k=>gl.texParameteri(gl.TEXTURE_2D,k,gl.NEAREST));
+    [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T].forEach(k=>gl.texParameteri(gl.TEXTURE_2D,k,gl.CLAMP_TO_EDGE)); return t; };
+  RD.tC=tex(gl.RGBA8,gl.RGBA,gl.UNSIGNED_BYTE); RD.tN=tex(gl.RGBA8,gl.RGBA,gl.UNSIGNED_BYTE); RD.tD=tex(gl.DEPTH_COMPONENT24,gl.DEPTH_COMPONENT,gl.UNSIGNED_INT);
+  RD.fbo=gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER,RD.fbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,RD.tC,0);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT1,gl.TEXTURE_2D,RD.tN,0);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.TEXTURE_2D,RD.tD,0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  RD.fw=w; RD.fh=h;
+}
+// items: [{mesh,m,col,id}]  o: 描画オプション
+function rdRender(items,cam,o){
+  const gl=RD.gl, fw=o.w*o.ss, fh=o.h*o.ss;
+  rdTargets(fw,fh);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,RD.fbo); gl.viewport(0,0,fw,fh);
+  gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.COLOR_ATTACHMENT1]);
+  gl.depthMask(true);
+  gl.clearBufferfv(gl.COLOR,0,[0,0,0,0]); gl.clearBufferfv(gl.COLOR,1,[0.5,0.5,1,0]); gl.clearBufferfv(gl.DEPTH,0,[1]);
+  gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.disable(gl.BLEND); gl.disable(gl.CULL_FACE);
+  const p=RD.pS; gl.useProgram(p);
+  gl.uniformMatrix4fv(U(p,'uV'),false,cam.V); gl.uniformMatrix4fv(U(p,'uP'),false,cam.P);
+  gl.uniform1i(U(p,'uFlat'),o.fill?1:0); gl.uniform1i(U(p,'uOrtho'),cam.ortho?1:0);
+  for(const it of items){
+    gl.uniformMatrix4fv(U(p,'uM'),false,it.m); gl.uniform3fv(U(p,'uCol'),o.fill||it.col); gl.uniform1f(U(p,'uId'),it.id);
+    gl.bindVertexArray(it.mesh.vao); gl.drawArrays(gl.TRIANGLES,0,it.mesh.count);
+  }
+  if(o.grid){
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.NONE]); gl.depthMask(false);
+    const q=RD.pG; gl.useProgram(q); gl.uniformMatrix4fv(U(q,'uVP'),false,M4.mul(cam.P,cam.V));
+    gl.uniform4fv(U(q,'uCol'),o.gridCol[0]); gl.bindVertexArray(RD.gridMinor.vao); gl.drawArrays(gl.LINES,0,RD.gridMinor.count);
+    gl.uniform4fv(U(q,'uCol'),o.gridCol[1]); gl.bindVertexArray(RD.gridMajor.vao); gl.drawArrays(gl.LINES,0,RD.gridMajor.count);
+    gl.depthMask(true);
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null); gl.viewport(0,0,o.w,o.h); gl.disable(gl.DEPTH_TEST);
+  const c=RD.pC; gl.useProgram(c);
+  [[RD.tC,'uC'],[RD.tN,'uN'],[RD.tD,'uD']].forEach(([t,n],i)=>{ gl.activeTexture(gl.TEXTURE0+i); gl.bindTexture(gl.TEXTURE_2D,t); gl.uniform1i(U(c,n),i); });
+  gl.uniform1i(U(c,'uSS'),o.ss); gl.uniform1i(U(c,'uR'),o.r); gl.uniform1i(U(c,'uLineOn'),o.line?1:0); gl.uniform1i(U(c,'uOrtho'),cam.ortho?1:0);
+  gl.uniform2i(U(c,'uSize'),fw,fh); gl.uniform4fv(U(c,'uBg'),o.bg); gl.uniform3fv(U(c,'uLine'),o.line||[0,0,0]);
+  gl.uniform1f(U(c,'uNear'),cam.near); gl.uniform1f(U(c,'uFar'),cam.far);
+  gl.uniform1f(U(c,'uPx'),cam.ortho?2*cam.halfH/fh:2*Math.tan(cam.fov/2)/fh); gl.uniform1f(U(c,'uCrease'),Math.cos(40*Math.PI/180));
+  gl.bindVertexArray(RD.empty); gl.drawArrays(gl.TRIANGLES,0,3);
+  gl.activeTexture(gl.TEXTURE0);
+}
+
+/* ---------- 寸法定義 ---------- */
+const EX_DIMS=[
+  ['#','下部走行体'],
+  ['trackLen','クローラ全長',4450],['gauge','トラックゲージ（左右中心間）',2390],['shoeW','シュー幅',600],['trackH','クローラ高さ',920],
+  ['#','上部旋回体'],
+  ['swingH','旋回体下面の高さ（地上）',1050],['tailR','後端旋回半径',2750],['upperW','旋回体幅',2540],['upperFront','キャブ前端（旋回中心から）',1650],
+  ['hoodH','エンジンフード高さ（地上）',2350],['cabTop','キャブ高さ（地上）',3000],['cabW','キャブ幅',1000],
+  ['#','ブーム'],
+  ['bfX','フートピン 前方位置（旋回中心から）',150],['bfY','フートピン 高さ（地上）',1950],['bfZ','フートピン 左右位置（右+）',120],
+  ['boomLen','ブーム長（ピン間）',5700],['kneeR','屈曲位置（ピン間に対する比）',0.55,'比'],['kneeH','屈曲高さ（ピン間線から）',750],
+  ['boomW','ブーム幅',520],['boomD','ブーム断面高さ（最大）',660],
+  ['#','アーム'],
+  ['armLen','アーム長（ピン間）',2920],['armW','アーム幅',400],
+  ['#','バケット'],
+  ['bktLen','バケット長（ピン〜刃先）',1450],['bktW','バケット幅',1000],
+  ['#','可動範囲'],
+  ['boomMin','ブーム角 最小',-50,'°'],['boomMax','ブーム角 最大',62,'°'],['armMin','アーム角 最小（引き側）',-160,'°'],['armMax','アーム角 最大（出し側）',-32,'°'],
+  ['bktMin','バケット角 最小（掘削側）',-165,'°'],['bktMax','バケット角 最大（ダンプ側）',35,'°'],
+  ['+','シリンダ・リンク取付位置（詳細）'],
+  ['cbX','ブームシリンダ ボトム X（旋回体）',750],['cbY','　〃 Y（地上高）',1150],
+  ['pbX','ブームシリンダ ロッド x（ブーム座標）',2350],['pbY','　〃 y',170],
+  ['paX','アームシリンダ ボトム x（ブーム座標）',3050],['paY','　〃 y',1060],
+  ['atX','アームシリンダ ロッド x（アーム座標）',-520],['atY','　〃 y',560],
+  ['ckX','バケットシリンダ ボトム x（アーム座標）',330],['ckY','　〃 y',420],
+  ['p1X','サイドリンク支点 x（アーム座標）',2560],['p1Y','　〃 y',130],
+  ['kX','バケットリンク支点 x（バケット座標）',-120],['kY','　〃 y',360],
+  ['l1','サイドリンク長',520],['l2','バケットリンク（Hリンク）長',560],
+];
+const EX_DEF={}; EX_DIMS.forEach(d=>{ if(d[0]!=='#'&&d[0]!=='+') EX_DEF[d[0]]=d[2]; });
+const POSE0={swing:0,boom:20,arm:-100,bkt:-60};
+const EX={
+  p:{...EX_DEF}, st:{x:0,z:0,h:0,trL:0,trR:0,...POSE0}, v:{swing:0,boom:0,arm:0,bkt:0,L:0,R:0},
+  keys:{}, model:null, cam:{yaw:-55,pitch:22,dist:16,ortho:false,off:[1.8,1.6,0],tgt:[0,1.6,0],view:'iso'}, ok:false,
+};
+try{ const s=JSON.parse(lsGet('ex.dims')||'null'); if(s) Object.assign(EX.p,s); }catch(e){}
+try{ const s=JSON.parse(lsGet('ex.pose')||'null'); if(s) Object.assign(EX.st,s); }catch(e){}
+try{ const s=JSON.parse(lsGet('ex.cam')||'null'); if(s) Object.assign(EX.cam,s); }catch(e){}
+
+/* ---------- 機構計算（旋回体ローカル・ブーム平面の 2D、mm） ---------- */
+function exKin(p,s){
+  const D=Math.PI/180, b=s.boom*D, a=s.arm*D, k=s.bkt*D;
+  const F=[p.bfX,p.bfY], T=P2.add(F,P2.rot([p.boomLen,0],b));
+  const B=P2.add(T,P2.rot([p.armLen,0],b+a)), tip=P2.add(B,P2.rot([p.bktLen,0],b+a+k));
+  const cb=[p.cbX,p.cbY], pb=P2.add(F,P2.rot([p.pbX,p.pbY],b));          // 旋回体座標
+  const pa=[p.paX,p.paY], at=P2.add([p.boomLen,0],P2.rot([p.atX,p.atY],a)); // ブーム座標
+  const ck=[p.ckX,p.ckY], p1=[p.p1X,p.p1Y], K=P2.add([p.armLen,0],P2.rot([p.kX,p.kY],k)); // アーム座標
+  const xs=circX(p1,p.l1,K,p.l2); const J=xs?(xs[0][1]>xs[1][1]?xs[0]:xs[1]):null;
+  return {F,T,B,tip,cb,pb,pa,at,ck,p1,K,J,
+    Lb:P2.len(P2.sub(pb,cb)), La:P2.len(P2.sub(at,pa)), Lk:J?P2.len(P2.sub(J,ck)):NaN};
+}
+// 可動範囲内のシリンダ長の最小・最大と、リンクが成立するバケット角範囲
+function exRanges(p){
+  const r={Lb:[1e9,0],La:[1e9,0],Lk:[1e9,0],bkt:[null,null]};
+  const s={...POSE0};
+  for(let v=p.boomMin;v<=p.boomMax+1e-9;v+=0.5){ s.boom=v; const L=exKin(p,s).Lb; r.Lb[0]=Math.min(r.Lb[0],L); r.Lb[1]=Math.max(r.Lb[1],L); }
+  for(let v=p.armMin;v<=p.armMax+1e-9;v+=0.5){ s.arm=v; const L=exKin(p,s).La; r.La[0]=Math.min(r.La[0],L); r.La[1]=Math.max(r.La[1],L); }
+  for(let v=p.bktMin;v<=p.bktMax+1e-9;v+=0.5){ s.bkt=v; const L=exKin(p,s).Lk; if(!isFinite(L)) continue;
+    if(r.bkt[0]===null) r.bkt[0]=v; r.bkt[1]=v; r.Lk[0]=Math.min(r.Lk[0],L); r.Lk[1]=Math.max(r.Lk[1],L); }
+  if(r.bkt[0]===null) r.bkt=[0,0];
+  return r;
+}
+
+/* ---------- モデル生成 ---------- */
+const COL={ body:[0.96,0.70,0.06], frame:[0.25,0.26,0.28], track:[0.20,0.20,0.21], steel:[0.50,0.52,0.55],
+  rod:[0.86,0.88,0.91], glass:[0.22,0.30,0.40], pin:[0.42,0.43,0.45], cw:[0.90,0.66,0.06] };
+function exBuild(){
+  const p=EX.p, M={}, R=p.trackH/2, a=Math.max(10,p.trackLen/2-R), W=p.shoeW;
+  if(EX.model) Object.values(EX.model.mesh).forEach(freeMesh);
+  // --- 下部走行体（片側、z=0 中心） ---
+  const gr=30, ts=55, Ri=R-gr-ts, rc=R-gr-ts/2;
+  const per=4*a+2*Math.PI*rc, Ns=Math.max(8,Math.round(per/200)), pitch=per/Ns;
+  M.shoe=new Geo().add(box(-pitch*0.46,pitch*0.46,-ts/2,ts/2,-W/2,W/2)).add(box(-14,14,ts/2,ts/2+gr,-W/2,W/2));
+  M.tframe=box(-a+R*0.2,a-R*0.2,R*0.48,R*1.48,-W*0.28,W*0.28);
+  M.idler=new Geo().add(cylZ(a,R,Ri-12,-W*0.3,W*0.3,36)).add(cylZ(a,R,Ri*0.45,-W*0.42,W*0.42,24));
+  const sp=[]; const Nt=21; for(let i=0;i<Nt*4;i++){ const ang=i/(Nt*4)*2*Math.PI, rr=(i%4<2)?Ri-4:Ri-55; sp.push([-a+rr*Math.cos(ang),R+rr*Math.sin(ang)]); }
+  M.sprocket=new Geo().add(extrude(sp,-W*0.22,W*0.22)).add(cylZ(-a,R,Ri*0.55,-W*0.45,W*0.45,24));
+  const rl=new Geo(), nr=Math.max(3,Math.round((2*a-R*1.4)/420)+1);
+  for(let i=0;i<nr;i++){ const x=-a+R*0.75+i*(2*a-R*1.5)/(nr-1); rl.add(cylZ(x,R-Ri+95,95,-W*0.26,W*0.26,20)); }
+  for(const x of [-a*0.35,a*0.35]) rl.add(cylZ(x,R+Ri-70,70,-W*0.2,W*0.2,18));
+  M.rollers=rl;
+  M.carbody=box(-a*0.5,a*0.5,R*0.75,p.trackH-20,-p.gauge/2+W*0.3,p.gauge/2-W*0.3);
+  M.ring=extrudeY(circ(0,0,Math.min(900,p.upperW*0.36),40),p.trackH-25,Math.max(p.trackH,p.swingH));
+  // --- 上部旋回体（旋回体ローカル、絶対座標） ---
+  const W2=p.upperW/2, y0=p.swingH, yd=y0+220, tR=Math.max(p.tailR,W2+50);
+  const cwD=Math.min(900,tR*0.35), xcw=-tR+cwD;
+  M.uframe=box(Math.max(xcw-300,-tR+200),p.upperFront-250,y0,yd,-W2+40,W2-40);
+  const cw=[]; for(let i=0;i<=24;i++){ const z=-W2+i/24*2*W2; cw.push([-Math.sqrt(tR*tR-z*z),z]); }
+  cw.push([xcw,W2],[xcw,-W2]);
+  M.cw=extrudeY(cw,y0+60,p.hoodH-40);
+  M.hood=box(xcw,-180,yd,p.hoodH,-W2+30,W2-10);
+  const zt=p.bfZ+p.boomW/2+280;
+  M.tank=zt<W2-100?box(-180,p.upperFront-120,yd,p.hoodH-120,zt,W2-10):new Geo();
+  const cr=-280, cf=p.upperFront, ch=p.cabTop-yd, cz0=-W2, cz1=-W2+p.cabW;
+  const cabP=[[cr,yd],[cf,yd],[cf,yd+ch*0.42],[cf-170,p.cabTop],[cr+40,p.cabTop]];
+  M.cab=extrude(cabP,cz0,cz1);
+  const win=[[cr+90,yd+ch*0.36],[cf-55,yd+ch*0.36],[cf-55,yd+ch*0.44],[cf-205,p.cabTop-70],[cr+110,p.cabTop-70]];
+  M.win=new Geo().add(extrude(win,cz0-10,cz0+3)).add(extrude(win,cz1-3,cz1+10));
+  const fw=[[0,0],[1,0],[1,1],[0,1]];
+  { // 前面ガラス（傾斜面に貼る）
+    const A=[cf,yd+ch*0.46], B=[cf-160,p.cabTop-60], d=P2.norm(P2.sub(B,A)), n=[d[1],-d[0]], L=P2.len(P2.sub(B,A));
+    const g=box(0,L,0,12,cz0+60,cz1-60); M.fglass=new Geo().add(g,M4.mul(M4.T(A[0]+n[0]*2,A[1]+n[1]*2,0),M4.RZ(P2.ang(d))));
+  }
+  M.exhaust=extrudeY(circ(-1100,W2-380,55,16),p.hoodH-10,p.hoodH+280);
+  const F=[p.bfX,p.bfY], cb=[p.cbX,p.cbY];
+  const zb=p.boomW/2, zc=zb+70+95;
+  M.fbr=pair(hullC([[F[0],F[1],170],[cb[0],cb[1],80],[F[0]-420,yd-20,0],[cb[0]+120,y0,0],[F[0]-420,y0,0]]),zb+12,zb+50);
+  M.cbr=pair(hullC([[cb[0],cb[1],115],[cb[0]-260,y0,0],[cb[0]+160,y0,0],[cb[0]-260,yd,0],[cb[0]+160,yd,0]]),zc-95-45,zc-95-8);
+  M.upins=new Geo().add(cylZ(F[0],F[1],75,-zb-70,zb+70,24)).add(cylZ(cb[0],cb[1],60,-zc-40,zc+40,20));
+  // --- ブーム（ブーム座標、z=0 がブーム中心面） ---
+  const L=p.boomLen, Kn=[L*p.kneeR,p.kneeH], hd0=p.boomD*0.36, hdk=p.boomD/2, hd1=p.boomD*0.33, T=[L,0], O=[0,0];
+  const d1=P2.norm(P2.sub(Kn,O)), d2=P2.norm(P2.sub(T,Kn)), n1=[-d1[1],d1[0]], n2=[-d2[1],d2[0]];
+  const nk=P2.norm(P2.add(n1,n2)), mk=hdk/Math.max(0.3,nk[0]*n1[0]+nk[1]*n1[1]);
+  const bp=[P2.sub(O,P2.mul(n1,hd0)),P2.sub(Kn,P2.mul(nk,mk)),P2.sub(T,P2.mul(n2,hd1))];
+  const al=P2.ang(n2); for(let i=1;i<12;i++){ const t=al-Math.PI+i/12*Math.PI; bp.push([T[0]+hd1*Math.cos(t),T[1]+hd1*Math.sin(t)]); }
+  bp.push(P2.add(T,P2.mul(n2,hd1)),P2.add(Kn,P2.mul(nk,mk)),P2.add(O,P2.mul(n1,hd0)));
+  const be=P2.ang(n1); for(let i=1;i<12;i++){ const t=be+i/12*Math.PI; bp.push([hd0*Math.cos(t),hd0*Math.sin(t)]); }
+  M.boom=extrude(bp,-zb,zb);
+  const pb=[p.pbX,p.pbY], pa=[p.paX,p.paY];
+  M.bbr=new Geo()
+    .add(pair(hullC([[pb[0],pb[1],105],[pb[0]-320,pb[1]+260,20],[pb[0]+320,pb[1]+260,20]]),zb-2,zb+35))
+    .add(pair(hullC([[pa[0],pa[1],110],[pa[0]-380,pa[1]-330,20],[pa[0]+300,pa[1]-330,20]]),105+20,105+55));
+  M.bpins=new Geo().add(cylZ(T[0],T[1],70,-zb-45,zb+45,24)).add(cylZ(pb[0],pb[1],58,-zc-40,zc+40,20)).add(cylZ(pa[0],pa[1],58,-170,170,20));
+  // --- アーム（アーム座標） ---
+  const La=p.armLen, za=p.armW/2, at=[p.atX,p.atY], ck=[p.ckX,p.ckY], p1=[p.p1X,p.p1Y];
+  M.arm=extrude(hullC([[at[0],at[1],135],[0,0,185],[ck[0],ck[1],120],[p1[0],p1[1],100],[La,0,135]],24),-za,za);
+  M.apins=new Geo().add(cylZ(0,0,72,-za-40,za+40,24)).add(cylZ(La,0,66,-za-90,za+90,24)).add(cylZ(p1[0],p1[1],56,-za-55,za+55,20))
+    .add(cylZ(at[0],at[1],58,-160,160,20)).add(cylZ(ck[0],ck[1],56,-140,140,20));
+  // --- リンク ---
+  M.slink=pair(hullC([[0,0,72],[p.l1,0,72]]),za+8,za+38);
+  M.hlink=pair(hullC([[0,0,78],[p.l2,0,78]]),za+52,za+84);
+  M.jpin=cylZ(0,0,55,-za-90,za+90,20);
+  // --- バケット（バケット座標：ピン原点、x=刃先方向） ---
+  const Lk=p.bktLen, Wb=p.bktW/2, s=v=>[v[0]*Lk,v[1]*Lk];
+  const shellC=[[0.93,0.0],[0.90,0.22],[0.76,0.43],[0.52,0.54],[0.28,0.50],[0.12,0.36]].map(s);
+  const outer=spline(shellC,8).concat([s([0.095,0.12]),s([0.125,-0.17])]);
+  const thk=Math.max(16,Lk*0.02);
+  M.shell=extrude(outer.concat(offsetLine(outer,thk).reverse()),-Wb+22,Wb-22);
+  M.side=pair(outer,Wb-22,Wb);
+  const nt=Math.max(3,Math.round(p.bktW/230)), teeth=new Geo(), tp=[[0.855,0.035],[0.855,-0.045],[1.0,-0.008],[1.0,0.006]].map(s);
+  for(let i=0;i<nt;i++){ const z=-Wb+60+i*(2*Wb-120)/(nt-1); teeth.add(extrude(tp,z-40,z+40)); }
+  M.teeth=teeth;
+  M.kbr=pair(hullC([[0,0,118],[p.kX,p.kY,95],[0.13*Lk,0.33*Lk,0],[0.11*Lk,-0.06*Lk,0]]),za+14,za+48);
+  M.kpin=cylZ(p.kX,p.kY,55,-za-90,za+90,20);
+  // --- 油圧シリンダ（+Z 方向に伸びる形状、長さは可動範囲から決定） ---
+  const rg=exRanges(p);
+  const cyl=(Lr,rt,rr)=>{ const Lmin=Lr[0], Lmax=Lr[1], Tl=Math.max(100,Lmin-60), Rl=Math.max(100,Math.min(Lmin-40,Lmax-Tl+150));
+    return { tube:new Geo().add(cylZ(0,0,rt,0,Tl,28)).add(cylZ(0,0,rt*1.13,Tl-90,Tl,28)).add(cylZ(0,0,rt*1.08,0,70,28)),
+             rod:new Geo().add(cylZ(0,0,rr,0,Rl,20)).add(cylZ(0,0,rr*1.35,0,40,20)) }; };
+  const cB=cyl(rg.Lb,95,58), cA=cyl(rg.La,105,66), cK=cyl(rg.Lk,88,55);
+  M.cBt=cB.tube; M.cBr=cB.rod; M.cAt=cA.tube; M.cAr=cA.rod; M.cKt=cK.tube; M.cKr=cK.rod;
+  const mesh={}; Object.entries(M).forEach(([k,g])=>{ if(g.p.length) mesh[k]=mkMesh(g); });
+  EX.model={mesh,rg,a,R,rc,per,Ns,pitch,zc};
+  exClampPose();
+}
+function exClampPose(){
+  const p=EX.p, s=EX.st, rg=EX.model.rg;
+  s.boom=Math.max(p.boomMin,Math.min(p.boomMax,s.boom));
+  s.arm=Math.max(p.armMin,Math.min(p.armMax,s.arm));
+  s.bkt=Math.max(rg.bkt[0],Math.min(rg.bkt[1],s.bkt));
+}
+function trackAt(sv){
+  const {a,R,rc,per}=EX.model; let s=((sv%per)+per)%per;
+  if(s<2*a) return [[-a+s,R-rc],0]; s-=2*a;
+  if(s<Math.PI*rc){ const t=-Math.PI/2+s/rc; return [[a+rc*Math.cos(t),R+rc*Math.sin(t)],t+Math.PI/2]; } s-=Math.PI*rc;
+  if(s<2*a) return [[a-s,R+rc],Math.PI]; s-=2*a;
+  const t=Math.PI/2+s/rc; return [[-a+rc*Math.cos(t),R+rc*Math.sin(t)],t+Math.PI/2];
+}
+function exItems(){
+  const p=EX.p, s=EX.st, md=EX.model, m=md.mesh, k=exKin(p,s), D=Math.PI/180;
+  const items=[]; let id=1;
+  const put=(name,mat,col)=>{ if(!m[name]) return; items.push({mesh:m[name],m:mat,col,id}); id=id%254+1; };
+  const root=M4.chain(M4.T(s.x,0,s.z),M4.RY(s.h*D),M4.S(0.001));
+  for(const side of [-1,1]){
+    const lw=M4.mul(root,M4.T(0,0,side*p.gauge/2)), tr=side<0?s.trL:s.trR;
+    put('tframe',lw,COL.frame); put('idler',lw,COL.steel); put('sprocket',lw,COL.frame); put('rollers',lw,COL.steel);
+    for(let i=0;i<md.Ns;i++){ const [q,ph]=trackAt(i*md.pitch-tr); put('shoe',M4.chain(lw,M4.T(q[0],q[1],0),M4.RZ(ph+Math.PI)),COL.track); }
+  }
+  put('carbody',root,COL.frame); put('ring',root,COL.steel);
+  const up=M4.mul(root,M4.RY(s.swing*D));
+  put('uframe',up,COL.frame); put('cw',up,COL.cw); put('hood',up,COL.body); put('tank',up,COL.body);
+  put('cab',up,COL.body); put('win',up,COL.glass); put('fglass',up,COL.glass); put('exhaust',up,COL.frame);
+  put('fbr',up,COL.body); put('cbr',up,COL.body); put('upins',up,COL.pin);
+  const bm=M4.chain(up,M4.T(k.F[0],k.F[1],p.bfZ),M4.RZ(s.boom*D));
+  put('boom',bm,COL.body); put('bbr',bm,COL.body); put('bpins',bm,COL.pin);
+  const am=M4.chain(bm,M4.T(p.boomLen,0,0),M4.RZ(s.arm*D));
+  put('arm',am,COL.body); put('apins',am,COL.pin);
+  const km=M4.chain(am,M4.T(p.armLen,0,0),M4.RZ(s.bkt*D));
+  put('shell',km,COL.body); put('side',km,COL.body); put('teeth',km,COL.frame); put('kbr',km,COL.body); put('kpin',km,COL.pin);
+  const cylPut=(fr,A,B,z,t,r)=>{ const an=Math.atan2(B[1]-A[1],B[0]-A[0]);
+    put(t,M4.chain(fr,M4.T(A[0],A[1],z),M4.RZ(an),M4.RY(Math.PI/2)),COL.body);
+    put(r,M4.chain(fr,M4.T(B[0],B[1],z),M4.RZ(an+Math.PI),M4.RY(Math.PI/2)),COL.rod); };
+  for(const sd of [-1,1]) cylPut(up,k.cb,k.pb,p.bfZ+sd*md.zc,'cBt','cBr');
+  cylPut(bm,k.pa,k.at,0,'cAt','cAr');
+  if(k.J){
+    cylPut(am,k.ck,k.J,0,'cKt','cKr');
+    put('slink',M4.chain(am,M4.T(k.p1[0],k.p1[1],0),M4.RZ(Math.atan2(k.J[1]-k.p1[1],k.J[0]-k.p1[0]))),COL.body);
+    put('hlink',M4.chain(am,M4.T(k.J[0],k.J[1],0),M4.RZ(Math.atan2(k.K[1]-k.J[1],k.K[0]-k.J[0]))),COL.body);
+    put('jpin',M4.chain(am,M4.T(k.J[0],k.J[1],0)),COL.pin);
+  }
+  return {items,k};
+}
+
+/* ---------- カメラ ---------- */
+const FOV=35*Math.PI/180;
+function camBasis(){
+  const c=EX.cam, D=Math.PI/180, Y=c.yaw*D, P=c.pitch*D, R=M4.RY(EX.follow?EX.st.h*D:0);
+  const e=M4.xd(R,Math.cos(P)*Math.cos(Y),Math.sin(P),Math.cos(P)*Math.sin(Y));
+  const u=M4.xd(R,-Math.sin(P)*Math.cos(Y),Math.cos(P),-Math.sin(P)*Math.sin(Y));
+  return {e,u,r:V3.cross(u,e)};
+}
+function camTarget(){
+  if(!EX.follow) return EX.cam.tgt;
+  const s=EX.st; return V3.add([s.x,0,s.z],M4.xd(M4.RY(s.h*Math.PI/180),...EX.cam.off));
+}
+function setTarget(t){
+  if(!EX.follow){ EX.cam.tgt=t; return; }
+  const s=EX.st; EX.cam.off=M4.xd(M4.RY(-s.h*Math.PI/180),...V3.sub(t,[s.x,0,s.z]));
+}
+function camMake(w,h){
+  const c=EX.cam, {e,u}=camBasis(), t=camTarget(), asp=w/h, halfH=c.dist*Math.tan(FOV/2);
+  if(c.ortho){
+    const ed=c.dist+60, eye=V3.add(t,V3.mul(e,ed));
+    return {V:M4.lookAt(eye,t,u),P:M4.ortho(-halfH*asp,halfH*asp,-halfH,halfH,0.1,ed+80),ortho:true,near:0.1,far:ed+80,halfH,fov:FOV};
+  }
+  const eye=V3.add(t,V3.mul(e,c.dist)), near=Math.max(0.05,c.dist*0.02), far=c.dist*20+200;
+  return {V:M4.lookAt(eye,t,u),P:M4.persp(FOV,asp,near,far),ortho:false,near,far,halfH,fov:FOV};
+}
+function exKeyPoints(){
+  const p=EX.p, s=EX.st, k=exKin(p,s), D=Math.PI/180, pts=[];
+  const root=M4.mul(M4.T(s.x,0,s.z),M4.RY(s.h*D)), up=M4.mul(root,M4.RY(s.swing*D));
+  const hx=p.trackLen/2, hz=p.gauge/2+p.shoeW/2;
+  for(const x of [-hx,hx]) for(const z of [-hz,hz]) for(const y of [0,p.trackH]) pts.push(M4.xp(root,x/1000,y/1000,z/1000));
+  const W2=p.upperW/2;
+  for(const x of [-p.tailR,p.upperFront]) for(const z of [-W2,W2]) for(const y of [p.swingH,Math.max(p.cabTop,p.hoodH)]) pts.push(M4.xp(up,x/1000,y/1000,z/1000));
+  for(const q of [k.F,k.T,k.B,k.tip,P2.add(k.T,P2.rot([0,p.boomD/2],(s.boom+s.arm)*D))])
+    for(const z of [-p.bktW/2,p.bktW/2]) pts.push(M4.xp(up,q[0]/1000,q[1]/1000,(p.bfZ+z)/1000));
+  return pts;
+}
+function exFit(){
+  const cv=$('ex-canvas'), asp=Math.max(0.2,cv.clientWidth/Math.max(1,cv.clientHeight));
+  const pts=exKeyPoints(), {e,u,r}=camBasis();
+  const c0=[0,1,2].map(i=>(Math.min(...pts.map(q=>q[i]))+Math.max(...pts.map(q=>q[i])))/2);
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9,z0=1e9,z1=-1e9;
+  pts.forEach(q=>{ const d=V3.sub(q,c0), x=V3.dot(d,r), y=V3.dot(d,u), z=V3.dot(d,e);
+    x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y);z0=Math.min(z0,z);z1=Math.max(z1,z); });
+  const t=V3.add(c0,V3.add(V3.mul(r,(x0+x1)/2),V3.mul(u,(y0+y1)/2)));
+  const halfH=Math.max((y1-y0)/2,(x1-x0)/2/asp)*1.3;
+  EX.cam.dist=halfH/Math.tan(FOV/2)+(EX.cam.ortho?0:(z1-z0)/2);
+  setTarget(t); saveCam();
+}
+const VIEWS={ iso:{yaw:-55,pitch:22,ortho:false}, left:{yaw:-90,pitch:0,ortho:true}, right:{yaw:90,pitch:0,ortho:true},
+  front:{yaw:0,pitch:0,ortho:true}, back:{yaw:180,pitch:0,ortho:true}, top:{yaw:-90,pitch:89.99,ortho:true} };
+function setView(v){
+  if(v!=='fit'){ Object.assign(EX.cam,VIEWS[v]); EX.cam.view=v; $('ex-proj').value=EX.cam.ortho?'ortho':'persp'; }
+  exFit(); exViewBtns();
+}
+function exViewBtns(){ document.querySelectorAll('#ex-views [data-view]').forEach(b=>b.classList.toggle('on',b.dataset.view===EX.cam.view)); }
+function saveCam(){ lsSet('ex.cam',JSON.stringify(EX.cam)); }
+
+/* ---------- 表示設定 ---------- */
+function exOpts(w,h,pr){
+  const mode=$('ex-mode').value, bg=$('ex-bg').value;
+  const o={w,h,grid:$('ex-grid').checked};
+  o.ss = (w*h*4<=17e6 && w*2<=RD.maxTex && h*2<=RD.maxTex && pr<2) ? 2 : 1;
+  const lw=Math.max(0.5,Math.min(4,num('ex-lw')||1.25));
+  o.r=Math.max(1,Math.round(lw*pr*o.ss/2));
+  o.fill=null; o.line=null;
+  if(mode==='colorline') o.line=[0.08,0.08,0.1];
+  else if(mode==='line'){ o.fill=[1,1,1]; o.line=[0,0,0]; }
+  else if(mode==='gray'){ o.fill=[0.80,0.81,0.83]; o.line=[0,0,0]; }
+  else if(mode==='black'){ o.fill=[0,0,0]; }
+  else if(mode==='blackw'){ o.fill=[0,0,0]; o.line=[1,1,1]; }
+  o.bg= bg==='white'?[1,1,1,1] : bg==='trans'?[0,0,0,0] : [0.80,0.83,0.87,1];
+  const dark=mode==='color'||mode==='colorline';
+  o.gridCol= dark?[[0.66,0.70,0.75,1],[0.50,0.54,0.60,1]] : [[0.82,0.82,0.82,1],[0.62,0.62,0.62,1]];
+  if(bg==='trans') o.gridCol=[[0.6,0.6,0.6,1],[0.4,0.4,0.4,1]];
+  $('ex-main').style.background= bg==='trans' ? 'repeating-conic-gradient(#ddd 0 25%,#fff 0 50%) 0 0/20px 20px' : '';
+  return o;
+}
+function exDraw(w,h,pr){
+  const cv=$('ex-canvas');
+  if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; }
+  const {items,k}=exItems(), cam=camMake(w,h);
+  rdRender(items,cam,exOpts(w,h,pr));
+  return k;
+}
+
+/* ---------- 更新・入力 ---------- */
+const EXKEYS=['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyQ','KeyZ','KeyE','KeyC'];
+const vkeys={};
+function exUpdate(dt){
+  const kb=EX.keys, K=c=>(kb[c]||vkeys[c])?1:0, sp=Math.max(0.05,num('ex-speed')||1);
+  const tg={swing:(K('KeyA')-K('KeyD'))*36, arm:(K('KeyW')-K('KeyS'))*26, boom:(K('ArrowDown')-K('ArrowUp'))*22,
+    bkt:(K('ArrowRight')-K('ArrowLeft'))*42, L:(K('KeyQ')-K('KeyZ'))*1200, R:(K('KeyE')-K('KeyC'))*1200};
+  const s=EX.st, v=EX.v, p=EX.p, a=Math.min(1,dt*7);
+  let moved=false;
+  for(const j in tg){ v[j]+=(tg[j]*sp-v[j])*a; if(Math.abs(v[j])<1e-3&&!tg[j]) v[j]=0; if(v[j]) moved=true; }
+  if(!moved) return false;
+  s.swing=((s.swing+v.swing*dt+540)%360)-180;
+  s.boom=Math.max(p.boomMin,Math.min(p.boomMax,s.boom+v.boom*dt));
+  s.arm=Math.max(p.armMin,Math.min(p.armMax,s.arm+v.arm*dt));
+  const rb=EX.model.rg.bkt; s.bkt=Math.max(rb[0],Math.min(rb[1],s.bkt+v.bkt*dt));
+  s.trL+=v.L*dt; s.trR+=v.R*dt;
+  const fwd=(v.L+v.R)/2, w=(v.R-v.L)/p.gauge, h=s.h*Math.PI/180;
+  s.x+=Math.cos(h)*fwd*dt/1000; s.z+=-Math.sin(h)*fwd*dt/1000; s.h+=w*dt*180/Math.PI;
+  return true;
+}
+function exHud(k){
+  const p=EX.p, s=EX.st, rg=EX.model.rg, f=v=>fmt(v,1), m=v=>fmt(v/1000,2);
+  const cy=(n,L,r)=>`${n} ${fmt(L,0).padStart(6)} mm（${fmt(r[0],0)}〜${fmt(r[1],0)}、ストローク ${fmt(r[1]-r[0],0)}）`;
+  $('ex-hud').textContent=
+`バケット刃先  高さ ${m(k.tip[1])} m  旋回中心から ${m(k.tip[0])} m
+アーム先端ピン 高さ ${m(k.B[1])} m  旋回中心から ${m(k.B[0])} m
+旋回 ${f(s.swing)}°  ブーム ${f(s.boom)}°  アーム ${f(s.arm)}°  バケット ${f(s.bkt)}°
+シリンダ長（ピン間）
+${cy(' ブーム  ',k.Lb,rg.Lb)}
+${cy(' アーム  ',k.La,rg.La)}
+${k.J?cy(' バケット',k.Lk,rg.Lk):' バケット  リンク不成立'}
+機体位置 X ${m(s.x*1000)} m  Z ${m(s.z*1000)} m  向き ${f(((s.h%360)+540)%360-180)}°`;
+}
+let exPoseTimer=0;
+function exPoseSync(){
+  document.querySelectorAll('#ex-pose input').forEach(el=>{ if(document.activeElement!==el) el.value=(+EX.st[el.dataset.k]).toFixed(1); });
+}
+let exLast=0, exDirty=true;
+function exFrame(t){
+  requestAnimationFrame(exFrame);
+  const dt=Math.min(0.05,Math.max(0,(t-exLast)/1000)); exLast=t;
+  if(currentTab!=='ex'||!EX.ok) return;
+  const moved=exUpdate(dt);
+  document.querySelectorAll('[data-key]').forEach(b=>b.classList.toggle('act',!!(EX.keys[b.dataset.key]||vkeys[b.dataset.key])));
+  if(!moved&&!exDirty) return;
+  exDirty=false;
+  const cv=$('ex-canvas'), pr=window.devicePixelRatio||1;
+  const k=exDraw(Math.max(1,Math.round(cv.clientWidth*pr)),Math.max(1,Math.round(cv.clientHeight*pr)),pr);
+  exHud(k);
+  if(moved){ exPoseSync(); clearTimeout(exPoseTimer); exPoseTimer=setTimeout(()=>lsSet('ex.pose',JSON.stringify(EX.st)),400); }
+}
+const redraw=()=>{ exDirty=true; };
+
+function exPng(){
+  const cv=$('ex-canvas'), sc=+$('ex-scale').value||1;
+  let w=Math.round(cv.clientWidth*sc), h=Math.round(cv.clientHeight*sc);
+  const lim=Math.min(RD.maxTex,8192); if(w>lim||h>lim){ const f=lim/Math.max(w,h); w=Math.floor(w*f); h=Math.floor(h*f); }
+  exDraw(w,h,sc);
+  const url=cv.toDataURL('image/png');
+  redraw();
+  const vn=EX.cam.view||'view';
+  const bin=atob(url.split(',')[1]), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+  download(`excavator_${vn}_${$('ex-mode').value}_${stamp()}.png`,new Blob([u8],{type:'image/png'}));
+}
+
+/* ---------- UI 構築 ---------- */
+function exBuildForms(){
+  let h='', open=false;
+  EX_DIMS.forEach(d=>{
+    if(d[0]==='#'){ h+=`<div class="full"><h4>${d[1]}</h4></div>`; return; }
+    if(d[0]==='+'){ h+=`<details class="full"><summary>${d[1]}</summary><p class="note">ブーム座標：フートピン原点、x＝トップピン方向、y＝それに直角上向き。アーム座標・バケット座標も同様（原点＝根元ピン、x＝先端ピン／刃先方向）。</p><div class="form" style="grid-template-columns:1fr 90px auto">`; open=true; return; }
+    h+=`<label for="exd-${d[0]}">${d[1]}</label><input type="number" step="any" id="exd-${d[0]}" value="${EX.p[d[0]]}"><span class="u">${d[3]||'mm'}</span>`;
+  });
+  if(open) h+='</div></details>';
+  $('ex-dims').innerHTML=h;
+  $('ex-pose').innerHTML=[['swing','旋回'],['boom','ブーム角'],['arm','アーム角'],['bkt','バケット角']]
+    .map(([k,n])=>`<label>${n}</label><input type="number" step="1" data-k="${k}" value="${EX.st[k]}"><span class="u">°</span>`).join('');
+  $('ex-pose').addEventListener('change',e=>{
+    const k=e.target.dataset.k, v=parseFloat(e.target.value); if(!k||!isFinite(v)) return;
+    EX.st[k]=v; exClampPose(); exPoseSync(); lsSet('ex.pose',JSON.stringify(EX.st)); redraw();
+  });
+}
+function exReadDims(){
+  const np={...EX.p};
+  for(const k in EX_DEF){ const v=parseFloat($('exd-'+k).value); if(isFinite(v)) np[k]=v; }
+  return np;
+}
+function exApply(np){
+  const bad=['trackLen','gauge','shoeW','trackH','tailR','upperW','boomLen','boomW','boomD','armLen','armW','bktLen','bktW','l1','l2'].filter(k=>!(np[k]>0));
+  if(bad.length){ alert('正の値を入力してください：'+bad.join(', ')); return; }
+  if(np.boomMin>=np.boomMax||np.armMin>=np.armMax||np.bktMin>=np.bktMax){ alert('可動範囲の最小・最大を確認してください'); return; }
+  EX.p=np; lsSet('ex.dims',JSON.stringify(np));
+  exBuild(); exBuildForms(); redraw();
+}
+function exInit(){
+  exBuildForms();
+  EX.follow=$('ex-follow').checked;
+  $('ex-proj').value=EX.cam.ortho?'ortho':'persp';
+  const cv=$('ex-canvas');
+  try{ if(!rdInit(cv)) throw new Error('no webgl2'); exBuild(); EX.ok=true; }
+  catch(err){ console.error(err); $('ex-err').style.display='flex'; $('ex-err').textContent='3D 表示を初期化できませんでした：'+(err.message||err); return; }
+  exViewBtns();
+  // マウス操作
+  let drag=null;
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  cv.addEventListener('pointerdown',e=>{
+    if(document.activeElement&&document.activeElement!==cv) document.activeElement.blur();
+    cv.focus({preventScroll:true});
+    drag={x:e.clientX,y:e.clientY,pan:e.button!==0||e.shiftKey}; cv.setPointerCapture(e.pointerId);
+  });
+  cv.addEventListener('pointermove',e=>{
+    if(!drag) return; const dx=e.clientX-drag.x, dy=e.clientY-drag.y; drag.x=e.clientX; drag.y=e.clientY;
+    const c=EX.cam;
+    if(drag.pan){
+      const {u,r}=camBasis(), k=2*c.dist*Math.tan(FOV/2)/Math.max(1,cv.clientHeight);
+      setTarget(V3.add(camTarget(),V3.add(V3.mul(r,-dx*k),V3.mul(u,dy*k))));
+    }else{
+      c.yaw=(c.yaw-dx*0.35+540)%360-180; c.pitch=Math.max(-89.99,Math.min(89.99,c.pitch+dy*0.35)); c.view=''; exViewBtns();
+    }
+    redraw();
+  });
+  const endDrag=()=>{ if(drag){ drag=null; saveCam(); } };
+  cv.addEventListener('pointerup',endDrag); cv.addEventListener('pointercancel',endDrag);
+  cv.addEventListener('wheel',e=>{ e.preventDefault(); EX.cam.dist=Math.max(0.5,Math.min(400,EX.cam.dist*Math.exp(e.deltaY*0.0012))); saveCam(); redraw(); },{passive:false});
+  cv.addEventListener('dblclick',()=>{ exFit(); redraw(); });
+  // キーボード
+  window.addEventListener('keydown',e=>{
+    if(currentTab!=='ex'||!EXKEYS.includes(e.code)) return;
+    const t=e.target; if(t&&t!==cv&&/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)&&t.type!=='checkbox'&&t.type!=='range') return;
+    EX.keys[e.code]=true; e.preventDefault();
+  });
+  window.addEventListener('keyup',e=>{ if(EX.keys[e.code]){ EX.keys[e.code]=false; e.preventDefault(); } });
+  window.addEventListener('blur',()=>{ EX.keys={}; for(const k in vkeys) vkeys[k]=false; });
+  // 画面ボタン
+  document.querySelectorAll('[data-key]').forEach(b=>{
+    const on=e=>{ e.preventDefault(); vkeys[b.dataset.key]=true; b.setPointerCapture&&b.setPointerCapture(e.pointerId); };
+    const off=()=>{ vkeys[b.dataset.key]=false; };
+    b.addEventListener('pointerdown',on); b.addEventListener('pointerup',off); b.addEventListener('pointercancel',off); b.addEventListener('lostpointercapture',off);
+  });
+  document.querySelectorAll('#ex-views [data-view]').forEach(b=>b.addEventListener('click',()=>{ setView(b.dataset.view); redraw(); }));
+  $('ex-proj').addEventListener('change',()=>{ EX.cam.ortho=$('ex-proj').value==='ortho'; saveCam(); redraw(); });
+  ['ex-mode','ex-lw','ex-bg','ex-grid'].forEach(id=>{ $(id).addEventListener('change',redraw); $(id).addEventListener('input',redraw); });
+  $('ex-follow').addEventListener('change',()=>{ const t=camTarget(); EX.follow=$('ex-follow').checked; setTarget(t); saveCam(); redraw(); });
+  $('ex-png').addEventListener('click',exPng);
+  $('ex-apply').addEventListener('click',()=>exApply(exReadDims()));
+  $('ex-dimreset').addEventListener('click',()=>{ if(confirm('寸法を初期値に戻しますか？')) exApply({...EX_DEF}); });
+  $('ex-posereset').addEventListener('click',()=>{ Object.assign(EX.st,POSE0); exClampPose(); exPoseSync(); lsSet('ex.pose',JSON.stringify(EX.st)); redraw(); });
+  $('ex-posrst').addEventListener('click',()=>{ Object.assign(EX.st,{x:0,z:0,h:0}); lsSet('ex.pose',JSON.stringify(EX.st)); redraw(); });
+  $('ex-export').addEventListener('click',()=>{
+    const j={type:'multitool-excavator',version:1,dims:EX.p,pose:{swing:EX.st.swing,boom:EX.st.boom,arm:EX.st.arm,bkt:EX.st.bkt}};
+    download('excavator_settings_'+stamp()+'.json',new Blob([JSON.stringify(j,null,1)],{type:'application/json'}));
+  });
+  $('ex-import').addEventListener('change',async e=>{
+    const f=e.target.files[0]; if(!f) return; e.target.value='';
+    try{ const j=JSON.parse(await f.text()); if(!j.dims) throw new Error('dims がありません');
+      if(j.pose) Object.assign(EX.st,j.pose); exApply({...EX_DEF,...j.dims}); exPoseSync(); }
+    catch(err){ alert('読込に失敗しました：'+err.message); }
+  });
+  new ResizeObserver(redraw).observe($('ex-main'));
+  requestAnimationFrame(exFrame);
+}
+tabHooks.ex=()=>{ redraw(); if(EX.ok) $('ex-canvas').focus({preventScroll:true}); };
+
+/* ---------- 起動 ---------- */
+exInit();
+showTab(lsGet('tab')||'cyl');
+</script>
+</body>
+</html>

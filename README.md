@@ -12,6 +12,7 @@
 └── tools/
     ├── html-editor/            HTML コードエディタ（PC 向け）
     │   └── lib/                CodeMirror ライブラリ
+    ├── multi-tool/             自分用マルチツール（PC 向け、HTML 単体）
     └── ios/                    iPhone 向けツール
         ├── iphone-fft/         FFT解析
         ├── iphone-angle/       方位・水準器
