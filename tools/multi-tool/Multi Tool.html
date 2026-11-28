@@ -2151,7 +2151,7 @@ function exInit(){
     const c=EX.cam;
     if(drag.pan){ const {u,r}=camBasis(), k=2*c.dist*Math.tan(FOV/2)/Math.max(1,cv.clientHeight);
       setTarget(V3.add(camTarget(),V3.add(V3.mul(r,-dx*k),V3.mul(u,dy*k)))); }
-    else { c.yaw=(c.yaw-dx*0.35+540)%360-180; c.pitch=clamp(c.pitch+dy*0.35,-89.99,89.99); c.view=''; exViewBtns(); }
+    else { c.yaw=(c.yaw+dx*0.35+540)%360-180; c.pitch=clamp(c.pitch+dy*0.35,-89.99,89.99); c.view=''; exViewBtns(); }
     redraw();
   });
   const endDrag=()=>{ if(drag){ drag=null; saveCam(); } };
