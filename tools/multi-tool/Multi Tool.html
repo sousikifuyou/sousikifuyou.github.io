@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Multi Tool_R0.1</title>
+<title>Multi Tool_R0.2</title>
 <style>
 :root{
   --bg:#eef1f5; --panel:#fff; --text:#1d2430; --muted:#6a7687; --line:#d5dbe3;
@@ -57,13 +57,14 @@ details>summary{cursor:pointer;color:#334;font-weight:600;margin:6px 0}
 /* ===== 3D 建機 ===== */
 #ex-side{width:330px;flex:0 0 330px;overflow:auto;background:#f7f9fb;border-right:1px solid var(--line);padding:10px}
 #ex-side .card{padding:10px;margin-bottom:10px}
-#ex-side .form{grid-template-columns:1fr 90px auto}
+#ex-side .form{grid-template-columns:1fr 120px auto}
+#ex-side .form label.full{white-space:normal}
 #ex-main{flex:1;position:relative;min-width:0;overflow:hidden;background:#cfd6df}
 #ex-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;outline:none}
 #ex-hud{position:absolute;left:8px;top:8px;background:rgba(255,255,255,.88);border:1px solid #c5cdd8;border-radius:6px;padding:6px 8px;font:12px/1.5 ui-monospace,Consolas,monospace;pointer-events:none;white-space:pre}
 #ex-views{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:4px}
 #ex-views .btn{background:rgba(255,255,255,.92);font-size:12px;padding:3px 8px}
-#ex-pads{position:absolute;left:0;right:0;bottom:8px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 10px;pointer-events:none}
+#ex-pads{position:absolute;left:0;right:0;bottom:8px;display:flex;justify-content:space-between;gap:8px;align-items:flex-end;padding:0 10px;pointer-events:none}
 .pad{pointer-events:auto;display:grid;grid-template-columns:repeat(3,58px);grid-template-rows:repeat(3,42px);gap:3px;background:rgba(255,255,255,.55);padding:5px;border-radius:8px}
 .pad button,.crawl button{border:1px solid #8b97a8;background:rgba(255,255,255,.92);border-radius:5px;font-size:11px;line-height:1.15;padding:0;user-select:none;touch-action:none}
 .pad button.act,.crawl button.act{background:#ffd34d;border-color:#b58a00}
@@ -82,12 +83,12 @@ details>summary{cursor:pointer;color:#334;font-weight:600;margin:6px 0}
 </head>
 <body>
 <header>
-  <h1>Multi Tool<small>R0.1</small></h1>
+  <h1>Multi Tool<small>R0.2</small></h1>
   <nav class="tabs" id="tabs">
     <button data-tab="cyl">油圧シリンダ推力</button>
     <button data-tab="eng">エンジン音 周波数</button>
     <button data-tab="fft">FFT解析（試作）</button>
-    <button data-tab="ex">3D 油圧ショベル</button>
+    <button data-tab="ex">3D 建機</button>
   </nav>
   <div class="sp"></div>
   <a href="../../index.html">トップへ</a>
@@ -226,21 +227,32 @@ details>summary{cursor:pointer;color:#334;font-weight:600;margin:6px 0}
  </div>
 </section>
 
-<!-- ================= 3D 油圧ショベル ================= -->
+<!-- ================= 3D 建機 ================= -->
 <section class="panel" id="tab-ex">
  <div id="ex-side">
   <div class="card">
-   <h3>操作</h3>
-   <div class="note" style="line-height:1.7">
-    操作パターン：ISO（JIS）<br>
-    左レバー <span class="kbd">W</span>アーム出し <span class="kbd">S</span>アーム引き <span class="kbd">A</span>左旋回 <span class="kbd">D</span>右旋回<br>
-    右レバー <span class="kbd">↑</span>ブーム下げ <span class="kbd">↓</span>ブーム上げ <span class="kbd">←</span>バケット掘削 <span class="kbd">→</span>バケットダンプ<br>
-    走行 <span class="kbd">Q</span>/<span class="kbd">Z</span>左 前進/後進 <span class="kbd">E</span>/<span class="kbd">C</span>右 前進/後進<br>
-    マウス：左ドラッグ 回転／右ドラッグ・Shift+ドラッグ 移動／ホイール 拡大縮小／ダブルクリック 全体表示
-   </div>
-   <div class="form" style="margin-top:6px">
+   <h3>機種・操作</h3>
+   <div class="form">
+    <label>機種</label><select id="ex-mach" data-persist><option value="ex">油圧ショベル</option><option value="wl">ホイールローダ</option></select><span></span>
     <label>操作速度</label><input id="ex-speed" type="number" step="0.1" min="0.1" value="1" data-persist><span class="u">倍</span>
+    <label class="full"><input type="checkbox" id="ex-jack" data-persist> フロントが地面に当たったら機械をジャッキアップする</label>
    </div>
+   <div class="note" id="ex-help" style="line-height:1.7;margin-top:6px"></div>
+   <div class="note" style="line-height:1.7">マウス：左ドラッグ 回転／右ドラッグ・Shift+ドラッグ 移動／ホイール 拡大縮小／ダブルクリック 全体表示</div>
+  </div>
+  <div class="card" id="ex-attcard">
+   <h3>アタッチメント</h3>
+   <div class="form">
+    <label>装着</label><select id="ex-att"><option value="bucket">バケット</option><option value="breaker">ブレーカ</option><option value="crusher">破砕機</option></select><span></span>
+    <label class="full"><input type="checkbox" id="ex-hitch"> クイックヒッチを使用</label>
+   </div>
+   <div class="row" style="margin-top:6px">
+    <button class="btn" id="ex-detach">取り外して地面に置く</button>
+    <button class="btn" id="ex-attach">近くのATTを取り付け</button>
+    <button class="btn" id="ex-clearpark">置いたATTを消去</button>
+   </div>
+   <div class="note" id="ex-attmsg" style="color:#0b3d91;margin-top:4px"></div>
+   <p class="note">「装着」を切り替えると即座に交換します。取り外し・取り付けはクイックヒッチ使用時のみで、取り付けはヒッチのピンを地面のアタッチメントのピンに 0.25 m 以内まで近づけてから押してください。</p>
   </div>
   <div class="card">
    <h3>姿勢（数値指定）</h3>
@@ -249,7 +261,7 @@ details>summary{cursor:pointer;color:#334;font-weight:600;margin:6px 0}
     <button class="btn" id="ex-posereset">初期姿勢</button>
     <button class="btn" id="ex-posrst">位置・向きをリセット</button>
    </div>
-   <p class="note">ブーム角：フートピン→トップピンを結ぶ線の水平からの角度。アーム角・バケット角：一つ前のリンクの延長線からの相対角（＋がアーム出し／ダンプ側）。</p>
+   <p class="note" id="ex-posenote"></p>
   </div>
   <div class="card">
    <h3>表示・画像保存</h3>
@@ -263,6 +275,7 @@ details>summary{cursor:pointer;color:#334;font-weight:600;margin:6px 0}
      <option value="black">黒塗り（シルエット）</option>
      <option value="blackw">黒塗り＋白線</option>
     </select><span></span>
+    <label>機体色</label><input type="color" id="ex-color" value="#f5b30f" data-persist style="width:100%;height:28px;padding:1px"><span></span>
     <label>線幅</label><input id="ex-lw" type="number" step="0.25" min="0.5" max="4" value="1.25" data-persist><span class="u">px</span>
     <label>背景</label>
     <select id="ex-bg" data-persist><option value="sky">グレー</option><option value="white">白</option><option value="trans">透明（PNG）</option></select><span></span>
@@ -287,7 +300,7 @@ details>summary{cursor:pointer;color:#334;font-weight:600;margin:6px 0}
     <button class="btn" id="ex-export">設定をJSON保存</button>
     <label class="btn" style="display:inline-block">JSON読込<input type="file" id="ex-import" accept=".json,application/json" style="display:none"></label>
    </div>
-   <p class="note">寸法は入力後「寸法を反映」で 3D モデルを再生成します（ブラウザに自動保存）。初期値は 20t クラス相当のおおよその値です。</p>
+   <p class="note" id="ex-dimnote"></p>
   </div>
  </div>
  <div id="ex-main">
@@ -302,27 +315,7 @@ details>summary{cursor:pointer;color:#334;font-weight:600;margin:6px 0}
    <button class="btn" data-view="top">上面</button>
    <button class="btn" data-view="fit">全体表示</button>
   </div>
-  <div id="ex-pads">
-   <div class="pad">
-    <button style="grid-column:2;grid-row:1" data-key="KeyW">W<br>アーム出し</button>
-    <button style="grid-column:1;grid-row:2" data-key="KeyA">A<br>左旋回</button>
-    <div class="ttl">左<br>レバー</div>
-    <button style="grid-column:3;grid-row:2" data-key="KeyD">D<br>右旋回</button>
-    <button style="grid-column:2;grid-row:3" data-key="KeyS">S<br>アーム引き</button>
-   </div>
-   <div class="crawl">
-    <div class="ttl">走行（左 / 右）</div>
-    <button data-key="KeyQ">Q<br>左 前進</button><button data-key="KeyE">E<br>右 前進</button>
-    <button data-key="KeyZ">Z<br>左 後進</button><button data-key="KeyC">C<br>右 後進</button>
-   </div>
-   <div class="pad">
-    <button style="grid-column:2;grid-row:1" data-key="ArrowUp">↑<br>ブーム下げ</button>
-    <button style="grid-column:1;grid-row:2" data-key="ArrowLeft">←<br>バケット掘削</button>
-    <div class="ttl">右<br>レバー</div>
-    <button style="grid-column:3;grid-row:2" data-key="ArrowRight">→<br>バケットダンプ</button>
-    <button style="grid-column:2;grid-row:3" data-key="ArrowDown">↓<br>ブーム上げ</button>
-   </div>
-  </div>
+  <div id="ex-pads"></div>
   <div id="ex-err">WebGL2 が利用できないため 3D 表示できません。</div>
  </div>
 </section>
@@ -964,7 +957,7 @@ tabHooks.fft=()=>{ drawWave(); if(FF.spec){ drawSpec(); drawGram(); peakTable();
 <script>
 'use strict';
 /* ==================================================================
-   3D 油圧ショベル
+   3D 建機（共通：行列・形状・描画）
    座標系：X=機体前方、Y=上、Z=機体右。内部寸法は mm、描画は m。
    ================================================================== */
 
@@ -1237,7 +1230,109 @@ function rdRender(items,cam,o){
   gl.activeTexture(gl.TEXTURE0);
 }
 
-/* ---------- 寸法定義 ---------- */
+/* ---------- 追加の形状ヘルパ ---------- */
+// Z 軸まわりの回転体（prof: [[r,z],...]）
+function lathe(prof,seg=32){
+  const g=new Geo();
+  for(let i=0;i<prof.length-1;i++){
+    const [r0,z0]=prof[i],[r1,z1]=prof[i+1], dr=r1-r0, dz=z1-z0, l=Math.hypot(dr,dz)||1, nr=dz/l, nz=-dr/l;
+    for(let j=0;j<seg;j++){
+      const a0=j/seg*2*Math.PI, a1=(j+1)/seg*2*Math.PI, c0=Math.cos(a0),s0=Math.sin(a0),c1=Math.cos(a1),s1=Math.sin(a1);
+      const n0=[nr*c0,nr*s0,nz], n1=[nr*c1,nr*s1,nz];
+      g.v([r0*c0,r0*s0,z0],n0); g.v([r1*c0,r1*s0,z1],n0); g.v([r1*c1,r1*s1,z1],n1);
+      g.v([r0*c0,r0*s0,z0],n0); g.v([r1*c1,r1*s1,z1],n1); g.v([r0*c1,r0*s1,z0],n1);
+    }
+  }
+  return g;
+}
+const RY90=M4.RY(Math.PI/2);                       // +Z → +X
+const latheX=(prof,seg)=>new Geo().add(lathe(prof,seg),RY90);
+// XZ 多角形 A(高さ yA) と B(高さ yB) をつなぐ（頂点数は同じ）
+function loftY(A,yA,B,yB,capA=true,capB=true){
+  const g=new Geo(), n=A.length;
+  for(let i=0;i<n;i++){ const j=(i+1)%n;
+    const a=[A[i][0],yA,A[i][1]], b=[A[j][0],yA,A[j][1]], c=[B[j][0],yB,B[j][1]], d=[B[i][0],yB,B[i][1]];
+    const nn=V3.norm(V3.cross(V3.sub(b,a),V3.sub(d,a)));
+    g.v(a,nn); g.v(b,nn); g.v(c,nn); g.v(a,nn); g.v(c,nn); g.v(d,nn);
+  }
+  const cap=(P,y,ny)=>{ const Q=ccw(P), T=triangulate(Q); for(const t of T){ const q=Q[t]; g.v([q[0],y,q[1]],[0,ny,0]); } };
+  if(capA) cap(A,yA,-1); if(capB) cap(B,yB,1);
+  return g;
+}
+const rectXZ=(x0,x1,z0,z1)=>[[x0,z0],[x1,z0],[x1,z1],[x0,z1]];
+// 上面の縁を面取りした箱（Y 方向）
+const chamBox=(x0,x1,y0,y1,z0,z1,c)=>new Geo().add(extrudeY(rectXZ(x0,x1,z0,z1),y0,y1-c)).add(loftY(rectXZ(x0,x1,z0,z1),y1-c,rectXZ(x0+c,x1-c,z0+c,z1-c),y1,false,true));
+// YZ 断面（[[z,y],...]）を X 方向に押し出し
+const extrudeX=(polyZY,x0,x1)=>new Geo().add(extrude(polyZY.map(([z,y])=>[-z,y]),x0,x1),RY90);
+function alignZ(a,b){
+  const d=V3.sub(b,a), L=Math.hypot(d[0],d[1],d[2])||1, z=V3.mul(d,1/L);
+  const up=Math.abs(z[1])<0.95?[0,1,0]:[1,0,0], x=V3.norm(V3.cross(up,z)), y=V3.cross(z,x);
+  const m=M4.id(); m[0]=x[0];m[1]=x[1];m[2]=x[2]; m[4]=y[0];m[5]=y[1];m[6]=y[2]; m[8]=z[0];m[9]=z[1];m[10]=z[2]; m[12]=a[0];m[13]=a[1];m[14]=a[2];
+  return {m,L};
+}
+const sphere=(r,seg=12)=>{ const pr=[]; for(let i=0;i<=8;i++){ const t=i/8*Math.PI; pr.push([r*Math.sin(t),-r*Math.cos(t)]); } return lathe(pr,seg); };
+// 折れ線に沿ったパイプ（手すり・ホース）
+function tube(pts,r,seg=12){
+  const g=new Geo();
+  for(let i=0;i<pts.length-1;i++){ const {m,L}=alignZ(pts[i],pts[i+1]); g.add(cylZ(0,0,r,0,L,seg),m); }
+  for(let i=1;i<pts.length-1;i++) g.add(sphere(r,seg),M4.T(...pts[i]));
+  return g;
+}
+// 線分 A→B の外側（CCW 多角形の外向き）に貼る薄板（窓ガラス等）
+function facePlate(A,B,z0,z1,t,inset=0){
+  const d=P2.norm(P2.sub(B,A)), L=P2.len(P2.sub(B,A));
+  return new Geo().add(box(inset,L-inset,-t,0,z0,z1),M4.mul(M4.T(A[0],A[1],0),M4.RZ(P2.ang(d))));
+}
+const arcBand=(cx,cy,r0,r1,a0,a1,seg=24)=>{ const o=[];
+  for(let i=0;i<=seg;i++){ const a=(a0+(a1-a0)*i/seg)*Math.PI/180; o.push([cx+r1*Math.cos(a),cy+r1*Math.sin(a)]); }
+  for(let i=seg;i>=0;i--){ const a=(a0+(a1-a0)*i/seg)*Math.PI/180; o.push([cx+r0*Math.cos(a),cy+r0*Math.sin(a)]); }
+  return o; };
+// 2 本の柱と断面の太い・細いで曲がった梁の側面形状（ブーム・リフトアーム）
+function bentBar(L,kr,kh,hd0,hdk,hd1){
+  const Kn=[L*kr,kh], T=[L,0], O=[0,0];
+  const d1=P2.norm(Kn), d2=P2.norm(P2.sub(T,Kn)), n1=[-d1[1],d1[0]], n2=[-d2[1],d2[0]];
+  const nk=P2.norm(P2.add(n1,n2)), mk=hdk/Math.max(0.3,nk[0]*n1[0]+nk[1]*n1[1]);
+  const bp=[P2.sub(O,P2.mul(n1,hd0)),P2.sub(Kn,P2.mul(nk,mk)),P2.sub(T,P2.mul(n2,hd1))];
+  const al=P2.ang(n2); for(let i=1;i<12;i++){ const t=al-Math.PI+i/12*Math.PI; bp.push([T[0]+hd1*Math.cos(t),T[1]+hd1*Math.sin(t)]); }
+  bp.push(P2.add(T,P2.mul(n2,hd1)),P2.add(Kn,P2.mul(nk,mk)),P2.add(O,P2.mul(n1,hd0)));
+  const be=P2.ang(n1); for(let i=1;i<12;i++){ const t=be+i/12*Math.PI; bp.push([hd0*Math.cos(t),hd0*Math.sin(t)]); }
+  return {poly:bp, top:[P2.add(O,P2.mul(n1,hd0)),P2.add(Kn,P2.mul(nk,mk)),P2.add(T,P2.mul(n2,hd1))]};
+}
+// 油圧シリンダ（+Z 方向、長さ範囲からチューブ・ロッド長を決める）
+function cylGeo(Lr,rt,rr){
+  const Lmin=Lr[0], Lmax=Lr[1], Tl=Math.max(100,Lmin-60), Rl=Math.max(100,Math.min(Lmin-40,Lmax-Tl+150));
+  return { tube:new Geo().add(cylZ(0,0,rt,0,Tl,28)).add(cylZ(0,0,rt*1.13,Tl-90,Tl,28)).add(cylZ(0,0,rt*1.08,0,70,28)),
+           rod:new Geo().add(cylZ(0,0,rr,0,Rl,20)).add(cylZ(0,0,rr*1.35,0,40,20)) };
+}
+// フロント接地時のジャッキアップ：base 座標の点群が地面（y=0）より下なら接地面の縁まわりに傾ける
+function tiltFor(pts,fp){
+  let low=null; for(const q of pts) if(!low||q[1]<low[1]) low=q;
+  if(!low||low[1]>=0) return {M:M4.id(),ang:0};
+  const cx=(fp.x0+fp.x1)/2, cz=(fp.z0+fp.z1)/2, hx=(fp.x1-fp.x0)/2, hz=(fp.z1-fp.z0)/2;
+  const dx=low[0]-cx, dz=low[2]-cz; let ax,s,piv;
+  if(!fp.lat||Math.abs(dx)*hz>=Math.abs(dz)*hx){ ax='z'; s=Math.sign(dx)||1; piv=s>0?fp.x0:fp.x1; }
+  else { ax='x'; s=Math.sign(dz)||1; piv=s>0?fp.z0:fp.z1; }
+  let phi=0;
+  for(const q of pts){ if(q[1]>=0) continue; const u=ax==='z'?s*(q[0]-piv):s*(q[2]-piv); if(u<=1) continue; phi=Math.max(phi,Math.atan2(-q[1],u)); }
+  phi=Math.min(phi,35*Math.PI/180);
+  const M=ax==='z'?M4.chain(M4.T(piv,0,0),M4.RZ(s*phi),M4.T(-piv,0,0)):M4.chain(M4.T(0,0,piv),M4.RX(-s*phi),M4.T(0,0,-piv));
+  return {M,ang:phi*180/Math.PI};
+}
+const COL={ body:[0.96,0.70,0.06], body2:[0.88,0.62,0.05], frame:[0.25,0.26,0.28], track:[0.20,0.20,0.21], steel:[0.50,0.52,0.55],
+  rod:[0.86,0.88,0.91], glass:[0.22,0.30,0.40], pin:[0.42,0.43,0.45], tire:[0.13,0.13,0.14], rim:[0.62,0.63,0.66], hose:[0.10,0.10,0.11] };
+function setBodyColor(hex){
+  const m=/^#?([0-9a-f]{6})$/i.exec(hex||''); if(!m) return;
+  const v=parseInt(m[1],16), c=[(v>>16&255)/255,(v>>8&255)/255,(v&255)/255];
+  COL.body=c; COL.body2=c.map(x=>x*0.9);
+}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+</script>
+
+<script>
+'use strict';
+/* ==================================================================
+   機種：油圧ショベル
+   ================================================================== */
 const EX_DIMS=[
   ['#','下部走行体'],
   ['trackLen','クローラ全長',4450],['gauge','トラックゲージ（左右中心間）',2390],['shoeW','シュー幅',600],['trackH','クローラ高さ',920],
@@ -1250,8 +1345,8 @@ const EX_DIMS=[
   ['boomW','ブーム幅',520],['boomD','ブーム断面高さ（最大）',660],
   ['#','アーム'],
   ['armLen','アーム長（ピン間）',2920],['armW','アーム幅',400],
-  ['#','バケット'],
-  ['bktLen','バケット長（ピン〜刃先）',1450],['bktW','バケット幅',1000],
+  ['#','バケット・アタッチメント'],
+  ['bktLen','バケット長（ピン〜刃先）',1450],['bktW','バケット幅',1000],['hitchH','クイックヒッチ高さ（上下ピン間）',320],
   ['#','可動範囲'],
   ['boomMin','ブーム角 最小',-50,'°'],['boomMax','ブーム角 最大',62,'°'],['armMin','アーム角 最小（引き側）',-160,'°'],['armMax','アーム角 最大（出し側）',-32,'°'],
   ['bktMin','バケット角 最小（掘削側）',-165,'°'],['bktMax','バケット角 最大（ダンプ側）',35,'°'],
@@ -1262,198 +1357,645 @@ const EX_DIMS=[
   ['atX','アームシリンダ ロッド x（アーム座標）',-520],['atY','　〃 y',560],
   ['ckX','バケットシリンダ ボトム x（アーム座標）',330],['ckY','　〃 y',420],
   ['p1X','サイドリンク支点 x（アーム座標）',2560],['p1Y','　〃 y',130],
-  ['kX','バケットリンク支点 x（バケット座標）',-120],['kY','　〃 y',360],
+  ['kX','バケットリンク支点 x（バケット座標）',-210],['kY','　〃 y',325],
   ['l1','サイドリンク長',520],['l2','バケットリンク（Hリンク）長',560],
 ];
-const EX_DEF={}; EX_DIMS.forEach(d=>{ if(d[0]!=='#'&&d[0]!=='+') EX_DEF[d[0]]=d[2]; });
-const POSE0={swing:0,boom:20,arm:-100,bkt:-60};
-const EX={
-  p:{...EX_DEF}, st:{x:0,z:0,h:0,trL:0,trR:0,...POSE0}, v:{swing:0,boom:0,arm:0,bkt:0,L:0,R:0},
-  keys:{}, model:null, cam:{yaw:-55,pitch:22,dist:16,ortho:false,off:[1.8,1.6,0],tgt:[0,1.6,0],view:'iso'}, ok:false,
-};
-try{ const s=JSON.parse(lsGet('ex.dims')||'null'); if(s) Object.assign(EX.p,s); }catch(e){}
-try{ const s=JSON.parse(lsGet('ex.pose')||'null'); if(s) Object.assign(EX.st,s); }catch(e){}
-try{ const s=JSON.parse(lsGet('ex.cam')||'null'); if(s) Object.assign(EX.cam,s); }catch(e){}
-
-/* ---------- 機構計算（旋回体ローカル・ブーム平面の 2D、mm） ---------- */
+// バケット側面形状（作図用座標：開口を右に向けた側面図、ピン原点、mm）
+const EXB={ T:[600,-1350], K:[-380,60], F:[260,-140],
+  wrap:[[410,-1290],[150,-1252],[-150,-1212],[-450,-1100],[-680,-895],[-815,-620],[-832,-360],[-720,-140]] };
+function exBktMap(L){ // 作図座標 → バケット座標（ピン原点、x＝刃先方向、y＝リンクピン側）
+  const xh=P2.norm(EXB.T), yh=[-xh[1],xh[0]], s=L/P2.len(EXB.T);
+  return q=>[s*(q[0]*xh[0]+q[1]*xh[1]), -s*(q[0]*yh[0]+q[1]*yh[1])];
+}
 function exKin(p,s){
   const D=Math.PI/180, b=s.boom*D, a=s.arm*D, k=s.bkt*D;
-  const F=[p.bfX,p.bfY], T=P2.add(F,P2.rot([p.boomLen,0],b));
-  const B=P2.add(T,P2.rot([p.armLen,0],b+a)), tip=P2.add(B,P2.rot([p.bktLen,0],b+a+k));
-  const cb=[p.cbX,p.cbY], pb=P2.add(F,P2.rot([p.pbX,p.pbY],b));          // 旋回体座標
-  const pa=[p.paX,p.paY], at=P2.add([p.boomLen,0],P2.rot([p.atX,p.atY],a)); // ブーム座標
-  const ck=[p.ckX,p.ckY], p1=[p.p1X,p.p1Y], K=P2.add([p.armLen,0],P2.rot([p.kX,p.kY],k)); // アーム座標
+  const F=[p.bfX,p.bfY], T=P2.add(F,P2.rot([p.boomLen,0],b)), B=P2.add(T,P2.rot([p.armLen,0],b+a));
+  const cb=[p.cbX,p.cbY], pb=P2.add(F,P2.rot([p.pbX,p.pbY],b));
+  const pa=[p.paX,p.paY], at=P2.add([p.boomLen,0],P2.rot([p.atX,p.atY],a));
+  const ck=[p.ckX,p.ckY], p1=[p.p1X,p.p1Y], K=P2.add([p.armLen,0],P2.rot([p.kX,p.kY],k));
   const xs=circX(p1,p.l1,K,p.l2); const J=xs?(xs[0][1]>xs[1][1]?xs[0]:xs[1]):null;
-  return {F,T,B,tip,cb,pb,pa,at,ck,p1,K,J,
-    Lb:P2.len(P2.sub(pb,cb)), La:P2.len(P2.sub(at,pa)), Lk:J?P2.len(P2.sub(J,ck)):NaN};
+  return {F,T,B,cb,pb,pa,at,ck,p1,K,J, Lb:P2.len(P2.sub(pb,cb)), La:P2.len(P2.sub(at,pa)), Lk:J?P2.len(P2.sub(J,ck)):NaN};
 }
-// 可動範囲内のシリンダ長の最小・最大と、リンクが成立するバケット角範囲
 function exRanges(p){
-  const r={Lb:[1e9,0],La:[1e9,0],Lk:[1e9,0],bkt:[null,null]};
-  const s={...POSE0};
-  for(let v=p.boomMin;v<=p.boomMax+1e-9;v+=0.5){ s.boom=v; const L=exKin(p,s).Lb; r.Lb[0]=Math.min(r.Lb[0],L); r.Lb[1]=Math.max(r.Lb[1],L); }
-  for(let v=p.armMin;v<=p.armMax+1e-9;v+=0.5){ s.arm=v; const L=exKin(p,s).La; r.La[0]=Math.min(r.La[0],L); r.La[1]=Math.max(r.La[1],L); }
+  const r={Lb:[1e9,0],La:[1e9,0],Lk:[1e9,0],bkt:[null,null]}, s={boom:20,arm:-100,bkt:-60};
+  for(let v=p.boomMin;v<=p.boomMax+1e-9;v+=0.5){ s.boom=v; const L=exKin(p,s).Lb; r.Lb=[Math.min(r.Lb[0],L),Math.max(r.Lb[1],L)]; }
+  for(let v=p.armMin;v<=p.armMax+1e-9;v+=0.5){ s.arm=v; const L=exKin(p,s).La; r.La=[Math.min(r.La[0],L),Math.max(r.La[1],L)]; }
   for(let v=p.bktMin;v<=p.bktMax+1e-9;v+=0.5){ s.bkt=v; const L=exKin(p,s).Lk; if(!isFinite(L)) continue;
-    if(r.bkt[0]===null) r.bkt[0]=v; r.bkt[1]=v; r.Lk[0]=Math.min(r.Lk[0],L); r.Lk[1]=Math.max(r.Lk[1],L); }
+    if(r.bkt[0]===null) r.bkt[0]=v; r.bkt[1]=v; r.Lk=[Math.min(r.Lk[0],L),Math.max(r.Lk[1],L)]; }
   if(r.bkt[0]===null) r.bkt=[0,0];
   return r;
 }
+const ATT_NAME={bucket:'バケット',breaker:'ブレーカ',crusher:'破砕機'};
 
-/* ---------- モデル生成 ---------- */
-const COL={ body:[0.96,0.70,0.06], frame:[0.25,0.26,0.28], track:[0.20,0.20,0.21], steel:[0.50,0.52,0.55],
-  rod:[0.86,0.88,0.91], glass:[0.22,0.30,0.40], pin:[0.42,0.43,0.45], cw:[0.90,0.66,0.06] };
-function exBuild(){
-  const p=EX.p, M={}, R=p.trackH/2, a=Math.max(10,p.trackLen/2-R), W=p.shoeW;
-  if(EX.model) Object.values(EX.model.mesh).forEach(freeMesh);
-  // --- 下部走行体（片側、z=0 中心） ---
-  const gr=30, ts=55, Ri=R-gr-ts, rc=R-gr-ts/2;
-  const per=4*a+2*Math.PI*rc, Ns=Math.max(8,Math.round(per/200)), pitch=per/Ns;
-  M.shoe=new Geo().add(box(-pitch*0.46,pitch*0.46,-ts/2,ts/2,-W/2,W/2)).add(box(-14,14,ts/2,ts/2+gr,-W/2,W/2));
-  M.tframe=box(-a+R*0.2,a-R*0.2,R*0.48,R*1.48,-W*0.28,W*0.28);
-  M.idler=new Geo().add(cylZ(a,R,Ri-12,-W*0.3,W*0.3,36)).add(cylZ(a,R,Ri*0.45,-W*0.42,W*0.42,24));
-  const sp=[]; const Nt=21; for(let i=0;i<Nt*4;i++){ const ang=i/(Nt*4)*2*Math.PI, rr=(i%4<2)?Ri-4:Ri-55; sp.push([-a+rr*Math.cos(ang),R+rr*Math.sin(ang)]); }
-  M.sprocket=new Geo().add(extrude(sp,-W*0.22,W*0.22)).add(cylZ(-a,R,Ri*0.55,-W*0.45,W*0.45,24));
-  const rl=new Geo(), nr=Math.max(3,Math.round((2*a-R*1.4)/420)+1);
-  for(let i=0;i<nr;i++){ const x=-a+R*0.75+i*(2*a-R*1.5)/(nr-1); rl.add(cylZ(x,R-Ri+95,95,-W*0.26,W*0.26,20)); }
-  for(const x of [-a*0.35,a*0.35]) rl.add(cylZ(x,R+Ri-70,70,-W*0.2,W*0.2,18));
-  M.rollers=rl;
-  M.carbody=box(-a*0.5,a*0.5,R*0.75,p.trackH-20,-p.gauge/2+W*0.3,p.gauge/2-W*0.3);
-  M.ring=extrudeY(circ(0,0,Math.min(900,p.upperW*0.36),40),p.trackH-25,Math.max(p.trackH,p.swingH));
-  // --- 上部旋回体（旋回体ローカル、絶対座標） ---
-  const W2=p.upperW/2, y0=p.swingH, yd=y0+220, tR=Math.max(p.tailR,W2+50);
-  const cwD=Math.min(900,tR*0.35), xcw=-tR+cwD;
-  M.uframe=box(Math.max(xcw-300,-tR+200),p.upperFront-250,y0,yd,-W2+40,W2-40);
-  const cw=[]; for(let i=0;i<=24;i++){ const z=-W2+i/24*2*W2; cw.push([-Math.sqrt(tR*tR-z*z),z]); }
-  cw.push([xcw,W2],[xcw,-W2]);
-  M.cw=extrudeY(cw,y0+60,p.hoodH-40);
-  M.hood=box(xcw,-180,yd,p.hoodH,-W2+30,W2-10);
-  const zt=p.bfZ+p.boomW/2+280;
-  M.tank=zt<W2-100?box(-180,p.upperFront-120,yd,p.hoodH-120,zt,W2-10):new Geo();
-  const cr=-280, cf=p.upperFront, ch=p.cabTop-yd, cz0=-W2, cz1=-W2+p.cabW;
-  const cabP=[[cr,yd],[cf,yd],[cf,yd+ch*0.42],[cf-170,p.cabTop],[cr+40,p.cabTop]];
-  M.cab=extrude(cabP,cz0,cz1);
-  const win=[[cr+90,yd+ch*0.36],[cf-55,yd+ch*0.36],[cf-55,yd+ch*0.44],[cf-205,p.cabTop-70],[cr+110,p.cabTop-70]];
-  M.win=new Geo().add(extrude(win,cz0-10,cz0+3)).add(extrude(win,cz1-3,cz1+10));
-  const fw=[[0,0],[1,0],[1,1],[0,1]];
-  { // 前面ガラス（傾斜面に貼る）
-    const A=[cf,yd+ch*0.46], B=[cf-160,p.cabTop-60], d=P2.norm(P2.sub(B,A)), n=[d[1],-d[0]], L=P2.len(P2.sub(B,A));
-    const g=box(0,L,0,12,cz0+60,cz1-60); M.fglass=new Geo().add(g,M4.mul(M4.T(A[0]+n[0]*2,A[1]+n[1]*2,0),M4.RZ(P2.ang(d))));
-  }
-  M.exhaust=extrudeY(circ(-1100,W2-380,55,16),p.hoodH-10,p.hoodH+280);
-  const F=[p.bfX,p.bfY], cb=[p.cbX,p.cbY];
-  const zb=p.boomW/2, zc=zb+70+95;
-  M.fbr=pair(hullC([[F[0],F[1],170],[cb[0],cb[1],80],[F[0]-420,yd-20,0],[cb[0]+120,y0,0],[F[0]-420,y0,0]]),zb+12,zb+50);
-  M.cbr=pair(hullC([[cb[0],cb[1],115],[cb[0]-260,y0,0],[cb[0]+160,y0,0],[cb[0]-260,yd,0],[cb[0]+160,yd,0]]),zc-95-45,zc-95-8);
-  M.upins=new Geo().add(cylZ(F[0],F[1],75,-zb-70,zb+70,24)).add(cylZ(cb[0],cb[1],60,-zc-40,zc+40,20));
-  // --- ブーム（ブーム座標、z=0 がブーム中心面） ---
-  const L=p.boomLen, Kn=[L*p.kneeR,p.kneeH], hd0=p.boomD*0.36, hdk=p.boomD/2, hd1=p.boomD*0.33, T=[L,0], O=[0,0];
-  const d1=P2.norm(P2.sub(Kn,O)), d2=P2.norm(P2.sub(T,Kn)), n1=[-d1[1],d1[0]], n2=[-d2[1],d2[0]];
-  const nk=P2.norm(P2.add(n1,n2)), mk=hdk/Math.max(0.3,nk[0]*n1[0]+nk[1]*n1[1]);
-  const bp=[P2.sub(O,P2.mul(n1,hd0)),P2.sub(Kn,P2.mul(nk,mk)),P2.sub(T,P2.mul(n2,hd1))];
-  const al=P2.ang(n2); for(let i=1;i<12;i++){ const t=al-Math.PI+i/12*Math.PI; bp.push([T[0]+hd1*Math.cos(t),T[1]+hd1*Math.sin(t)]); }
-  bp.push(P2.add(T,P2.mul(n2,hd1)),P2.add(Kn,P2.mul(nk,mk)),P2.add(O,P2.mul(n1,hd0)));
-  const be=P2.ang(n1); for(let i=1;i<12;i++){ const t=be+i/12*Math.PI; bp.push([hd0*Math.cos(t),hd0*Math.sin(t)]); }
-  M.boom=extrude(bp,-zb,zb);
-  const pb=[p.pbX,p.pbY], pa=[p.paX,p.paY];
-  M.bbr=new Geo()
-    .add(pair(hullC([[pb[0],pb[1],105],[pb[0]-320,pb[1]+260,20],[pb[0]+320,pb[1]+260,20]]),zb-2,zb+35))
-    .add(pair(hullC([[pa[0],pa[1],110],[pa[0]-380,pa[1]-330,20],[pa[0]+300,pa[1]-330,20]]),105+20,105+55));
-  M.bpins=new Geo().add(cylZ(T[0],T[1],70,-zb-45,zb+45,24)).add(cylZ(pb[0],pb[1],58,-zc-40,zc+40,20)).add(cylZ(pa[0],pa[1],58,-170,170,20));
-  // --- アーム（アーム座標） ---
-  const La=p.armLen, za=p.armW/2, at=[p.atX,p.atY], ck=[p.ckX,p.ckY], p1=[p.p1X,p.p1Y];
-  M.arm=extrude(hullC([[at[0],at[1],135],[0,0,185],[ck[0],ck[1],120],[p1[0],p1[1],100],[La,0,135]],24),-za,za);
-  M.apins=new Geo().add(cylZ(0,0,72,-za-40,za+40,24)).add(cylZ(La,0,66,-za-90,za+90,24)).add(cylZ(p1[0],p1[1],56,-za-55,za+55,20))
-    .add(cylZ(at[0],at[1],58,-160,160,20)).add(cylZ(ck[0],ck[1],56,-140,140,20));
-  // --- リンク ---
-  M.slink=pair(hullC([[0,0,72],[p.l1,0,72]]),za+8,za+38);
-  M.hlink=pair(hullC([[0,0,78],[p.l2,0,78]]),za+52,za+84);
-  M.jpin=cylZ(0,0,55,-za-90,za+90,20);
-  // --- バケット（バケット座標：ピン原点、x=刃先方向） ---
-  const Lk=p.bktLen, Wb=p.bktW/2, s=v=>[v[0]*Lk,v[1]*Lk];
-  const shellC=[[0.93,0.0],[0.90,0.22],[0.76,0.43],[0.52,0.54],[0.28,0.50],[0.12,0.36]].map(s);
-  const outer=spline(shellC,8).concat([s([0.095,0.12]),s([0.125,-0.17])]);
-  const thk=Math.max(16,Lk*0.02);
-  M.shell=extrude(outer.concat(offsetLine(outer,thk).reverse()),-Wb+22,Wb-22);
-  M.side=pair(outer,Wb-22,Wb);
-  const nt=Math.max(3,Math.round(p.bktW/230)), teeth=new Geo(), tp=[[0.855,0.035],[0.855,-0.045],[1.0,-0.008],[1.0,0.006]].map(s);
-  for(let i=0;i<nt;i++){ const z=-Wb+60+i*(2*Wb-120)/(nt-1); teeth.add(extrude(tp,z-40,z+40)); }
-  M.teeth=teeth;
-  M.kbr=pair(hullC([[0,0,118],[p.kX,p.kY,95],[0.13*Lk,0.33*Lk,0],[0.11*Lk,-0.06*Lk,0]]),za+14,za+48);
-  M.kpin=cylZ(p.kX,p.kY,55,-za-90,za+90,20);
-  // --- 油圧シリンダ（+Z 方向に伸びる形状、長さは可動範囲から決定） ---
-  const rg=exRanges(p);
-  const cyl=(Lr,rt,rr)=>{ const Lmin=Lr[0], Lmax=Lr[1], Tl=Math.max(100,Lmin-60), Rl=Math.max(100,Math.min(Lmin-40,Lmax-Tl+150));
-    return { tube:new Geo().add(cylZ(0,0,rt,0,Tl,28)).add(cylZ(0,0,rt*1.13,Tl-90,Tl,28)).add(cylZ(0,0,rt*1.08,0,70,28)),
-             rod:new Geo().add(cylZ(0,0,rr,0,Rl,20)).add(cylZ(0,0,rr*1.35,0,40,20)) }; };
-  const cB=cyl(rg.Lb,95,58), cA=cyl(rg.La,105,66), cK=cyl(rg.Lk,88,55);
-  M.cBt=cB.tube; M.cBr=cB.rod; M.cAt=cA.tube; M.cAr=cA.rod; M.cKt=cK.tube; M.cKr=cK.rod;
-  const mesh={}; Object.entries(M).forEach(([k,g])=>{ if(g.p.length) mesh[k]=mkMesh(g); });
-  EX.model={mesh,rg,a,R,rc,per,Ns,pitch,zc};
-  exClampPose();
+const EXC={
+  id:'ex', label:'油圧ショベル', dims:EX_DIMS, pose0:{swing:0,boom:20,arm:-100,bkt:-60}, st0:{x:0,z:0,h:0,trL:0,trR:0},
+  poseFields:[['swing','旋回'],['boom','ブーム角'],['arm','アーム角'],['bkt','バケット角']],
+  poseNote:'ブーム角：フートピン→トップピンを結ぶ線の水平からの角度。アーム角・バケット角：一つ前のリンクの延長線からの相対角（＋がアーム出し／ダンプ側）。バケット角はピン〜刃先の線（ヒッチ・他アタッチメントでもリンク位置は共通）。',
+  dimNote:'寸法は入力後「寸法を反映」で 3D モデルを再生成します（ブラウザに自動保存）。初期値は 20t クラス相当のおおよその値です。',
+  keys:['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyQ','KeyZ','KeyE','KeyC','KeyR','KeyF'],
+  help:`操作パターン：ISO（JIS）<br>
+    左レバー <span class="kbd">W</span>アーム出し <span class="kbd">S</span>アーム引き <span class="kbd">A</span>左旋回 <span class="kbd">D</span>右旋回<br>
+    右レバー <span class="kbd">↑</span>ブーム下げ <span class="kbd">↓</span>ブーム上げ <span class="kbd">←</span>バケット掘削 <span class="kbd">→</span>バケットダンプ<br>
+    走行 <span class="kbd">Q</span>/<span class="kbd">Z</span>左 前進/後進 <span class="kbd">E</span>/<span class="kbd">C</span>右 前進/後進<br>
+    アタッチ <span class="kbd">R</span>/<span class="kbd">F</span>（破砕機 開/閉、ブレーカ 打撃＝R）`,
+  pads:`<div class="pad">
+    <button style="grid-column:2;grid-row:1" data-key="KeyW">W<br>アーム出し</button>
+    <button style="grid-column:1;grid-row:2" data-key="KeyA">A<br>左旋回</button><div class="ttl">左<br>レバー</div>
+    <button style="grid-column:3;grid-row:2" data-key="KeyD">D<br>右旋回</button>
+    <button style="grid-column:2;grid-row:3" data-key="KeyS">S<br>アーム引き</button></div>
+   <div class="crawl"><div class="ttl">走行（左 / 右）</div>
+    <button data-key="KeyQ">Q<br>左 前進</button><button data-key="KeyE">E<br>右 前進</button>
+    <button data-key="KeyZ">Z<br>左 後進</button><button data-key="KeyC">C<br>右 後進</button></div>
+   <div class="crawl" style="grid-template-columns:64px"><div class="ttl">アタッチ</div>
+    <button data-key="KeyR">R<br>開・打撃</button><button data-key="KeyF">F<br>閉じる</button></div>
+   <div class="pad">
+    <button style="grid-column:2;grid-row:1" data-key="ArrowUp">↑<br>ブーム下げ</button>
+    <button style="grid-column:1;grid-row:2" data-key="ArrowLeft">←<br>バケット掘削</button><div class="ttl">右<br>レバー</div>
+    <button style="grid-column:3;grid-row:2" data-key="ArrowRight">→<br>バケットダンプ</button>
+    <button style="grid-column:2;grid-row:3" data-key="ArrowDown">↓<br>ブーム上げ</button></div>`,
+  camOff:[1.8,1.6,0],
+  att:{type:'bucket',hitch:false,attached:true,parked:[],jaw:0.3,ham:false,hamPh:0,msg:''},
+
+  validate(np){
+    const bad=['trackLen','gauge','shoeW','trackH','tailR','upperW','boomLen','boomW','boomD','armLen','armW','bktLen','bktW','hitchH','l1','l2'].filter(k=>!(np[k]>0));
+    if(bad.length) return '正の値を入力してください：'+bad.join(', ');
+    if(np.boomMin>=np.boomMax||np.armMin>=np.armMax||np.bktMin>=np.bktMax) return '可動範囲の最小・最大を確認してください';
+    return '';
+  },
+
+  build(){
+    const p=this.p, M={}, R=p.trackH/2, a=Math.max(10,p.trackLen/2-R), W=p.shoeW;
+    /* --- 下部走行体（片側、z=0 がクローラ中心） --- */
+    const gr=30, ts=55, Ri=R-gr-ts, rc=R-gr-ts/2;
+    const per=4*a+2*Math.PI*rc, Ns=Math.max(8,Math.round(per/200)), pitch=per/Ns;
+    M.shoe=new Geo().add(box(-pitch*0.46,pitch*0.46,-ts/2,ts/2,-W/2,W/2)).add(box(-14,14,ts/2,ts/2+gr,-W/2,W/2));
+    const tw=W*0.3; // トラックフレーム（上面が山形の断面を前後に押し出し、端は斜めカット）
+    M.tframe=new Geo().add(extrudeX([[-tw,R*0.45],[tw,R*0.45],[tw,R*1.30],[0,R*1.52],[-tw,R*1.30]],-a+R*0.35,a-R*0.35))
+      .add(extrude([[-a+R*0.35,R*0.55],[-a+R*0.05,R*0.95],[-a+R*0.35,R*1.35]],-tw*0.8,tw*0.8))
+      .add(extrude([[a-R*0.35,R*0.55],[a-R*0.35,R*1.35],[a-R*0.05,R*0.95]],-tw*0.8,tw*0.8));
+    M.idler=new Geo().add(cylZ(a,R,Ri-12,-W*0.3,W*0.3,36)).add(cylZ(a,R,Ri*0.45,-W*0.42,W*0.42,24));
+    const sp=[]; const Nt=21; for(let i=0;i<Nt*4;i++){ const ang=i/(Nt*4)*2*Math.PI, rr=(i%4<2)?Ri-4:Ri-55; sp.push([-a+rr*Math.cos(ang),R+rr*Math.sin(ang)]); }
+    M.sprocket=new Geo().add(extrude(sp,-W*0.22,W*0.22)).add(cylZ(-a,R,Ri*0.55,-W*0.45,W*0.45,24));
+    const rl=new Geo(), nr=Math.max(3,Math.round((2*a-R*1.4)/420)+1);
+    for(let i=0;i<nr;i++){ const x=-a+R*0.75+i*(2*a-R*1.5)/(nr-1); rl.add(cylZ(x,R-Ri+95,95,-W*0.26,W*0.26,20)); }
+    for(const x of [-a*0.35,a*0.35]) rl.add(cylZ(x,R+Ri-70,70,-W*0.2,W*0.2,18));
+    M.rollers=rl;
+    const gz=p.gauge/2-W*0.3;
+    M.carbody=new Geo().add(chamBox(-a*0.42,a*0.42,R*0.80,p.trackH-20,-gz+150,gz-150,90))
+      .add(box(-a*0.62,-a*0.30,R*0.85,R*1.45,-gz,gz)).add(box(a*0.30,a*0.62,R*0.85,R*1.45,-gz,gz));
+    M.ring=extrudeY(circ(0,0,Math.min(900,p.upperW*0.36),40),p.trackH-25,Math.max(p.trackH,p.swingH));
+    /* --- 上部旋回体 --- */
+    const W2=p.upperW/2, y0=p.swingH, yd=y0+220, tR=Math.max(p.tailR,W2+50);
+    const cwD=Math.min(900,tR*0.35), xcw=-tR+cwD, hH=p.hoodH;
+    M.uframe=box(Math.max(xcw-300,-tR+200),p.upperFront-250,y0,yd,-W2+40,W2-40);
+    const cwP=(r,w2)=>{ const o=[]; for(let i=0;i<=24;i++){ const z=-w2+i/24*2*w2; o.push([-Math.sqrt(Math.max(0,r*r-z*z)),z]); } o.push([xcw,w2],[xcw,-w2]); return o; };
+    M.cw=new Geo().add(extrudeY(cwP(tR,W2),y0+40,hH-170)).add(loftY(cwP(tR,W2),hH-170,cwP(tR-120,W2-120),hH-30,false,true))
+      .add(loftY(cwP(tR-60,W2-60),y0-60,cwP(tR,W2),y0+40,true,false));
+    const cr=-260, cf=p.upperFront, ch=p.cabTop-yd, cz0=-W2, cz1=-W2+p.cabW;
+    M.hood=chamBox(xcw-10,cr,yd,hH-10,-W2+25,W2-15,110);
+    M.grille=new Geo().add(box(-tR*0.62,-tR*0.38,hH-12,hH+6,0,W2-200)).add(box(-tR*0.62,-tR*0.38,yd+250,hH-250,W2-16,W2-4));
+    const zt=p.bfZ+p.boomW/2+300;
+    const xt=Math.max(cr+150,cf*0.42);
+    M.tank=zt<W2-120?new Geo().add(chamBox(cr,xt,yd,hH-60,zt,W2-15,90)).add(chamBox(xt,cf-80,yd,yd+560,zt,W2-15,40))
+      .add(box(xt+60,cf-140,yd+560,yd+585,zt+60,W2-60)):new Geo();
+    // キャブ
+    const cabP=[[cr,yd],[cf-50,yd],[cf,yd+ch*0.28],[cf-110,yd+ch*0.90],[cf-210,p.cabTop],[cr+120,p.cabTop-25],[cr,p.cabTop-140]];
+    M.cab=extrude(cabP,cz0,cz1);
+    const xw=t=>cf+(-110)*((t-(yd+ch*0.28))/(ch*0.62)); // 前面ガラス線上の x
+    const yb=yd+ch*0.40, yt=yd+ch*0.87, xm=cr+(cf-cr)*0.36;
+    const winR=[[cr+70,yb],[xm-35,yb],[xm-35,yt],[cr+110,yt-30]], winD=[[xm+35,yd+ch*0.18],[xw(yd+ch*0.30)-75,yd+ch*0.18],[xw(yt)-75,yt],[xm+35,yt]];
+    M.win=new Geo();
+    for(const w of [winR,winD]) M.win.add(extrude(w,cz0-10,cz0+3)).add(extrude(w,cz1-3,cz1+10));
+    M.win.add(facePlate([cf-4,yd+ch*0.31],[cf-112,yd+ch*0.88],cz0+55,cz1-55,10,30)).add(facePlate([cf-48,yd+60],[cf-3,yd+ch*0.25],cz0+55,cz1-55,10,20));
+    M.win.add(facePlate([cr,p.cabTop-170],[cr,yd+ch*0.45],cz0+60,cz1-60,10,0));
+    M.roof=box(cr+120,cf-220,p.cabTop-5,p.cabTop+18,cz0+30,cz1-30);
+    M.exhaust=extrudeY(circ(-tR*0.50,W2-330,55,16),hH-10,hH+260);
+    // 手すり・ミラー
+    const rz=W2-55, rh=hH+430;
+    M.rail=new Geo().add(tube([[xt-60,yd+560,rz],[xt-60,rh,rz],[-tR*0.62,rh,rz],[-tR*0.62,hH,rz]],22))
+      .add(tube([[cf-180,yd+560,rz],[cf-180,yd+1000,rz],[xt-60,yd+1000+((rh-yd-1000)*0.0),rz]],22))
+      .add(tube([[cf-60,yd+ch*0.25,cz0+20],[cf+30,yd+ch*0.32,cz0-220],[cf+30,yd+ch*0.55,cz0-220]],18))
+      .add(box(cf+5,cf+55,yd+ch*0.55,yd+ch*0.55+260,cz0-310,cz0-130))
+      .add(tube([[xt-60,rh,rz],[xt+40,rh+120,rz-20]],16)).add(box(xt+20,xt+70,rh+120,rh+330,rz-120,rz+40));
+    const F=[p.bfX,p.bfY], cb=[p.cbX,p.cbY], zb=p.boomW/2, zc=zb+70+95;
+    M.fbr=pair(hullC([[F[0],F[1],170],[cb[0],cb[1],80],[F[0]-420,yd-20,0],[cb[0]+120,y0,0],[F[0]-420,y0,0]]),zb+12,zb+50);
+    M.cbr=pair(hullC([[cb[0],cb[1],115],[cb[0]-260,y0,0],[cb[0]+160,y0,0],[cb[0]-260,yd,0],[cb[0]+160,yd,0]]),zc-95-45,zc-95-8);
+    M.upins=new Geo().add(cylZ(F[0],F[1],75,-zb-70,zb+70,24)).add(cylZ(cb[0],cb[1],60,-zc-40,zc+40,20));
+    /* --- ブーム --- */
+    const bb=bentBar(p.boomLen,p.kneeR,p.kneeH,p.boomD*0.36,p.boomD/2,p.boomD*0.33);
+    M.boom=extrude(bb.poly,-zb,zb);
+    const pb=[p.pbX,p.pbY], pa=[p.paX,p.paY], T=[p.boomLen,0];
+    M.bbr=new Geo()
+      .add(pair(hullC([[pb[0],pb[1],105],[pb[0]-320,pb[1]+260,20],[pb[0]+320,pb[1]+260,20]]),zb-2,zb+35))
+      .add(pair(hullC([[pa[0],pa[1],110],[pa[0]-380,pa[1]-330,20],[pa[0]+300,pa[1]-330,20]]),125,160));
+    M.bpins=new Geo().add(cylZ(T[0],T[1],70,-zb-45,zb+45,24)).add(cylZ(pb[0],pb[1],58,-zc-40,zc+40,20)).add(cylZ(pa[0],pa[1],58,-170,170,20));
+    const ht=bb.top.map(q=>[q[0],q[1]+40]);
+    M.bhose=new Geo();
+    for(const z of [-zb+70,-zb+130,zb-70,zb-130]) M.bhose.add(tube([[ht[0][0]+250,ht[0][1]-20,z],ht[1].concat(z),[ht[2][0]-450,ht[2][1],z]].map(q=>q.length===2?[q[0],q[1],z]:q),24,8));
+    /* --- アーム --- */
+    const La=p.armLen, za=p.armW/2, at=[p.atX,p.atY], ck=[p.ckX,p.ckY], p1=[p.p1X,p.p1Y];
+    M.arm=extrude(hullC([[at[0],at[1],135],[0,0,185],[ck[0],ck[1],120],[p1[0],p1[1],100],[La,0,135]],24),-za,za);
+    M.apins=new Geo().add(cylZ(0,0,72,-za-40,za+40,24)).add(cylZ(La,0,66,-za-90,za+90,24)).add(cylZ(p1[0],p1[1],56,-za-55,za+55,20))
+      .add(cylZ(at[0],at[1],58,-160,160,20)).add(cylZ(ck[0],ck[1],56,-140,140,20));
+    M.slink=pair(hullC([[0,0,72],[p.l1,0,72]]),za+8,za+38);
+    M.hlink=pair(hullC([[0,0,78],[p.l2,0,78]]),za+52,za+84);
+    M.jpin=cylZ(0,0,55,-za-90,za+90,20);
+    M.kpin=cylZ(p.kX,p.kY,55,-za-125,za+125,20);
+    /* --- アタッチメント ---
+       バケットはバケット座標、その他・ヒッチは「ピン座標」A（2 ピン中点が原点、Y＝リンクピン方向、X＝アームから離れる向き）で作る */
+    const K=[p.kX,p.kY], dk=P2.len(K), XA=P2.rot(P2.norm(K),-Math.PI/2);
+    const MA=M4.mul(M4.T(K[0]/2,K[1]/2,0),M4.RZ(P2.ang(XA)));
+    const HO=M4.T(XA[0]*p.hitchH,XA[1]*p.hitchH,0);
+    const C={}; // 接地判定用の点（各アタッチの座標）
+    // バケット
+    const f=exBktMap(p.bktLen), Wb=p.bktW/2;
+    const outer=spline(EXB.wrap.map(f),6).concat([f(EXB.F)]);
+    const thk=Math.max(16,p.bktLen*0.018);
+    M.bShell=extrude(outer.concat(offsetLine(outer,area2(outer)>0?thk:-thk).reverse()),-Wb+22,Wb-22);
+    M.bSide=pair(outer,Wb-22,Wb);
+    const E=EXB.wrap[0], d=P2.norm(P2.sub(EXB.T,E)), n=[-d[1],d[0]];
+    const tooth=[P2.add(P2.sub(E,P2.mul(d,90)),P2.mul(n,52)),P2.sub(P2.sub(E,P2.mul(d,90)),P2.mul(n,42)),P2.sub(EXB.T,P2.mul(n,8)),P2.add(EXB.T,P2.mul(n,12))].map(f);
+    const nt=Math.max(3,Math.round(p.bktW/230)); M.bTeeth=new Geo();
+    for(let i=0;i<nt;i++){ const z=-Wb+60+i*(2*Wb-120)/(nt-1); M.bTeeth.add(extrude(tooth,z-42,z+42)); }
+    M.bTeeth.add(extrude([f(E),f([E[0]-260,E[1]+38]),f([E[0]-250,E[1]+75]),f([E[0]+20,E[1]+45])],-Wb+22,Wb-22));
+    M.bBr=pair(hullC([[0,0,118],[K[0],K[1],95],[...f([-560,-140]),0],[...f([170,-140]),0],[...f([-300,-140]),0]]),za+14,za+48);
+    C.bucket={pts:outer.filter((_,i)=>i%2===0).concat([f(EXB.T)]).flatMap(q=>[[q[0],q[1],-Wb],[q[0],q[1],Wb]]), tip:[...f(EXB.T),0]};
+    // ブレーカ（A 座標）
+    const brk=pair(hullC([[0,-dk/2,110],[0,dk/2,100],[300,-330,0],[300,330,0]]),za+14,za+48);
+    M.kBr=brk;
+    M.kBody=new Geo().add(box(300,360,-340,340,-za-60,za+60))
+      .add(extrude([[360,-270],[1480,-270],[1560,-200],[1560,200],[1480,270],[360,270]],-235,235))
+      .add(latheX([[0,1560],[165,1560],[165,1700],[115,1725],[0,1725]],28))
+      .add(box(700,1300,-285,-270,-150,150)).add(box(700,1300,270,285,-150,150));
+    M.kChisel=latheX([[0,1700],[78,1700],[78,2140],[58,2190],[12,2280],[0,2285]],20);
+    C.breaker={pts:[[2285,0,0],[1560,-270,-235],[1560,270,235],[1560,-270,235],[1560,270,-235],[360,-340,0],[360,340,0]],tip:[2285,0,0]};
+    // 破砕機（A 座標）
+    M.xBr=brk;
+    M.xBody=new Geo().add(box(300,360,-340,340,-za-60,za+60)).add(latheX([[0,360],[360,360],[360,470],[0,470]],36))
+      .add(extrude([[470,-320],[1050,-290],[1160,-190],[1160,190],[1050,290],[470,320]],-250,250))
+      .add(cylZ(1130,0,72,-200,200,20));
+    const jaw=[[-70,-20],[-60,110],[120,230],[420,270],[720,215],[930,90],[1010,10],[950,-5],[880,30],[820,-10],[750,30],[680,-10],[610,35],[540,-5],[470,40],[400,0],[320,45],[220,25],[80,-60],[-30,-80]];
+    M.xJawU=extrude(jaw,-85,85);
+    M.xJawL=pair(jaw.map(q=>[q[0],-q[1]]),95,185);
+    C.crusher={pts:[[1160,-290,-250],[1160,290,250],[1160,-290,250],[1160,290,-250],[470,-320,0],[470,320,0]],tip:[2140,0,0]};
+    // クイックヒッチ（A 座標）
+    const hh=p.hitchH;
+    M.hitch=new Geo().add(pair(hullC([[0,-dk/2,105],[0,dk/2,105],[hh,-dk/2,100],[hh,dk/2,100]]),za+90,za+122))
+      .add(box(hh*0.3,hh*0.72,-dk/2-40,dk/2+40,-(za+90),za+90))
+      .add(cylZ(hh,-dk/2,60,-(za+126),za+126)).add(cylZ(hh,dk/2,60,-(za+126),za+126));
+    const hitchC=[[hh+100,-dk/2-100,-(za+122)],[hh+100,dk/2+100,za+122],[hh+100,-dk/2-100,za+122],[hh+100,dk/2+100,-(za+122)]];
+    /* --- 油圧シリンダ --- */
+    const rg=exRanges(p), cB=cylGeo(rg.Lb,95,58), cA=cylGeo(rg.La,105,66), cK=cylGeo(rg.Lk,88,55);
+    M.cBt=cB.tube; M.cBr=cB.rod; M.cAt=cA.tube; M.cAr=cA.rod; M.cKt=cK.tube; M.cKr=cK.rod;
+    if(this.model) Object.values(this.model.mesh).forEach(freeMesh);
+    const mesh={}; Object.entries(M).forEach(([k,g])=>{ if(g.p.length) mesh[k]=mkMesh(g); });
+    this.model={mesh,rg,a,R,rc,per,Ns,pitch,zc,MA,HO,C,hitchC,K};
+    this.clamp();
+  },
+  clamp(){
+    const p=this.p, s=this.st, rg=this.model.rg;
+    s.boom=clamp(s.boom,p.boomMin,p.boomMax); s.arm=clamp(s.arm,p.armMin,p.armMax); s.bkt=clamp(s.bkt,rg.bkt[0],rg.bkt[1]);
+  },
+  trackAt(sv){
+    const {a,R,rc,per}=this.model; let s=((sv%per)+per)%per;
+    if(s<2*a) return [[-a+s,R-rc],0]; s-=2*a;
+    if(s<Math.PI*rc){ const t=-Math.PI/2+s/rc; return [[a+rc*Math.cos(t),R+rc*Math.sin(t)],t+Math.PI/2]; } s-=Math.PI*rc;
+    if(s<2*a) return [[a-s,R+rc],Math.PI]; s-=2*a;
+    const t=Math.PI/2+s/rc; return [[-a+rc*Math.cos(t),R+rc*Math.sin(t)],t+Math.PI/2];
+  },
+  attLocal(type){ return type==='bucket'?M4.id():this.model.MA; },
+  // アタッチメントの描画（M：アタッチ座標 → ワールド or base）
+  putAtt(put,type,M,jaw,ham){
+    if(type==='bucket'){ put('bShell',M,COL.body); put('bSide',M,COL.body); put('bTeeth',M,COL.frame); put('bBr',M,COL.body); }
+    else if(type==='breaker'){ put('kBr',M,COL.frame); put('kBody',M,COL.frame); put('kChisel',M4.mul(M,M4.T(ham,0,0)),COL.steel); }
+    else { const an=(3+32*jaw)*Math.PI/180;
+      put('xBr',M,COL.frame); put('xBody',M,COL.frame);
+      put('xJawU',M4.chain(M,M4.T(1130,0,0),M4.RZ(an)),COL.body2); put('xJawL',M4.chain(M,M4.T(1130,0,0),M4.RZ(-an)),COL.body2); }
+  },
+  attPts(type,jaw){
+    const c=this.model.C[type]; if(type!=='crusher') return c.pts;
+    const an=(3+32*jaw)*Math.PI/180, tU=P2.add([1130,0],P2.rot([1010,10],an)), tL=P2.add([1130,0],P2.rot([1010,-10],-an));
+    return c.pts.concat([[tU[0],tU[1],0],[tL[0],tL[1],0]]);
+  },
+  frames(){
+    const p=this.p, s=this.st, md=this.model, D=Math.PI/180, k=exKin(p,s), at=this.att;
+    const up=M4.RY(s.swing*D);
+    const bm=M4.chain(up,M4.T(k.F[0],k.F[1],p.bfZ),M4.RZ(s.boom*D));
+    const am=M4.chain(bm,M4.T(p.boomLen,0,0),M4.RZ(s.arm*D));
+    const km=M4.chain(am,M4.T(p.armLen,0,0),M4.RZ(s.bkt*D));
+    const hm=at.hitch?M4.mul(km,md.MA):null;
+    const atm=at.attached?M4.chain(km,at.hitch?md.HO:M4.id(),this.attLocal(at.type)):null;
+    const pts=[M4.xp(km,0,0,0)];
+    if(atm) this.attPts(at.type,at.jaw).forEach(q=>pts.push(M4.xp(atm,...q)));
+    if(hm) md.hitchC.forEach(q=>pts.push(M4.xp(hm,...q)));
+    const fp={x0:-p.trackLen/2,x1:p.trackLen/2,z0:-(p.gauge+p.shoeW)/2,z1:(p.gauge+p.shoeW)/2,lat:true};
+    const tilt=$('ex-jack').checked?tiltFor(pts,fp):{M:M4.id(),ang:0};
+    const root=M4.chain(M4.T(s.x,0,s.z),M4.RY(s.h*D),M4.S(0.001),tilt.M);
+    let tip;
+    if(atm) tip=M4.xp(atm,...md.C[at.type].tip.map((v,i)=>i===0&&at.type==='breaker'?v+this.hamOff():v));
+    else if(hm) tip=M4.xp(hm,p.hitchH+100,0,0); else tip=M4.xp(km,0,0,0);
+    const t2=M4.xp(M4.RY(-s.swing*D),...tip), pB=M4.xp(km,0,0,0);
+    return {k,up,bm,am,km,hm,atm,root,tilt,pts,tip:[t2[0],M4.xp(tilt.M,...tip)[1]],pinY:M4.xp(tilt.M,...pB)[1]};
+  },
+  hamOff(){ return this.att.ham?22+22*Math.sin(this.att.hamPh):0; },
+  frame(){
+    const p=this.p, s=this.st, md=this.model, m=md.mesh, fr=this.frames(), k=fr.k, D=Math.PI/180, at=this.att;
+    const items=[]; let id=1;
+    const putW=(name,mat,col)=>{ if(!m[name]) return; items.push({mesh:m[name],m:mat,col,id}); id=id%254+1; };
+    const put=(name,mat,col)=>putW(name,M4.mul(fr.root,mat),col);
+    for(const side of [-1,1]){
+      const lw=M4.T(0,0,side*p.gauge/2), tr=side<0?s.trL:s.trR;
+      put('tframe',lw,COL.frame); put('idler',lw,COL.steel); put('sprocket',lw,COL.frame); put('rollers',lw,COL.steel);
+      for(let i=0;i<md.Ns;i++){ const [q,ph]=this.trackAt(i*md.pitch-tr); put('shoe',M4.chain(lw,M4.T(q[0],q[1],0),M4.RZ(ph+Math.PI)),COL.track); }
+    }
+    put('carbody',M4.id(),COL.frame); put('ring',M4.id(),COL.steel);
+    const up=fr.up;
+    put('uframe',up,COL.frame); put('cw',up,COL.body2); put('hood',up,COL.body); put('grille',up,COL.frame); put('tank',up,COL.body);
+    put('cab',up,COL.body); put('win',up,COL.glass); put('roof',up,COL.body2); put('exhaust',up,COL.frame); put('rail',up,COL.frame);
+    put('fbr',up,COL.body); put('cbr',up,COL.body); put('upins',up,COL.pin);
+    put('boom',fr.bm,COL.body); put('bbr',fr.bm,COL.body); put('bpins',fr.bm,COL.pin); put('bhose',fr.bm,COL.hose);
+    put('arm',fr.am,COL.body); put('apins',fr.am,COL.pin);
+    const cylPut=(f,A,B,z,t,r)=>{ const an=Math.atan2(B[1]-A[1],B[0]-A[0]);
+      put(t,M4.chain(f,M4.T(A[0],A[1],z),M4.RZ(an),RY90),COL.body);
+      put(r,M4.chain(f,M4.T(B[0],B[1],z),M4.RZ(an+Math.PI),RY90),COL.rod); };
+    for(const sd of [-1,1]) cylPut(up,k.cb,k.pb,p.bfZ+sd*md.zc,'cBt','cBr');
+    cylPut(fr.bm,k.pa,k.at,0,'cAt','cAr');
+    if(k.J){
+      cylPut(fr.am,k.ck,k.J,0,'cKt','cKr');
+      put('slink',M4.chain(fr.am,M4.T(k.p1[0],k.p1[1],0),M4.RZ(Math.atan2(k.J[1]-k.p1[1],k.J[0]-k.p1[0]))),COL.body);
+      put('hlink',M4.chain(fr.am,M4.T(k.J[0],k.J[1],0),M4.RZ(Math.atan2(k.K[1]-k.J[1],k.K[0]-k.J[0]))),COL.body);
+      put('jpin',M4.chain(fr.am,M4.T(k.J[0],k.J[1],0)),COL.pin);
+    }
+    put('kpin',fr.km,COL.pin);
+    if(fr.hm) put('hitch',fr.hm,COL.frame);
+    if(fr.atm) this.putAtt(put,at.type,fr.atm,at.jaw,this.hamOff());
+    at.parked.forEach(pk=>this.putAtt(putW,pk.type,pk.M,pk.jaw,0));
+    return {items,info:fr};
+  },
+  update(dt,K,sp){
+    const s=this.st, v=this.v||(this.v={swing:0,boom:0,arm:0,bkt:0,L:0,R:0}), p=this.p, at=this.att;
+    const tg={swing:(K('KeyA')-K('KeyD'))*36, arm:(K('KeyW')-K('KeyS'))*26, boom:(K('ArrowDown')-K('ArrowUp'))*22,
+      bkt:(K('ArrowRight')-K('ArrowLeft'))*42, L:(K('KeyQ')-K('KeyZ'))*1200, R:(K('KeyE')-K('KeyC'))*1200};
+    const a=Math.min(1,dt*7); let moved=false;
+    for(const j in tg){ v[j]+=(tg[j]*sp-v[j])*a; if(Math.abs(v[j])<1e-3&&!tg[j]) v[j]=0; if(v[j]) moved=true; }
+    if(at.attached&&at.type==='crusher'){ const dj=(K('KeyR')-K('KeyF'))*0.9*sp*dt; if(dj){ at.jaw=clamp(at.jaw+dj,0,1); moved=true; } }
+    const ham=at.attached&&at.type==='breaker'&&!!K('KeyR');
+    if(ham||at.ham){ at.ham=ham; at.hamPh+=dt*2*Math.PI*11; moved=true; }
+    if(!moved) return false;
+    s.swing=((s.swing+v.swing*dt+540)%360)-180;
+    s.boom=clamp(s.boom+v.boom*dt,p.boomMin,p.boomMax);
+    s.arm=clamp(s.arm+v.arm*dt,p.armMin,p.armMax);
+    const rb=this.model.rg.bkt; s.bkt=clamp(s.bkt+v.bkt*dt,rb[0],rb[1]);
+    s.trL+=v.L*dt; s.trR+=v.R*dt;
+    const fwd=(v.L+v.R)/2, w=(v.R-v.L)/p.gauge, h=s.h*Math.PI/180;
+    s.x+=Math.cos(h)*fwd*dt/1000; s.z+=-Math.sin(h)*fwd*dt/1000; s.h+=w*dt*180/Math.PI;
+    return true;
+  },
+  hud(fr){
+    const p=this.p, s=this.st, rg=this.model.rg, k=fr.k, f=v=>fmt(v,1), m=v=>fmt(v/1000,2), at=this.att;
+    const cy=(n,L,r)=>`${n} ${fmt(L,0).padStart(6)} mm（${fmt(r[0],0)}〜${fmt(r[1],0)}、ストローク ${fmt(r[1]-r[0],0)}）`;
+    const an=at.attached?ATT_NAME[at.type]:'なし';
+    return `${at.attached?an+' 先端':'ヒッチ下端'}  高さ ${m(fr.tip[1])} m  旋回中心から ${m(fr.tip[0])} m
+アーム先端ピン 高さ ${m(fr.pinY)} m  旋回中心から ${m(k.B[0])} m
+旋回 ${f(s.swing)}°  ブーム ${f(s.boom)}°  アーム ${f(s.arm)}°  バケット ${f(s.bkt)}°
+シリンダ長（ピン間）
+${cy(' ブーム  ',k.Lb,rg.Lb)}
+${cy(' アーム  ',k.La,rg.La)}
+${k.J?cy(' バケット',k.Lk,rg.Lk):' バケット  リンク不成立'}
+装着：${an}${at.hitch?'（クイックヒッチ）':''}${at.attached&&at.type==='crusher'?`  開度 ${fmt(at.jaw*100,0)}%`:''}${at.ham?'  打撃中':''}
+${fr.tilt.ang>0.05?`ジャッキアップ ${f(fr.tilt.ang)}°\n`:''}機体位置 X ${m(s.x*1000)} m  Z ${m(s.z*1000)} m  向き ${f(((s.h%360)+540)%360-180)}°`;
+  },
+  keyPoints(){
+    const p=this.p, s=this.st, fr=this.frames(), D=Math.PI/180, pts=[], W=M4.mul(fr.root,M4.id());
+    const hx=p.trackLen/2, hz=p.gauge/2+p.shoeW/2, W2=p.upperW/2;
+    for(const x of [-hx,hx]) for(const z of [-hz,hz]) for(const y of [0,p.trackH]) pts.push(M4.xp(W,x,y,z));
+    const up=M4.mul(W,fr.up);
+    for(const x of [-p.tailR,p.upperFront]) for(const z of [-W2,W2]) for(const y of [p.swingH,Math.max(p.cabTop,p.hoodH+450)]) pts.push(M4.xp(up,x,y,z));
+    const bm=M4.mul(W,fr.bm); pts.push(M4.xp(bm,0,0,0),M4.xp(bm,p.boomLen*p.kneeR,p.kneeH+p.boomD/2,0),M4.xp(bm,p.boomLen,p.boomD/2,0));
+    fr.pts.forEach(q=>pts.push(M4.xp(W,...q)));
+    return pts;
+  },
+  // アタッチメントの脱着
+  detach(){
+    const at=this.att;
+    if(!at.hitch) return 'クイックヒッチ使用時のみ取り外せます';
+    if(!at.attached) return 'アタッチメントは装着されていません';
+    const fr=this.frames(), Wm=M4.mul(fr.root,fr.atm);
+    let lo=1e9; this.attPts(at.type,at.jaw).forEach(q=>{ lo=Math.min(lo,M4.xp(Wm,...q)[1]); });
+    at.parked.push({type:at.type,jaw:at.jaw,M:M4.mul(M4.T(0,-lo,0),Wm)});
+    at.attached=false; at.ham=false; return ATT_NAME[at.type]+'を地面に置きました';
+  },
+  attach(){
+    const at=this.att, md=this.model;
+    if(!at.hitch) return 'クイックヒッチ使用時のみ取り付けできます';
+    if(at.attached) return '既にアタッチメントが装着されています（先に取り外してください）';
+    const fr=this.frames(), Hm=M4.chain(fr.root,fr.km,md.HO), pins=[[0,0,0],[md.K[0],md.K[1],0]];
+    const hp=pins.map(q=>M4.xp(Hm,...q));
+    let best=-1, bd=1e9;
+    at.parked.forEach((pk,i)=>{ const Mb=M4.mul(pk.M,pk.type==='bucket'?M4.id():this.inverseMA());
+      const d=Math.max(...pins.map((q,j)=>{ const w=M4.xp(Mb,...q); return Math.hypot(w[0]-hp[j][0],w[1]-hp[j][1],w[2]-hp[j][2]); }));
+      if(d<bd){ bd=d; best=i; } });
+    if(best<0) return '地面に置いたアタッチメントがありません';
+    if(bd>0.25) return `一番近いアタッチメントまで ${fmt(bd,2)} m あります。ピンを 0.25 m 以内に近づけてください`;
+    const pk=at.parked.splice(best,1)[0];
+    at.type=pk.type; at.jaw=pk.jaw; at.attached=true; return ATT_NAME[pk.type]+'を取り付けました';
+  },
+  inverseMA(){ // A 座標 → バケット座標の逆（ピン座標→アタッチ座標）
+    const K=this.model.K, XA=P2.rot(P2.norm(K),-Math.PI/2);
+    return M4.mul(M4.RZ(-P2.ang(XA)),M4.T(-K[0]/2,-K[1]/2,0));
+  },
+  saveExtra(){ const a=this.att; lsSet('ex.att',JSON.stringify({type:a.type,hitch:a.hitch,attached:a.attached,jaw:a.jaw})); },
+  loadExtra(){ try{ const j=JSON.parse(lsGet('ex.att')||'null'); if(j) Object.assign(this.att,j); }catch(e){} if(!this.att.hitch) this.att.attached=true; },
+};
+</script>
+
+<script>
+'use strict';
+/* ==================================================================
+   機種：ホイールローダ（中折れ式、Z バーリンク）
+   前フレーム座標：中折れ中心（地面上）原点、x＝前方
+   ================================================================== */
+const WL_DIMS=[
+  ['#','車体'],
+  ['wb','ホイールベース',3550],['tread','トレッド',2250],['tireD','タイヤ外径',1750],['tireW','タイヤ幅',670],
+  ['rearEnd','後端位置（中折れ中心から）',3900],['bodyW','エンジンフード幅',1650],['cwW','カウンタウェイト幅',2500],['hoodH','エンジンフード高さ（地上）',2600],
+  ['cabTop','キャブ高さ（地上）',3600],['cabW','キャブ幅',1500],['cabX','キャブ前端（中折れ中心から後方）',150],['cabL','キャブ長さ',1550],
+  ['#','フロント'],
+  ['apX','リフトアーム支点 前方位置（中折れ中心から）',1300],['apY','リフトアーム支点 高さ（地上）',2100],
+  ['armLen','リフトアーム長（ピン間）',3050],['armZ','リフトアーム左右間隔（中心間）',1300],
+  ['bktLen','バケット ヒンジピン〜刃先',1600],['bktW','バケット幅',3100],
+  ['#','可動範囲'],
+  ['armMin','リフトアーム角 最小',-36,'°'],['armMax','リフトアーム角 最大',49,'°'],
+  ['bktMin','バケット角 最小（ダンプ側）',-110,'°'],['bktMax','バケット角 最大（チルト側）',85,'°'],['artMax','中折れ角 最大（片側）',40,'°'],
+  ['+','リンク・シリンダ取付位置（詳細）'],
+  ['cX','ベルクランク支点 x（アーム座標）',2100],['cY','　〃 y',460],
+  ['cq','ベルクランク 下側長さ',725],['cu','ベルクランク 上側長さ',455],['ca','ベルクランク 上下の開き角',159,'°'],
+  ['kX','バケットリンク支点 x（バケット座標）',-40],['kY','　〃 y',605],['lq','バケットリンク長',1150],
+  ['fcX','バケットシリンダ ボトム X（前フレーム）',1330],['fcY','　〃 Y（地上高）',2550],
+  ['flX','リフトシリンダ ボトム X（前フレーム）',500],['flY','　〃 Y（地上高）',650],
+  ['lrX','リフトシリンダ ロッド x（アーム座標）',1500],['lrY','　〃 y',-300],
+];
+// バケット側面形状（バケット座標：ヒンジピン原点、x＝底面に沿って刃先方向、mm、刃先距離 1585 基準）
+const WLB={ E:[1550,-330],
+  prof:[[1550,-330],[1000,-345],[450,-355],[230,-300],[120,-120],[95,200],[140,600],[260,1000],[420,1320],[560,1430]],
+  top:[[880,1520],[960,1480]] };
+function wlKin(p,s){
+  const D=Math.PI/180, al=s.arm*D, th=s.bkt*D;
+  const P0=[p.apX,p.apY], af=q=>P2.add(P0,P2.rot(q,al)); // アーム座標 → 前フレーム
+  const H=af([p.armLen,0]);
+  const Ka=P2.add([p.armLen,0],P2.rot([p.kX,p.kY],th)), C=[p.cX,p.cY];
+  const xs=circX(C,p.cq,Ka,p.lq); let Q=null;
+  if(xs){ const cr=q=>(Ka[0]-C[0])*(q[1]-C[1])-(Ka[1]-C[1])*(q[0]-C[0]); Q=cr(xs[0])<cr(xs[1])?xs[0]:xs[1]; }
+  const U=Q?P2.add(C,P2.mul(P2.rot(P2.norm(P2.sub(Q,C)),p.ca*D),p.cu)):null;
+  const fc=[p.fcX,p.fcY], fl=[p.flX,p.flY], lr=af([p.lrX,p.lrY]), Uf=U?af(U):null;
+  const s2=wlScale(p), Ef=P2.add(H,P2.rot(P2.mul(WLB.E,s2),al+th));
+  return {P0,H,Ka,C,Q,U,Uf,fc,fl,lr,Ef,af, Lk:Uf?P2.len(P2.sub(Uf,fc)):NaN, Ll:P2.len(P2.sub(lr,fl)), floor:(s.arm+s.bkt)};
 }
-function exClampPose(){
-  const p=EX.p, s=EX.st, rg=EX.model.rg;
-  s.boom=Math.max(p.boomMin,Math.min(p.boomMax,s.boom));
-  s.arm=Math.max(p.armMin,Math.min(p.armMax,s.arm));
-  s.bkt=Math.max(rg.bkt[0],Math.min(rg.bkt[1],s.bkt));
+const wlScale=p=>p.bktLen/P2.len(WLB.E);
+function wlRanges(p){
+  const r={Ll:[1e9,0],Lk:[1e9,0],bkt:[null,null]}, s={arm:0,bkt:0};
+  for(let a=p.armMin;a<=p.armMax+1e-9;a+=1){ s.arm=a; s.bkt=0; const L=wlKin(p,s).Ll; r.Ll=[Math.min(r.Ll[0],L),Math.max(r.Ll[1],L)]; }
+  for(let b=p.bktMin;b<=p.bktMax+1e-9;b+=0.5){ s.bkt=b; s.arm=0; if(!wlKin(p,s).Q) continue;
+    if(r.bkt[0]===null) r.bkt[0]=b; r.bkt[1]=b;
+    for(let a=p.armMin;a<=p.armMax+1e-9;a+=2){ s.arm=a; const L=wlKin(p,s).Lk; r.Lk=[Math.min(r.Lk[0],L),Math.max(r.Lk[1],L)]; } }
+  if(r.bkt[0]===null){ r.bkt=[0,0]; r.Lk=[1000,1500]; }
+  return r;
 }
-function trackAt(sv){
-  const {a,R,rc,per}=EX.model; let s=((sv%per)+per)%per;
-  if(s<2*a) return [[-a+s,R-rc],0]; s-=2*a;
-  if(s<Math.PI*rc){ const t=-Math.PI/2+s/rc; return [[a+rc*Math.cos(t),R+rc*Math.sin(t)],t+Math.PI/2]; } s-=Math.PI*rc;
-  if(s<2*a) return [[a-s,R+rc],Math.PI]; s-=2*a;
-  const t=Math.PI/2+s/rc; return [[-a+rc*Math.cos(t),R+rc*Math.sin(t)],t+Math.PI/2];
-}
-function exItems(){
-  const p=EX.p, s=EX.st, md=EX.model, m=md.mesh, k=exKin(p,s), D=Math.PI/180;
-  const items=[]; let id=1;
-  const put=(name,mat,col)=>{ if(!m[name]) return; items.push({mesh:m[name],m:mat,col,id}); id=id%254+1; };
-  const root=M4.chain(M4.T(s.x,0,s.z),M4.RY(s.h*D),M4.S(0.001));
-  for(const side of [-1,1]){
-    const lw=M4.mul(root,M4.T(0,0,side*p.gauge/2)), tr=side<0?s.trL:s.trR;
-    put('tframe',lw,COL.frame); put('idler',lw,COL.steel); put('sprocket',lw,COL.frame); put('rollers',lw,COL.steel);
-    for(let i=0;i<md.Ns;i++){ const [q,ph]=trackAt(i*md.pitch-tr); put('shoe',M4.chain(lw,M4.T(q[0],q[1],0),M4.RZ(ph+Math.PI)),COL.track); }
-  }
-  put('carbody',root,COL.frame); put('ring',root,COL.steel);
-  const up=M4.mul(root,M4.RY(s.swing*D));
-  put('uframe',up,COL.frame); put('cw',up,COL.cw); put('hood',up,COL.body); put('tank',up,COL.body);
-  put('cab',up,COL.body); put('win',up,COL.glass); put('fglass',up,COL.glass); put('exhaust',up,COL.frame);
-  put('fbr',up,COL.body); put('cbr',up,COL.body); put('upins',up,COL.pin);
-  const bm=M4.chain(up,M4.T(k.F[0],k.F[1],p.bfZ),M4.RZ(s.boom*D));
-  put('boom',bm,COL.body); put('bbr',bm,COL.body); put('bpins',bm,COL.pin);
-  const am=M4.chain(bm,M4.T(p.boomLen,0,0),M4.RZ(s.arm*D));
-  put('arm',am,COL.body); put('apins',am,COL.pin);
-  const km=M4.chain(am,M4.T(p.armLen,0,0),M4.RZ(s.bkt*D));
-  put('shell',km,COL.body); put('side',km,COL.body); put('teeth',km,COL.frame); put('kbr',km,COL.body); put('kpin',km,COL.pin);
-  const cylPut=(fr,A,B,z,t,r)=>{ const an=Math.atan2(B[1]-A[1],B[0]-A[0]);
-    put(t,M4.chain(fr,M4.T(A[0],A[1],z),M4.RZ(an),M4.RY(Math.PI/2)),COL.body);
-    put(r,M4.chain(fr,M4.T(B[0],B[1],z),M4.RZ(an+Math.PI),M4.RY(Math.PI/2)),COL.rod); };
-  for(const sd of [-1,1]) cylPut(up,k.cb,k.pb,p.bfZ+sd*md.zc,'cBt','cBr');
-  cylPut(bm,k.pa,k.at,0,'cAt','cAr');
-  if(k.J){
-    cylPut(am,k.ck,k.J,0,'cKt','cKr');
-    put('slink',M4.chain(am,M4.T(k.p1[0],k.p1[1],0),M4.RZ(Math.atan2(k.J[1]-k.p1[1],k.J[0]-k.p1[0]))),COL.body);
-    put('hlink',M4.chain(am,M4.T(k.J[0],k.J[1],0),M4.RZ(Math.atan2(k.K[1]-k.J[1],k.K[0]-k.J[0]))),COL.body);
-    put('jpin',M4.chain(am,M4.T(k.J[0],k.J[1],0)),COL.pin);
-  }
-  return {items,k};
-}
+const WLC={
+  id:'wl', label:'ホイールローダ', dims:WL_DIMS, pose0:{art:0,arm:-30,bkt:33}, st0:{x:0,z:0,h:0,v:0,rollF:0,rollR:0},
+  poseFields:[['art','中折れ角'],['arm','リフトアーム角'],['bkt','バケット角']],
+  poseNote:'中折れ角：＋が左。リフトアーム角：アーム支点→バケットヒンジピンの線の水平からの角度。バケット角：アームの線からの相対角（＋がチルト（すくい込み）側）。底面の対地角＝アーム角＋バケット角。',
+  dimNote:'寸法は入力後「寸法を反映」で 3D モデルを再生成します（ブラウザに自動保存）。初期値は運転質量 24t クラス相当のおおよその値です。',
+  keys:['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'],
+  help:`<span class="kbd">W</span>前進 <span class="kbd">S</span>後進（離すと減速） <span class="kbd">A</span>左ステア <span class="kbd">D</span>右ステア<br>
+    フロント <span class="kbd">↑</span>アーム下げ <span class="kbd">↓</span>アーム上げ <span class="kbd">←</span>チルト（すくい込み） <span class="kbd">→</span>ダンプ`,
+  pads:`<div class="pad">
+    <button style="grid-column:2;grid-row:1" data-key="KeyW">W<br>前進</button>
+    <button style="grid-column:1;grid-row:2" data-key="KeyA">A<br>左ステア</button><div class="ttl">走行</div>
+    <button style="grid-column:3;grid-row:2" data-key="KeyD">D<br>右ステア</button>
+    <button style="grid-column:2;grid-row:3" data-key="KeyS">S<br>後進</button></div>
+   <div class="pad">
+    <button style="grid-column:2;grid-row:1" data-key="ArrowUp">↑<br>アーム下げ</button>
+    <button style="grid-column:1;grid-row:2" data-key="ArrowLeft">←<br>チルト</button><div class="ttl">フロント</div>
+    <button style="grid-column:3;grid-row:2" data-key="ArrowRight">→<br>ダンプ</button>
+    <button style="grid-column:2;grid-row:3" data-key="ArrowDown">↓<br>アーム上げ</button></div>`,
+  camOff:[0.8,1.6,0],
+  validate(np){
+    const bad=['wb','tread','tireD','tireW','rearEnd','bodyW','cwW','hoodH','cabTop','cabW','cabL','armLen','armZ','bktLen','bktW','cq','cu','lq'].filter(k=>!(np[k]>0));
+    if(bad.length) return '正の値を入力してください：'+bad.join(', ');
+    if(np.armMin>=np.armMax||np.bktMin>=np.bktMax) return '可動範囲の最小・最大を確認してください';
+    return '';
+  },
+  build(){
+    const p=this.p, M={}, L=p.wb/2, tr=p.tireD/2, tw=p.tireW, T2=p.tread/2;
+    /* --- タイヤ・ホイール（Z 軸まわり、原点＝車軸中心） --- */
+    const tc=tr-38;
+    M.tire=lathe([[tr*0.55,-tw/2],[tc*0.93,-tw/2],[tc,-tw*0.38],[tc,tw*0.38],[tc*0.93,tw/2],[tr*0.55,tw/2]],40);
+    const nl=24;
+    for(let i=0;i<nl;i++) for(const sd of [-1,1]){
+      const th=(i+(sd>0?0.5:0))/nl*2*Math.PI;
+      const lug=new Geo().add(box(-45,45,-4,40,0,tw*0.47),M4.RY(sd>0?0.45:Math.PI-0.45));
+      M.tire.add(lug,M4.chain(M4.RZ(th),M4.T(0,tc,0)));
+    }
+    M.rim=new Geo().add(lathe([[0,-tw*0.30],[tr*0.55,-tw*0.40],[tr*0.55,tw*0.40],[0,tw*0.30]],32)).add(lathe([[0,-tw*0.42],[tr*0.18,-tw*0.42],[tr*0.18,-tw*0.30],[0,-tw*0.30]],16)).add(lathe([[0,tw*0.30],[tr*0.18,tw*0.30],[tr*0.18,tw*0.42],[0,tw*0.42]],16));
+    for(let i=0;i<10;i++){ const t=i/10*2*Math.PI; M.rim.add(cylZ(tr*0.36*Math.cos(t),tr*0.36*Math.sin(t),18,-tw*0.42,tw*0.42,8)); }
+    /* --- 前フレーム --- */
+    const az=p.armZ/2, yA=tr;
+    M.fFrame=new Geo().add(chamBox(250,L+750,yA-260,yA+330,-430,430,60))
+      .add(cylZ(L,yA,170,-T2+tw*0.3,T2-tw*0.3,20)).add(extrudeY(circ(L,0,330,24).map(q=>[q[0],q[1]]),yA-260,yA-150))
+      .add(box(-40,320,yA-200,yA+300,-280,280));
+    const tw2=[[250,yA-150],[L+420,yA-150],[L+420,yA+330],[p.apX+260,p.apY-140],[p.apX+170,p.apY+230],[p.fcX+170,p.fcY+150],[p.fcX-200,p.fcY+120],[330,yA+900]];
+    M.tower=new Geo().add(pair(tw2,az-150,az-90)).add(box(p.fcX-230,p.fcX+170,p.fcY-260,p.fcY+60,-(az-90),az-90))
+      .add(pair(hullC([[p.fcX,p.fcY,120],[p.fcX-150,p.fcY-200,0],[p.fcX+150,p.fcY-200,0]]),95,135))
+      .add(pair(hullC([[p.flX,p.flY,110],[p.flX-120,yA-150,0],[p.flX+200,yA-150,0]]),az-90,az-50))
+      .add(box(L+600,L+780,yA-200,yA+250,-560,560));
+    M.fPins=new Geo().add(cylZ(p.apX,p.apY,80,-az-80,az+80,24)).add(cylZ(p.fcX,p.fcY,62,-140,140,20)).add(cylZ(p.flX,p.flY,62,-az-80,az+80,20));
+    M.fFender=new Geo();
+    for(const sd of [-1,1]) M.fFender.add(extrude(arcBand(L,yA,tr+45,tr+75,20,165),sd*T2-tw/2-50,sd*T2+tw/2+50));
+    M.fFender.add(pair([[L-tr*0.9,yA+tr*0.30],[L-tr*0.2,yA+tr*0.55],[L-tr*0.2,yA+tr*0.62],[L-tr*0.9,yA+tr*0.40]],440,T2-tw/2-40));
+    /* --- 後フレーム --- */
+    const rE=p.rearEnd, hH=p.hoodH, bw=p.bodyW/2, cwW=p.cwW/2;
+    M.rFrame=new Geo().add(chamBox(-rE+500,-250,yA-250,yA+300,-480,480,60))
+      .add(cylZ(-L,yA,170,-T2+tw*0.3,T2-tw*0.3,20)).add(box(-320,40,yA-200,yA+300,-300,300))
+      .add(extrudeY(circ(0,0,70,16),yA-260,yA+360));
+    const hood=[[-p.cabX-p.cabL+60,yA+300],[-rE+420,yA+300],[-rE+420,hH-330],[-rE+560,hH-170],[-p.cabX-p.cabL-200,hH],[-p.cabX-p.cabL+60,hH]];
+    M.hood=new Geo().add(extrude(hood,-bw,bw)).add(box(-rE+900,-p.cabX-p.cabL-350,hH-4,hH+30,-bw+180,bw-180));
+    const cwP=[]; const rr=Math.min(380,cwW*0.3);
+    for(let i=0;i<=8;i++){ const t=Math.PI/2+i/8*Math.PI/2; cwP.push([-rE+rr+rr*Math.cos(t),cwW-rr+rr*Math.sin(t)]); }
+    for(let i=0;i<=8;i++){ const t=Math.PI+i/8*Math.PI/2; cwP.push([-rE+rr+rr*Math.cos(t),-cwW+rr+rr*Math.sin(t)]); }
+    cwP.push([-rE+520,-cwW],[-rE+520,cwW]);
+    M.cw=new Geo().add(extrudeY(cwP,yA-350,hH-420)).add(loftY(cwP,hH-420,cwP.map(q=>[q[0]+Math.sign(q[0]+rE-260)*0,q[1]*0.92]),hH-340,false,true));
+    M.grille=new Geo().add(facePlate([-rE+430,yA+420],[-rE+430,hH-380],-bw+120,bw-120,12,0));
+    for(let i=0;i<6;i++){ const y=yA+500+i*(hH-yA-950)/5; M.grille.add(box(-rE+405,-rE+430,y,y+30,-bw+140,bw-140)); }
+    M.rFender=new Geo();
+    for(const sd of [-1,1]){ const z0=sd*T2-tw/2-60, z1=sd*T2+tw/2+60;
+      M.rFender.add(extrude(arcBand(-L,yA,tr+45,tr+80,0,180),z0,z1))
+        .add(box(-L-tr-80,-L-tr-45,yA-150,yA,z0,z1)).add(box(-L+tr+45,-L+tr+80,yA-150,yA+60,z0,z1))
+        .add(box(-L+tr+45,-p.cabX+40,yA+tr*0.75,yA+tr*0.75+40,sd>0?T2-tw/2-60:-T2-tw/2-60,sd>0?T2+tw/2+60:-T2+tw/2+60)); }
+    M.exh=new Geo().add(extrudeY(circ(-rE*0.62,bw*0.45,65,16),hH-10,hH+300)).add(extrudeY(circ(-p.cabX-p.cabL-500,-bw*0.45,110,20),hH-10,hH+250))
+      .add(extrudeY(circ(-p.cabX-p.cabL-500,-bw*0.45,150,20),hH+250,hH+330));
+    // キャブ
+    const cb=yA+tr*0.75+40, cT=p.cabTop, cf=-p.cabX, cr=cf-p.cabL, ch=cT-cb, cz=p.cabW/2;
+    const cabP=[[cr,cb],[cf-30,cb],[cf+40,cb+ch*0.45],[cf+20,cT-260],[cf-120,cT],[cr+120,cT],[cr,cT-120]];
+    M.cab=new Geo().add(extrude(cabP,-cz,cz)).add(box(cr+80,cf-60,cT-5,cT+30,-cz+40,cz-40)).add(box(cr-20,cf+20,cb-300,cb,-cz-60,cz+60));
+    const yb=cb+ch*0.30, yt=cT-150;
+    const sw=[[cr+90,yb],[cf-70,yb],[cf-10,cb+ch*0.47],[cf-25,yt],[cr+130,yt]];
+    M.win=new Geo().add(extrude(sw,-cz-10,-cz+3)).add(extrude(sw,cz-3,cz+10))
+      .add(facePlate([cf+38,cb+ch*0.48],[cf+20,cT-270],-cz+50,cz-50,10,30)).add(facePlate([cf-28,cb+40],[cf+38,cb+ch*0.42],-cz+50,cz-50,10,40))
+      .add(facePlate([cr,cT-160],[cr,cb+ch*0.40],-cz+80,cz-80,10,0));
+    // 手すり・はしご
+    M.rail=new Geo();
+    for(const sd of [-1,1]){ const z=sd*(cz+110);
+      M.rail.add(tube([[cr-60,cb-260,z],[cr-60,cb+ch*0.55,z]],20)); }
+    const lz=-(T2-tw/2-60);
+    for(let i=0;i<4;i++){ const y=350+i*(cb-350)/4; M.rail.add(box(-L+tr+40,-L+tr+260,y,y+30,lz-380,lz-60)); }
+    M.rail.add(box(-L+tr+30,-L+tr+50,330,cb,lz-380,lz-360)).add(box(-L+tr+250,-L+tr+270,330,cb,lz-380,lz-360));
+    /* --- リフトアーム・リンク --- */
+    const La=p.armLen, ab=bentBar(La,0.55,-260,200,330,170);
+    M.arm=pair(ab.poly,az-60,az+60);
+    M.cross=new Geo().add(cylZ(p.cX,p.cY*0.55,150,-az+60,az-60,24)).add(pair(hullC([[p.cX,p.cY,110],[p.cX-260,0,60],[p.cX+260,0,60]]),az-60,az-20));
+    M.aPins=new Geo().add(cylZ(La,0,75,-az-90,az+90,24)).add(cylZ(p.cX,p.cY,72,-120,120,20)).add(pair(hullC([[p.lrX,p.lrY,100],[p.lrX-250,-100,30],[p.lrX+250,-60,30]]),az-60,az+60))
+      .add(cylZ(p.lrX,p.lrY,58,-az-70,az+70,20));
+    const U0=P2.mul([Math.cos(p.ca*Math.PI/180),Math.sin(p.ca*Math.PI/180)],p.cu);
+    M.crank=new Geo().add(pair(hullC([[0,0,135],[p.cq,0,95],[U0[0],U0[1],95]]),45,85)).add(cylZ(p.cq,0,55,-110,110,16)).add(cylZ(U0[0],U0[1],55,-110,110,16));
+    M.link=pair(hullC([[0,0,85],[p.lq,0,85]]),50,82);
+    /* --- バケット --- */
+    const s=wlScale(p), Wb=p.bktW/2, f=q=>P2.mul(q,s);
+    const prof=spline(WLB.prof.map(f),5), outer=prof.concat(WLB.top.map(f));
+    const th=24;
+    M.bShell=extrude(outer.concat(offsetLine(outer,area2(outer)>0?th:-th).reverse()),-Wb+30,Wb-30);
+    M.bSide=pair(outer,Wb-30,Wb);
+    const E=f(WLB.E);
+    M.bEdge=new Geo().add(extrude([[E[0]-430*s,E[1]-8],[E[0]+15,E[1]],[E[0]+15,E[1]+32],[E[0]-430*s,E[1]+42]],-Wb+10,Wb-10));
+    M.bBr=new Geo();
+    for(const sd of [-1,1]) for(const o of [-1,1]) M.bBr.add(extrude(hullC([[0,0,130],[...f([220,-260]),0],[...f([200,330]),0],[...f([90,60]),0]]),sd*az+o*65-(o>0?0:35),sd*az+o*65+(o>0?35:0)));
+    M.bBr.add(pair(hullC([[p.kX,p.kY,110],[...f([140,420]),0],[...f([200,900]),0]]),85,120)).add(cylZ(p.kX,p.kY,58,-125,125,16));
+    this.bPts=outer.filter((_,i)=>i%2===0).flatMap(q=>[[q[0],q[1],-Wb],[q[0],q[1],Wb]]);
+    /* --- シリンダ --- */
+    const rg=wlRanges(p), cL=cylGeo(rg.Ll,95,60), cK=cylGeo(rg.Lk,115,70);
+    M.cLt=cL.tube; M.cLr=cL.rod; M.cKt=cK.tube; M.cKr=cK.rod;
+    if(this.model) Object.values(this.model.mesh).forEach(freeMesh);
+    const mesh={}; Object.entries(M).forEach(([k,g])=>{ if(g.p.length) mesh[k]=mkMesh(g); });
+    this.model={mesh,rg};
+    this.clamp();
+  },
+  clamp(){
+    const p=this.p, s=this.st, rg=this.model.rg;
+    s.art=clamp(s.art,-p.artMax,p.artMax); s.arm=clamp(s.arm,p.armMin,p.armMax); s.bkt=clamp(s.bkt,rg.bkt[0],rg.bkt[1]);
+  },
+  frames(){
+    const p=this.p, s=this.st, D=Math.PI/180, k=wlKin(p,s);
+    const ff=M4.RY(s.art*D);                                         // 前フレーム（後フレーム基準）
+    const am=M4.chain(ff,M4.T(k.P0[0],k.P0[1],0),M4.RZ(s.arm*D));    // アーム
+    const bm=M4.chain(am,M4.T(p.armLen,0,0),M4.RZ(s.bkt*D));          // バケット
+    const pts=this.bPts.map(q=>M4.xp(bm,...q));
+    const tilt=$('ex-jack').checked?tiltFor(pts,{x0:-p.wb/2,x1:p.wb/2,z0:-p.tread/2,z1:p.tread/2,lat:false}):{M:M4.id(),ang:0};
+    const root=M4.chain(M4.T(s.x,0,s.z),M4.RY(s.h*D),M4.S(0.001),tilt.M);
+    const ey=M4.xp(tilt.M,...M4.xp(ff,k.Ef[0],k.Ef[1],0))[1], hy=M4.xp(tilt.M,...M4.xp(ff,k.H[0],k.H[1],0))[1];
+    return {k,ff,am,bm,root,tilt,pts,ey,hy};
+  },
+  frame(){
+    const p=this.p, s=this.st, m=this.model.mesh, fr=this.frames(), k=fr.k, L=p.wb/2, tr=p.tireD/2, T2=p.tread/2;
+    const items=[]; let id=1;
+    const put=(name,mat,col)=>{ if(!m[name]) return; items.push({mesh:m[name],m:M4.mul(fr.root,mat),col,id}); id=id%254+1; };
+    for(const [f,x,roll] of [[M4.id(),-L,s.rollR],[fr.ff,L,s.rollF]]) for(const sd of [-1,1]){
+      const w=M4.chain(f,M4.T(x,tr,sd*T2),M4.RZ(-roll));
+      put('tire',w,COL.tire); put('rim',w,COL.rim); }
+    put('rFrame',M4.id(),COL.frame); put('hood',M4.id(),COL.body); put('cw',M4.id(),COL.body2); put('grille',M4.id(),COL.frame);
+    put('rFender',M4.id(),COL.body); put('exh',M4.id(),COL.frame); put('cab',M4.id(),COL.body); put('win',M4.id(),COL.glass); put('rail',M4.id(),COL.frame);
+    put('fFrame',fr.ff,COL.frame); put('tower',fr.ff,COL.body); put('fPins',fr.ff,COL.pin); put('fFender',fr.ff,COL.body);
+    const az=p.armZ/2;
+    put('arm',fr.am,COL.body); put('cross',fr.am,COL.body); put('aPins',fr.am,COL.pin);
+    if(k.Q){
+      put('crank',M4.chain(fr.am,M4.T(k.C[0],k.C[1],0),M4.RZ(P2.ang(P2.sub(k.Q,k.C)))),COL.body);
+      put('link',M4.chain(fr.am,M4.T(k.Q[0],k.Q[1],0),M4.RZ(P2.ang(P2.sub(k.Ka,k.Q)))),COL.body);
+      const Uf=k.Uf, an=Math.atan2(Uf[1]-k.fc[1],Uf[0]-k.fc[0]);
+      put('cKt',M4.chain(fr.ff,M4.T(k.fc[0],k.fc[1],0),M4.RZ(an),RY90),COL.body);
+      put('cKr',M4.chain(fr.ff,M4.T(Uf[0],Uf[1],0),M4.RZ(an+Math.PI),RY90),COL.rod);
+    }
+    const al=Math.atan2(k.lr[1]-k.fl[1],k.lr[0]-k.fl[0]);
+    for(const sd of [-1,1]){
+      put('cLt',M4.chain(fr.ff,M4.T(k.fl[0],k.fl[1],sd*(az-170)),M4.RZ(al),RY90),COL.body);
+      put('cLr',M4.chain(fr.ff,M4.T(k.lr[0],k.lr[1],sd*(az-170)),M4.RZ(al+Math.PI),RY90),COL.rod); }
+    put('bShell',fr.bm,COL.body); put('bSide',fr.bm,COL.body); put('bEdge',fr.bm,COL.frame); put('bBr',fr.bm,COL.body);
+    return {items,info:fr};
+  },
+  update(dt,K,sp){
+    const s=this.st, p=this.p, v=this.v||(this.v={arm:0,bkt:0});
+    const thr=K('KeyW')-K('KeyS'), vmax=2800*sp;
+    let moved=false;
+    if(thr){ s.v=clamp(s.v+thr*1600*sp*dt,-vmax*0.6,vmax); moved=true; }
+    else if(s.v){ const dv=3000*dt; s.v=Math.abs(s.v)<=dv?0:s.v-Math.sign(s.v)*dv; moved=true; }
+    const st=(K('KeyA')-K('KeyD'))*28*sp;
+    if(st){ s.art=clamp(s.art+st*dt,-p.artMax,p.artMax); moved=true; }
+    const tg={arm:(K('ArrowDown')*15-K('ArrowUp')*18), bkt:(K('ArrowLeft')*30-K('ArrowRight')*35)}, a=Math.min(1,dt*7);
+    for(const j in tg){ v[j]+=(tg[j]*sp-v[j])*a; if(Math.abs(v[j])<1e-3&&!tg[j]) v[j]=0; if(v[j]) moved=true; }
+    if(!moved) return false;
+    s.arm=clamp(s.arm+v.arm*dt,p.armMin,p.armMax);
+    const rb=this.model.rg.bkt; s.bkt=clamp(s.bkt+v.bkt*dt,rb[0],rb[1]);
+    if(s.v){
+      const D=Math.PI/180, L=p.wb/2, ps=(s.h+s.art/2)*D, ds=s.v*dt;
+      s.x+=Math.cos(ps)*ds/1000; s.z+=-Math.sin(ps)*ds/1000;
+      s.h+=ds*Math.sin(s.art/2*D)/L*180/Math.PI;
+      s.rollF+=ds/(p.tireD/2); s.rollR+=ds/(p.tireD/2);
+    }
+    return true;
+  },
+  hud(fr){
+    const p=this.p, s=this.st, rg=this.model.rg, k=fr.k, f=v=>fmt(v,1), m=v=>fmt(v/1000,2);
+    const cy=(n,L,r)=>`${n} ${fmt(L,0).padStart(6)} mm（${fmt(r[0],0)}〜${fmt(r[1],0)}、ストローク ${fmt(r[1]-r[0],0)}）`;
+    return `バケット刃先  高さ ${m(fr.ey)} m  前車軸から ${m(k.Ef[0]-p.wb/2)} m
+ヒンジピン    高さ ${m(fr.hy)} m  前車軸から ${m(k.H[0]-p.wb/2)} m
+リフトアーム ${f(s.arm)}°  バケット ${f(s.bkt)}°（底面の対地角 ${f(k.floor)}°）  中折れ ${f(s.art)}°
+シリンダ長（ピン間）
+${cy(' リフト  ',k.Ll,rg.Ll)}
+${isFinite(k.Lk)?cy(' バケット',k.Lk,rg.Lk):' バケット  リンク不成立'}
+車速 ${fmt(s.v*3.6/1000,1)} km/h
+${fr.tilt.ang>0.05?`ジャッキアップ ${f(fr.tilt.ang)}°\n`:''}機体位置 X ${m(s.x*1000)} m  Z ${m(s.z*1000)} m  向き ${f(((s.h%360)+540)%360-180)}°`;
+  },
+  keyPoints(){
+    const p=this.p, fr=this.frames(), W=fr.root, pts=[];
+    for(const x of [-p.rearEnd,p.wb/2+p.tireD/2]) for(const z of [-p.cwW/2,p.cwW/2]) for(const y of [0,p.cabTop]) pts.push(M4.xp(W,x,y,z));
+    fr.pts.forEach(q=>pts.push(M4.xp(W,...q)));
+    const am=M4.mul(W,fr.am); pts.push(M4.xp(am,0,300,0));
+    return pts;
+  },
+  saveExtra(){}, loadExtra(){},
+};
+</script>
+
+<script>
+'use strict';
+/* ==================================================================
+   3D 建機：共通 UI（機種切替・カメラ・表示・保存）
+   ================================================================== */
+const MACHINES={ex:EXC, wl:WLC};
+Object.values(MACHINES).forEach(m=>{
+  m.def={}; m.dims.forEach(d=>{ if(d[0]!=='#'&&d[0]!=='+') m.def[d[0]]=d[2]; });
+  m.p={...m.def}; m.st={...m.st0,...m.pose0};
+  try{ const s=JSON.parse(lsGet(m.id+'.dims')||'null'); if(s) Object.assign(m.p,s); }catch(e){}
+  try{ const s=JSON.parse(lsGet(m.id+'.pose')||'null'); if(s) Object.assign(m.st,s); }catch(e){}
+  m.loadExtra();
+});
+let MC=MACHINES[$('ex-mach').value]||EXC;
+const EX={ keys:{}, cam:{yaw:-55,pitch:22,dist:16,ortho:false,off:[1.8,1.6,0],tgt:[0,1.6,0],view:'iso'}, ok:false, follow:true };
+try{ const s=JSON.parse(lsGet('ex.cam')||'null'); if(s) Object.assign(EX.cam,s); }catch(e){}
 
 /* ---------- カメラ ---------- */
 const FOV=35*Math.PI/180;
 function camBasis(){
-  const c=EX.cam, D=Math.PI/180, Y=c.yaw*D, P=c.pitch*D, R=M4.RY(EX.follow?EX.st.h*D:0);
+  const c=EX.cam, D=Math.PI/180, Y=c.yaw*D, P=c.pitch*D, R=M4.RY(EX.follow?MC.st.h*D:0);
   const e=M4.xd(R,Math.cos(P)*Math.cos(Y),Math.sin(P),Math.cos(P)*Math.sin(Y));
   const u=M4.xd(R,-Math.sin(P)*Math.cos(Y),Math.cos(P),-Math.sin(P)*Math.sin(Y));
   return {e,u,r:V3.cross(u,e)};
 }
 function camTarget(){
   if(!EX.follow) return EX.cam.tgt;
-  const s=EX.st; return V3.add([s.x,0,s.z],M4.xd(M4.RY(s.h*Math.PI/180),...EX.cam.off));
+  const s=MC.st; return V3.add([s.x,0,s.z],M4.xd(M4.RY(s.h*Math.PI/180),...EX.cam.off));
 }
 function setTarget(t){
   if(!EX.follow){ EX.cam.tgt=t; return; }
-  const s=EX.st; EX.cam.off=M4.xd(M4.RY(-s.h*Math.PI/180),...V3.sub(t,[s.x,0,s.z]));
+  const s=MC.st; EX.cam.off=M4.xd(M4.RY(-s.h*Math.PI/180),...V3.sub(t,[s.x,0,s.z]));
 }
 function camMake(w,h){
   const c=EX.cam, {e,u}=camBasis(), t=camTarget(), asp=w/h, halfH=c.dist*Math.tan(FOV/2);
@@ -1464,20 +2006,9 @@ function camMake(w,h){
   const eye=V3.add(t,V3.mul(e,c.dist)), near=Math.max(0.05,c.dist*0.02), far=c.dist*20+200;
   return {V:M4.lookAt(eye,t,u),P:M4.persp(FOV,asp,near,far),ortho:false,near,far,halfH,fov:FOV};
 }
-function exKeyPoints(){
-  const p=EX.p, s=EX.st, k=exKin(p,s), D=Math.PI/180, pts=[];
-  const root=M4.mul(M4.T(s.x,0,s.z),M4.RY(s.h*D)), up=M4.mul(root,M4.RY(s.swing*D));
-  const hx=p.trackLen/2, hz=p.gauge/2+p.shoeW/2;
-  for(const x of [-hx,hx]) for(const z of [-hz,hz]) for(const y of [0,p.trackH]) pts.push(M4.xp(root,x/1000,y/1000,z/1000));
-  const W2=p.upperW/2;
-  for(const x of [-p.tailR,p.upperFront]) for(const z of [-W2,W2]) for(const y of [p.swingH,Math.max(p.cabTop,p.hoodH)]) pts.push(M4.xp(up,x/1000,y/1000,z/1000));
-  for(const q of [k.F,k.T,k.B,k.tip,P2.add(k.T,P2.rot([0,p.boomD/2],(s.boom+s.arm)*D))])
-    for(const z of [-p.bktW/2,p.bktW/2]) pts.push(M4.xp(up,q[0]/1000,q[1]/1000,(p.bfZ+z)/1000));
-  return pts;
-}
 function exFit(){
   const cv=$('ex-canvas'), asp=Math.max(0.2,cv.clientWidth/Math.max(1,cv.clientHeight));
-  const pts=exKeyPoints(), {e,u,r}=camBasis();
+  const pts=MC.keyPoints(), {e,u,r}=camBasis();
   const c0=[0,1,2].map(i=>(Math.min(...pts.map(q=>q[i]))+Math.max(...pts.map(q=>q[i])))/2);
   let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9,z0=1e9,z1=-1e9;
   pts.forEach(q=>{ const d=V3.sub(q,c0), x=V3.dot(d,r), y=V3.dot(d,u), z=V3.dot(d,e);
@@ -1500,8 +2031,8 @@ function saveCam(){ lsSet('ex.cam',JSON.stringify(EX.cam)); }
 function exOpts(w,h,pr){
   const mode=$('ex-mode').value, bg=$('ex-bg').value;
   const o={w,h,grid:$('ex-grid').checked};
-  o.ss = (w*h*4<=17e6 && w*2<=RD.maxTex && h*2<=RD.maxTex && pr<2) ? 2 : 1;
-  const lw=Math.max(0.5,Math.min(4,num('ex-lw')||1.25));
+  o.ss=(w*h*4<=17e6&&w*2<=RD.maxTex&&h*2<=RD.maxTex&&pr<2)?2:1;
+  const lw=clamp(num('ex-lw')||1.25,0.5,4);
   o.r=Math.max(1,Math.round(lw*pr*o.ss/2));
   o.fill=null; o.line=null;
   if(mode==='colorline') o.line=[0.08,0.08,0.1];
@@ -1519,64 +2050,33 @@ function exOpts(w,h,pr){
 function exDraw(w,h,pr){
   const cv=$('ex-canvas');
   if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; }
-  const {items,k}=exItems(), cam=camMake(w,h);
-  rdRender(items,cam,exOpts(w,h,pr));
-  return k;
+  const {items,info}=MC.frame();
+  rdRender(items,camMake(w,h),exOpts(w,h,pr));
+  return info;
 }
 
-/* ---------- 更新・入力 ---------- */
-const EXKEYS=['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyQ','KeyZ','KeyE','KeyC'];
+/* ---------- 更新ループ ---------- */
 const vkeys={};
-function exUpdate(dt){
-  const kb=EX.keys, K=c=>(kb[c]||vkeys[c])?1:0, sp=Math.max(0.05,num('ex-speed')||1);
-  const tg={swing:(K('KeyA')-K('KeyD'))*36, arm:(K('KeyW')-K('KeyS'))*26, boom:(K('ArrowDown')-K('ArrowUp'))*22,
-    bkt:(K('ArrowRight')-K('ArrowLeft'))*42, L:(K('KeyQ')-K('KeyZ'))*1200, R:(K('KeyE')-K('KeyC'))*1200};
-  const s=EX.st, v=EX.v, p=EX.p, a=Math.min(1,dt*7);
-  let moved=false;
-  for(const j in tg){ v[j]+=(tg[j]*sp-v[j])*a; if(Math.abs(v[j])<1e-3&&!tg[j]) v[j]=0; if(v[j]) moved=true; }
-  if(!moved) return false;
-  s.swing=((s.swing+v.swing*dt+540)%360)-180;
-  s.boom=Math.max(p.boomMin,Math.min(p.boomMax,s.boom+v.boom*dt));
-  s.arm=Math.max(p.armMin,Math.min(p.armMax,s.arm+v.arm*dt));
-  const rb=EX.model.rg.bkt; s.bkt=Math.max(rb[0],Math.min(rb[1],s.bkt+v.bkt*dt));
-  s.trL+=v.L*dt; s.trR+=v.R*dt;
-  const fwd=(v.L+v.R)/2, w=(v.R-v.L)/p.gauge, h=s.h*Math.PI/180;
-  s.x+=Math.cos(h)*fwd*dt/1000; s.z+=-Math.sin(h)*fwd*dt/1000; s.h+=w*dt*180/Math.PI;
-  return true;
-}
-function exHud(k){
-  const p=EX.p, s=EX.st, rg=EX.model.rg, f=v=>fmt(v,1), m=v=>fmt(v/1000,2);
-  const cy=(n,L,r)=>`${n} ${fmt(L,0).padStart(6)} mm（${fmt(r[0],0)}〜${fmt(r[1],0)}、ストローク ${fmt(r[1]-r[0],0)}）`;
-  $('ex-hud').textContent=
-`バケット刃先  高さ ${m(k.tip[1])} m  旋回中心から ${m(k.tip[0])} m
-アーム先端ピン 高さ ${m(k.B[1])} m  旋回中心から ${m(k.B[0])} m
-旋回 ${f(s.swing)}°  ブーム ${f(s.boom)}°  アーム ${f(s.arm)}°  バケット ${f(s.bkt)}°
-シリンダ長（ピン間）
-${cy(' ブーム  ',k.Lb,rg.Lb)}
-${cy(' アーム  ',k.La,rg.La)}
-${k.J?cy(' バケット',k.Lk,rg.Lk):' バケット  リンク不成立'}
-機体位置 X ${m(s.x*1000)} m  Z ${m(s.z*1000)} m  向き ${f(((s.h%360)+540)%360-180)}°`;
-}
-let exPoseTimer=0;
+let exPoseTimer=0, exLast=0, exDirty=true;
+const redraw=()=>{ exDirty=true; };
 function exPoseSync(){
-  document.querySelectorAll('#ex-pose input').forEach(el=>{ if(document.activeElement!==el) el.value=(+EX.st[el.dataset.k]).toFixed(1); });
+  document.querySelectorAll('#ex-pose input').forEach(el=>{ if(document.activeElement!==el) el.value=(+MC.st[el.dataset.k]).toFixed(1); });
 }
-let exLast=0, exDirty=true;
+function savePose(){ lsSet(MC.id+'.pose',JSON.stringify(MC.st)); }
 function exFrame(t){
   requestAnimationFrame(exFrame);
   const dt=Math.min(0.05,Math.max(0,(t-exLast)/1000)); exLast=t;
   if(currentTab!=='ex'||!EX.ok) return;
-  const moved=exUpdate(dt);
-  document.querySelectorAll('[data-key]').forEach(b=>b.classList.toggle('act',!!(EX.keys[b.dataset.key]||vkeys[b.dataset.key])));
+  const K=c=>(EX.keys[c]||vkeys[c])?1:0;
+  const moved=MC.update(dt,K,Math.max(0.05,num('ex-speed')||1));
+  document.querySelectorAll('#ex-pads [data-key]').forEach(b=>b.classList.toggle('act',!!K(b.dataset.key)));
   if(!moved&&!exDirty) return;
   exDirty=false;
   const cv=$('ex-canvas'), pr=window.devicePixelRatio||1;
-  const k=exDraw(Math.max(1,Math.round(cv.clientWidth*pr)),Math.max(1,Math.round(cv.clientHeight*pr)),pr);
-  exHud(k);
-  if(moved){ exPoseSync(); clearTimeout(exPoseTimer); exPoseTimer=setTimeout(()=>lsSet('ex.pose',JSON.stringify(EX.st)),400); }
+  const info=exDraw(Math.max(1,Math.round(cv.clientWidth*pr)),Math.max(1,Math.round(cv.clientHeight*pr)),pr);
+  $('ex-hud').textContent=MC.hud(info);
+  if(moved){ exPoseSync(); clearTimeout(exPoseTimer); exPoseTimer=setTimeout(()=>{ savePose(); MC.saveExtra(); },400); }
 }
-const redraw=()=>{ exDirty=true; };
-
 function exPng(){
   const cv=$('ex-canvas'), sc=+$('ex-scale').value||1;
   let w=Math.round(cv.clientWidth*sc), h=Math.round(cv.clientHeight*sc);
@@ -1584,49 +2084,61 @@ function exPng(){
   exDraw(w,h,sc);
   const url=cv.toDataURL('image/png');
   redraw();
-  const vn=EX.cam.view||'view';
   const bin=atob(url.split(',')[1]), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
-  download(`excavator_${vn}_${$('ex-mode').value}_${stamp()}.png`,new Blob([u8],{type:'image/png'}));
+  download(`${MC.id==='ex'?'excavator':'wheelloader'}_${EX.cam.view||'view'}_${$('ex-mode').value}_${stamp()}.png`,new Blob([u8],{type:'image/png'}));
 }
 
 /* ---------- UI 構築 ---------- */
 function exBuildForms(){
   let h='', open=false;
-  EX_DIMS.forEach(d=>{
+  MC.dims.forEach(d=>{
     if(d[0]==='#'){ h+=`<div class="full"><h4>${d[1]}</h4></div>`; return; }
-    if(d[0]==='+'){ h+=`<details class="full"><summary>${d[1]}</summary><p class="note">ブーム座標：フートピン原点、x＝トップピン方向、y＝それに直角上向き。アーム座標・バケット座標も同様（原点＝根元ピン、x＝先端ピン／刃先方向）。</p><div class="form" style="grid-template-columns:1fr 90px auto">`; open=true; return; }
-    h+=`<label for="exd-${d[0]}">${d[1]}</label><input type="number" step="any" id="exd-${d[0]}" value="${EX.p[d[0]]}"><span class="u">${d[3]||'mm'}</span>`;
+    if(d[0]==='+'){ h+=`<details class="full"><summary>${d[1]}</summary><p class="note">ブーム・アーム・バケット座標：根元のピンが原点、x＝先端ピン（刃先）方向、y＝それに直角上向き。</p><div class="form" style="grid-template-columns:1fr 90px auto">`; open=true; return; }
+    h+=`<label for="exd-${d[0]}">${d[1]}</label><input type="number" step="any" id="exd-${d[0]}" value="${MC.p[d[0]]}"><span class="u">${d[3]||'mm'}</span>`;
   });
   if(open) h+='</div></details>';
   $('ex-dims').innerHTML=h;
-  $('ex-pose').innerHTML=[['swing','旋回'],['boom','ブーム角'],['arm','アーム角'],['bkt','バケット角']]
-    .map(([k,n])=>`<label>${n}</label><input type="number" step="1" data-k="${k}" value="${EX.st[k]}"><span class="u">°</span>`).join('');
-  $('ex-pose').addEventListener('change',e=>{
-    const k=e.target.dataset.k, v=parseFloat(e.target.value); if(!k||!isFinite(v)) return;
-    EX.st[k]=v; exClampPose(); exPoseSync(); lsSet('ex.pose',JSON.stringify(EX.st)); redraw();
+  $('ex-pose').innerHTML=MC.poseFields.map(([k,n])=>`<label>${n}</label><input type="number" step="1" data-k="${k}" value="${(+MC.st[k]).toFixed(1)}"><span class="u">°</span>`).join('');
+  $('ex-posenote').textContent=MC.poseNote; $('ex-dimnote').textContent=MC.dimNote;
+}
+function exBuildPads(){
+  $('ex-pads').innerHTML=MC.pads; $('ex-help').innerHTML=MC.help;
+  $('ex-attcard').style.display=MC.id==='ex'?'':'none';
+  document.querySelectorAll('#ex-pads [data-key]').forEach(b=>{
+    const on=e=>{ e.preventDefault(); vkeys[b.dataset.key]=true; b.setPointerCapture&&b.setPointerCapture(e.pointerId); };
+    const off=()=>{ vkeys[b.dataset.key]=false; };
+    b.addEventListener('pointerdown',on); b.addEventListener('pointerup',off); b.addEventListener('pointercancel',off); b.addEventListener('lostpointercapture',off);
   });
 }
-function exReadDims(){
-  const np={...EX.p};
-  for(const k in EX_DEF){ const v=parseFloat($('exd-'+k).value); if(isFinite(v)) np[k]=v; }
-  return np;
+function exAttUI(msg){
+  const a=EXC.att;
+  $('ex-att').value=a.type; $('ex-hitch').checked=a.hitch;
+  $('ex-detach').disabled=!(a.hitch&&a.attached); $('ex-attach').disabled=!(a.hitch&&!a.attached&&a.parked.length);
+  $('ex-clearpark').disabled=!a.parked.length;
+  if(msg!==undefined) $('ex-attmsg').textContent=msg;
+  EXC.saveExtra();
+}
+function exSelectMachine(id){
+  MC=MACHINES[id]||EXC; $('ex-mach').value=MC.id;
+  for(const k in vkeys) vkeys[k]=false; EX.keys={};
+  if(!MC.model) MC.build();
+  exBuildForms(); exBuildPads();
+  if(currentTab==='ex') exFit();
+  redraw();
 }
 function exApply(np){
-  const bad=['trackLen','gauge','shoeW','trackH','tailR','upperW','boomLen','boomW','boomD','armLen','armW','bktLen','bktW','l1','l2'].filter(k=>!(np[k]>0));
-  if(bad.length){ alert('正の値を入力してください：'+bad.join(', ')); return; }
-  if(np.boomMin>=np.boomMax||np.armMin>=np.armMax||np.bktMin>=np.bktMax){ alert('可動範囲の最小・最大を確認してください'); return; }
-  EX.p=np; lsSet('ex.dims',JSON.stringify(np));
-  exBuild(); exBuildForms(); redraw();
+  const err=MC.validate(np); if(err){ alert(err); return; }
+  MC.p=np; lsSet(MC.id+'.dims',JSON.stringify(np));
+  MC.build(); exBuildForms(); redraw();
 }
 function exInit(){
-  exBuildForms();
   EX.follow=$('ex-follow').checked;
+  setBodyColor($('ex-color').value);
   $('ex-proj').value=EX.cam.ortho?'ortho':'persp';
   const cv=$('ex-canvas');
-  try{ if(!rdInit(cv)) throw new Error('no webgl2'); exBuild(); EX.ok=true; }
+  try{ if(!rdInit(cv)) throw new Error('WebGL2 が利用できません'); MC.build(); EX.ok=true; }
   catch(err){ console.error(err); $('ex-err').style.display='flex'; $('ex-err').textContent='3D 表示を初期化できませんでした：'+(err.message||err); return; }
-  exViewBtns();
-  // マウス操作
+  exBuildForms(); exBuildPads(); exViewBtns(); exAttUI('');
   let drag=null;
   cv.addEventListener('contextmenu',e=>e.preventDefault());
   cv.addEventListener('pointerdown',e=>{
@@ -1637,49 +2149,56 @@ function exInit(){
   cv.addEventListener('pointermove',e=>{
     if(!drag) return; const dx=e.clientX-drag.x, dy=e.clientY-drag.y; drag.x=e.clientX; drag.y=e.clientY;
     const c=EX.cam;
-    if(drag.pan){
-      const {u,r}=camBasis(), k=2*c.dist*Math.tan(FOV/2)/Math.max(1,cv.clientHeight);
-      setTarget(V3.add(camTarget(),V3.add(V3.mul(r,-dx*k),V3.mul(u,dy*k))));
-    }else{
-      c.yaw=(c.yaw-dx*0.35+540)%360-180; c.pitch=Math.max(-89.99,Math.min(89.99,c.pitch+dy*0.35)); c.view=''; exViewBtns();
-    }
+    if(drag.pan){ const {u,r}=camBasis(), k=2*c.dist*Math.tan(FOV/2)/Math.max(1,cv.clientHeight);
+      setTarget(V3.add(camTarget(),V3.add(V3.mul(r,-dx*k),V3.mul(u,dy*k)))); }
+    else { c.yaw=(c.yaw+dx*0.35+540)%360-180; c.pitch=clamp(c.pitch+dy*0.35,-89.99,89.99); c.view=''; exViewBtns(); }
     redraw();
   });
   const endDrag=()=>{ if(drag){ drag=null; saveCam(); } };
   cv.addEventListener('pointerup',endDrag); cv.addEventListener('pointercancel',endDrag);
-  cv.addEventListener('wheel',e=>{ e.preventDefault(); EX.cam.dist=Math.max(0.5,Math.min(400,EX.cam.dist*Math.exp(e.deltaY*0.0012))); saveCam(); redraw(); },{passive:false});
+  cv.addEventListener('wheel',e=>{ e.preventDefault(); EX.cam.dist=clamp(EX.cam.dist*Math.exp(e.deltaY*0.0012),0.5,400); saveCam(); redraw(); },{passive:false});
   cv.addEventListener('dblclick',()=>{ exFit(); redraw(); });
-  // キーボード
   window.addEventListener('keydown',e=>{
-    if(currentTab!=='ex'||!EXKEYS.includes(e.code)) return;
+    if(currentTab!=='ex'||!MC.keys.includes(e.code)) return;
     const t=e.target; if(t&&t!==cv&&/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)&&t.type!=='checkbox'&&t.type!=='range') return;
     EX.keys[e.code]=true; e.preventDefault();
   });
   window.addEventListener('keyup',e=>{ if(EX.keys[e.code]){ EX.keys[e.code]=false; e.preventDefault(); } });
   window.addEventListener('blur',()=>{ EX.keys={}; for(const k in vkeys) vkeys[k]=false; });
-  // 画面ボタン
-  document.querySelectorAll('[data-key]').forEach(b=>{
-    const on=e=>{ e.preventDefault(); vkeys[b.dataset.key]=true; b.setPointerCapture&&b.setPointerCapture(e.pointerId); };
-    const off=()=>{ vkeys[b.dataset.key]=false; };
-    b.addEventListener('pointerdown',on); b.addEventListener('pointerup',off); b.addEventListener('pointercancel',off); b.addEventListener('lostpointercapture',off);
+  $('ex-pose').addEventListener('change',e=>{
+    const k=e.target.dataset.k, v=parseFloat(e.target.value); if(!k||!isFinite(v)) return;
+    MC.st[k]=v; MC.clamp(); exPoseSync(); savePose(); redraw();
   });
   document.querySelectorAll('#ex-views [data-view]').forEach(b=>b.addEventListener('click',()=>{ setView(b.dataset.view); redraw(); }));
+  $('ex-mach').addEventListener('change',()=>exSelectMachine($('ex-mach').value));
   $('ex-proj').addEventListener('change',()=>{ EX.cam.ortho=$('ex-proj').value==='ortho'; saveCam(); redraw(); });
-  ['ex-mode','ex-lw','ex-bg','ex-grid'].forEach(id=>{ $(id).addEventListener('change',redraw); $(id).addEventListener('input',redraw); });
+  ['ex-mode','ex-lw','ex-bg','ex-grid','ex-jack'].forEach(id=>{ $(id).addEventListener('change',redraw); $(id).addEventListener('input',redraw); });
+  $('ex-color').addEventListener('input',()=>{ setBodyColor($('ex-color').value); redraw(); });
   $('ex-follow').addEventListener('change',()=>{ const t=camTarget(); EX.follow=$('ex-follow').checked; setTarget(t); saveCam(); redraw(); });
   $('ex-png').addEventListener('click',exPng);
-  $('ex-apply').addEventListener('click',()=>exApply(exReadDims()));
-  $('ex-dimreset').addEventListener('click',()=>{ if(confirm('寸法を初期値に戻しますか？')) exApply({...EX_DEF}); });
-  $('ex-posereset').addEventListener('click',()=>{ Object.assign(EX.st,POSE0); exClampPose(); exPoseSync(); lsSet('ex.pose',JSON.stringify(EX.st)); redraw(); });
-  $('ex-posrst').addEventListener('click',()=>{ Object.assign(EX.st,{x:0,z:0,h:0}); lsSet('ex.pose',JSON.stringify(EX.st)); redraw(); });
+  $('ex-apply').addEventListener('click',()=>{ const np={...MC.p}; for(const k in MC.def){ const v=parseFloat($('exd-'+k).value); if(isFinite(v)) np[k]=v; } exApply(np); });
+  $('ex-dimreset').addEventListener('click',()=>{ if(confirm('寸法を初期値に戻しますか？')) exApply({...MC.def}); });
+  $('ex-posereset').addEventListener('click',()=>{ Object.assign(MC.st,MC.pose0); MC.clamp(); exPoseSync(); savePose(); redraw(); });
+  $('ex-posrst').addEventListener('click',()=>{ Object.assign(MC.st,{x:0,z:0,h:0}); savePose(); redraw(); });
+  // アタッチメント
+  $('ex-att').addEventListener('change',()=>{ const a=EXC.att; a.type=$('ex-att').value; a.attached=true; a.ham=false; exAttUI(ATT_NAME[a.type]+'を装着しました'); redraw(); });
+  $('ex-hitch').addEventListener('change',()=>{ const a=EXC.att; a.hitch=$('ex-hitch').checked; if(!a.hitch) a.attached=true; exAttUI(''); redraw(); });
+  $('ex-detach').addEventListener('click',()=>{ exAttUI(EXC.detach()); redraw(); });
+  $('ex-attach').addEventListener('click',()=>{ exAttUI(EXC.attach()); redraw(); });
+  $('ex-clearpark').addEventListener('click',()=>{ EXC.att.parked=[]; exAttUI('置いたアタッチメントを消去しました'); redraw(); });
   $('ex-export').addEventListener('click',()=>{
-    const j={type:'multitool-excavator',version:1,dims:EX.p,pose:{swing:EX.st.swing,boom:EX.st.boom,arm:EX.st.arm,bkt:EX.st.bkt}};
-    download('excavator_settings_'+stamp()+'.json',new Blob([JSON.stringify(j,null,1)],{type:'application/json'}));
+    const pose={}; MC.poseFields.forEach(([k])=>pose[k]=MC.st[k]);
+    const j={type:'multitool-machine',machine:MC.id,version:2,dims:MC.p,pose};
+    if(MC.id==='ex') j.attachment={type:EXC.att.type,hitch:EXC.att.hitch};
+    download(`${MC.id==='ex'?'excavator':'wheelloader'}_settings_${stamp()}.json`,new Blob([JSON.stringify(j,null,1)],{type:'application/json'}));
   });
   $('ex-import').addEventListener('change',async e=>{
     const f=e.target.files[0]; if(!f) return; e.target.value='';
     try{ const j=JSON.parse(await f.text()); if(!j.dims) throw new Error('dims がありません');
-      if(j.pose) Object.assign(EX.st,j.pose); exApply({...EX_DEF,...j.dims}); exPoseSync(); }
+      exSelectMachine(j.machine==='wl'?'wl':'ex');
+      if(j.pose) Object.assign(MC.st,j.pose);
+      if(MC.id==='ex'&&j.attachment){ Object.assign(EXC.att,j.attachment,{attached:true}); exAttUI(''); }
+      exApply({...MC.def,...j.dims}); exPoseSync(); savePose(); }
     catch(err){ alert('読込に失敗しました：'+err.message); }
   });
   new ResizeObserver(redraw).observe($('ex-main'));
