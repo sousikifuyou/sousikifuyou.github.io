@@ -10,7 +10,7 @@
   // 同じフォルダの sw.js や genshin-data.json を見つけられない。正しい形の URL に置き換えて開き直す。
   if(/%2f/i.test(location.pathname)) location.replace(location.pathname.replace(/%2f/gi,"/")+location.search+location.hash);
 </script>
-<title>原神素材_R0.55</title>
+<title>原神素材_R0.56</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
@@ -410,11 +410,11 @@ const FALLBACK_DATA={schema:1,generatedAt:null,source:{name:"内蔵データ",ve
   weaponSeries:[],characters:[],weapons:[]};
 
 /* ===== ストレージキー ===== */
-const APP_VERSION="R0.55";
+const APP_VERSION="R0.56";
 const K={ DATA:"genshin-data-v4", FETCHED_AT:"genshin-data-fetched-at-v4", FROM:"genshin-data-from-v4", LOCAL_OVERRIDES:"local-overrides-v2", THEME:"theme-pref-v1", FOLD:"fold-state-v1", ORDER:"region-order-v1", LAYOUT:"layout-pref-v1", ICONS:"icons-pref-v1", ICON_SAVE:"icon-save-pref-v1" };
 // 旧バージョンのキャッシュを掃除
 // local-overrides-v1 は旧版が同梱の characters.local.json を自動保存したもの（古い天賦本・旧キー名を含む）なので破棄する
-(function cleanupOld(){try{localStorage.removeItem("genshin-app-v3");localStorage.removeItem("local-overrides-v1");localStorage.removeItem("jump-confirm-v1");if(window.caches){caches.delete("icons-v1").catch(()=>{});caches.delete("icons-v2").catch(()=>{});}for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith("ambr-avatar-"))localStorage.removeItem(k);}}catch{}})();
+(function cleanupOld(){try{localStorage.removeItem("genshin-app-v3");localStorage.removeItem("local-overrides-v1");localStorage.removeItem("jump-confirm-v1");if(window.caches){caches.delete("icons-v1").catch(()=>{});caches.delete("icons-v2").catch(()=>{});caches.delete("icons-v3").catch(()=>{});}for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith("ambr-avatar-"))localStorage.removeItem(k);}}catch{}})();
 
 /* ===== ユーティリティ ===== */
 const $=(s)=>document.querySelector(s);
@@ -526,7 +526,7 @@ function keepChip(container,value){if(value==null)return;const b=[...container.q
 const ICON_HOSTS=["https://gi.yatta.moe/assets/UI/","https://enka.network/ui/"];
 const iconsOn=()=>localStorage.getItem(K.ICONS)!=="off";
 // 1つ目の配信サーバーで読めなければ次へ。全部だめなら画像を消す（キャラは頭文字が残る）
-const ICON_CACHE="icons-v3";
+const ICON_CACHE="icons-v4";
 function icFail(img){
   // 読み込みに失敗した画像はキャッシュに残さない（サービスワーカーは成否を判別できないため）
   if(window.caches) caches.open(ICON_CACHE).then(c=>c.delete(img.currentSrc||img.src)).catch(()=>{});
@@ -806,14 +806,16 @@ function registerIconCache(){
 // 保存済み画像の合計サイズ（opaque 形式で保存した画像はサイズを取得できないため個数だけ数える）
 async function iconCacheSize(){
   try{
-    const c=await caches.open(ICON_CACHE); let bytes=0, unknown=0;
+    const c=await caches.open(ICON_CACHE); let bytes=0, unknown=0; const types={};
     for(const req of await c.keys()){
       const r=await c.match(req);
       if(!r||r.type==="opaque"){ unknown++; continue; }
+      const t=(r.headers.get("content-type")||"").replace(/^image\//,"").toUpperCase()||"不明";
+      types[t]=(types[t]||0)+1;
       const len=+(r.headers.get("content-length")||0);
       bytes+=len>0?len:(await r.blob()).size;
     }
-    return {bytes,unknown};
+    return {bytes,unknown,types};
   }catch{ return null; }
 }
 const fmtBytes=(n)=>n<1024?`${n} B`:n<1024*1024?`${(n/1024).toFixed(1)} KB`:`${(n/1024/1024).toFixed(2)} MB`;
@@ -857,6 +859,10 @@ async function showIconCacheInfo(){
       const known=n-sz.unknown;
       el.textContent+=known>0?` 合計 約${fmtBytes(sz.bytes)}`:"";
       if(sz.unknown) el.textContent+=`（うち ${sz.unknown} 個はサイズ不明）`;
+      // 保存形式の内訳（WebP は軽量、PNG は WebP を作れないブラウザでの代替）
+      const parts=Object.entries(sz.types).sort((a,b)=>b[1]-a[1]).map(([t,c])=>`${t} ${c}個`);
+      if(sz.unknown) parts.push(`形式不明 ${sz.unknown}個`);
+      if(parts.length) el.textContent+=` ／ 形式：${parts.join("・")}`;
     }
   }
 }

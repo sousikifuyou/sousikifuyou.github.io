@@ -8,7 +8,7 @@
  * アプリが Cache Storage の "icon-settings" に設定値（on/off）を書き、ここで読む。
  * キャッシュの削除はアプリ側（保存しない設定にしたとき等）で caches.delete() する。
  */
-const CACHE = "icons-v3";
+const CACHE = "icons-v4";
 const SETTINGS = "icon-settings";
 const FLAG_URL = "/__icon-cache-enabled";
 
@@ -23,23 +23,30 @@ const ICON_HOSTS = ["gi.yatta.moe", "enka.network"];
 // 保存前に表示サイズに合わせて縮小・圧縮する（画面上の最大表示サイズ × 約3倍：高精細画面でもぼやけない大きさ）
 //   キャラのアイコン（UI_AvatarIcon_*）: 最大 52px 表示 → 160px
 //   素材・武器のアイコン               : 最大 30px 表示 → 96px
-// 形式は透過を保てる WebP（作れないブラウザでは PNG）。元より大きくなる場合は元画像のまま。
+// 形式は透過を保てる WebP。WebP を作れないブラウザ（iPhone の Safari など）では PNG になるが、
+// PNG は WebP よりかなり重いため、表示サイズの約2倍（キャラ 104px、素材・武器 64px）まで小さくする。
+// 元より大きくなる場合は元画像のまま。
 async function shrink(res, url) {
   if (res.type === "opaque" || !res.ok) return res;          // 中身を読めない形式は縮小できない
   if (typeof OffscreenCanvas === "undefined" || typeof createImageBitmap !== "function") return res;
   try {
     const src = await res.clone().blob();
     const bmp = await createImageBitmap(src);
-    const max = /UI_AvatarIcon/.test(url) ? 160 : 96;
-    const scale = Math.min(1, max / Math.max(bmp.width, bmp.height));
-    if (scale >= 1) { bmp.close?.(); return res; }
-    const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
-    const canvas = new OffscreenCanvas(w, h);
-    const ctx = canvas.getContext("2d");
-    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(bmp, 0, 0, w, h); bmp.close?.();
-    let out = await canvas.convertToBlob({ type: "image/webp", quality: 0.85 });
-    if (out.type !== "image/webp") out = await canvas.convertToBlob({ type: "image/png" });
+    const avatar = /UI_AvatarIcon/.test(url);
+    const draw = (max) => {
+      const scale = Math.min(1, max / Math.max(bmp.width, bmp.height));
+      const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
+      const canvas = new OffscreenCanvas(w, h);
+      const ctx = canvas.getContext("2d");
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(bmp, 0, 0, w, h);
+      return canvas;
+    };
+    let out = await draw(avatar ? 160 : 96).convertToBlob({ type: "image/webp", quality: 0.85 });
+    if (out.type !== "image/webp") {
+      out = await draw(avatar ? 104 : 64).convertToBlob({ type: "image/png" });
+    }
+    bmp.close?.();
     if (out.size >= src.size) return res;
     return new Response(out, { headers: { "content-type": out.type, "content-length": String(out.size) } });
   } catch { return res; }
