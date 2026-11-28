@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#0d1120">
-<title>原神素材_R0.47</title>
+<title>原神素材_R0.48</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
@@ -120,6 +120,20 @@
   .person::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--el,var(--muted));box-shadow:0 0 0 3px color-mix(in srgb,var(--el,var(--muted)) 25%,transparent)}
   .person.r5{color:var(--r5);font-weight:700}  /* ★5は金色の文字 */
   button.person{border:0;font-family:inherit;cursor:pointer;transition:background .15s ease}
+  /* ===== アイコン ===== */
+  /* キャラ：元素色の丸＋頭文字の上に画像を重ねる（画像が読めなければ頭文字が見える） */
+  .av{--s:24px;position:relative;display:inline-grid;place-items:center;flex:0 0 auto;width:var(--s);height:var(--s);border-radius:50%;overflow:hidden;
+    background:color-mix(in srgb,var(--el,var(--muted)) 28%,var(--surface-2));box-shadow:0 0 0 2px var(--el,var(--muted));
+    font-size:calc(var(--s) * .42);font-weight:800;color:var(--text);line-height:1}
+  .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .person.has-av{padding-left:3px}
+  .person.has-av::before{display:none}
+  /* 素材・武器：透過PNGをそのまま */
+  .ii{--s:22px;width:var(--s);height:var(--s);object-fit:contain;flex:0 0 auto;vertical-align:middle}
+  .card-head .ii{--s:30px;margin:-4px 0}
+  .tag .ii{--s:18px;margin:-3px 2px -3px -3px}
+  .tag.wep{display:inline-flex;align-items:center}
+  .kv .iv{display:flex;align-items:center;gap:6px}
   button.person:hover{background:color-mix(in srgb,var(--accent) 16%,var(--surface-2))}
   /* キャラ画面に飛んだときの強調 */
   .card.flash{animation:flash 1.6s ease}
@@ -306,6 +320,14 @@
         </div>
       </div>
       <div class="note">自動：画面の幅が広いとき（900px以上）はPC用のレイアウトで表示します。</div>
+      <div class="list-group">
+        <div class="row"><span>アイコン</span>
+          <div class="seg" id="iconSeg" role="group" aria-label="アイコン表示">
+            <button data-icons="on">表示する</button><button data-icons="off">表示しない</button>
+          </div>
+        </div>
+      </div>
+      <div class="note">キャラ・素材・武器の画像は、ファン向けの画像配信サーバー（Project Amber / Enka.Network）から読み込みます。通信量を抑えたいときは「表示しない」にしてください。</div>
 
 
       <div class="group-label">データ</div>
@@ -374,8 +396,8 @@ const FALLBACK_DATA={schema:1,generatedAt:null,source:{name:"内蔵データ",ve
   weaponSeries:[],characters:[],weapons:[]};
 
 /* ===== ストレージキー ===== */
-const APP_VERSION="R0.47";
-const K={ DATA:"genshin-data-v4", FETCHED_AT:"genshin-data-fetched-at-v4", FROM:"genshin-data-from-v4", LOCAL_OVERRIDES:"local-overrides-v2", THEME:"theme-pref-v1", FOLD:"fold-state-v1", ORDER:"region-order-v1", LAYOUT:"layout-pref-v1" };
+const APP_VERSION="R0.48";
+const K={ DATA:"genshin-data-v4", FETCHED_AT:"genshin-data-fetched-at-v4", FROM:"genshin-data-from-v4", LOCAL_OVERRIDES:"local-overrides-v2", THEME:"theme-pref-v1", FOLD:"fold-state-v1", ORDER:"region-order-v1", LAYOUT:"layout-pref-v1", ICONS:"icons-pref-v1" };
 // 旧バージョンのキャッシュを掃除
 // local-overrides-v1 は旧版が同梱の characters.local.json を自動保存したもの（古い天賦本・旧キー名を含む）なので破棄する
 (function cleanupOld(){try{localStorage.removeItem("genshin-app-v3");localStorage.removeItem("local-overrides-v1");localStorage.removeItem("jump-confirm-v1");for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith("ambr-avatar-"))localStorage.removeItem(k);}}catch{}})();
@@ -485,7 +507,16 @@ function makeChips(container,options,onChange){
 }
 const chipValue=(container)=>container.querySelector('.chip[aria-pressed="true"]')?.dataset.value;
 function keepChip(container,value){if(value==null)return;const b=[...container.querySelectorAll(".chip")].find(c=>c.dataset.value===value);if(b){container.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true");}}
-const person=(c)=>`<button type="button" class="person el-${safe(c.element)} ${c.rarity===5?"r5":""}" data-char="${safe(c.key)}" aria-label="${safe(c.name)}の必要素材を表示">${safe(c.name)}</button>`;
+/* ===== アイコン（画像ファイル名はデータに含まれ、毎日自動更新。画像本体は配信サーバーから読む） ===== */
+const ICON_HOSTS=["https://gi.yatta.moe/assets/UI/","https://enka.network/ui/"];
+const iconsOn=()=>localStorage.getItem(K.ICONS)!=="off";
+// 1つ目の配信サーバーで読めなければ次へ。全部だめなら画像を消す（キャラは頭文字が残る）
+function icFail(img){const i=+(img.dataset.i||0)+1;if(i<ICON_HOSTS.length){img.dataset.i=i;img.src=ICON_HOSTS[i]+img.dataset.f+".png";}else img.remove();}
+const imgTag=(f,cls)=>f?`<img class="${cls||""}" src="${ICON_HOSTS[0]}${safe(f)}.png" data-f="${safe(f)}" alt="" loading="lazy" decoding="async" onerror="icFail(this)">`:"";
+const avatar=(c,size)=>iconsOn()?`<span class="av el-${safe(c.element)}" style="--s:${size||24}px" aria-hidden="true">${safe(String(c.name||"?").replace(/^旅人（(.)）$/,"$1").slice(0,1))}${imgTag(c.icon)}</span>`:"";
+const itemIcon=(name)=>{if(!iconsOn())return"";const f=(appData.itemIcons||{})[name];return f?imgTag(f,"ii"):"";};
+const iconOf=(f)=>iconsOn()&&f?imgTag(f,"ii"):"";
+const person=(c)=>`<button type="button" class="person el-${safe(c.element)} ${c.rarity===5?"r5":""} ${iconsOn()?"has-av":""}" data-char="${safe(c.key)}" aria-label="${safe(c.name)}の必要素材を表示">${avatar(c,24)}${safe(c.name)}</button>`;
 const dayPills=(days,hl)=>`<span class="days">${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].filter(d=>(days||[]).includes(d)).map(d=>`<i class="${d===hl?"on":""}">${WEEK_JA[d]}</i>`).join("")}</span>`;
 const daysText=(days)=>(days||[]).map(d=>WEEK_JA[d]).join("・");
 const CHEV='<span class="chev">▾</span>';
@@ -565,7 +596,7 @@ function renderToday(){
     for(const s of ts){
       const users=(usersOf.get(s.key)||[]).slice().sort((a,b)=>(b.rarity||0)-(a.rarity||0));
       const el=document.createElement("div"); el.className="card";
-      el.innerHTML=`<div class="card-head"><h3 class="card-title">${safe(s.name)}</h3><span class="tag">${safe(s.region)}</span>${dayPills(s.days,w)}</div>
+      el.innerHTML=`<div class="card-head">${iconOf(s.icon)}<h3 class="card-title">${safe(s.name)}</h3><span class="tag">${safe(s.region)}</span>${dayPills(s.days,w)}</div>
         <div class="people">${users.length?users.map(person).join(""):'<span class="empty">該当キャラなし</span>'}</div>`;
       tList.appendChild(el);
     }
@@ -576,9 +607,9 @@ function renderToday(){
     for(const s of ws){
       const weps=(weaponsOf.get(s.key)||[]);
       const el=document.createElement("details"); el.className="card";
-      el.innerHTML=`<summary class="card-head"><h3 class="card-title">${safe(s.name)}</h3><span class="tag">${safe(s.region)}</span><span class="tag">武器 ${weps.length}</span>${CHEV.replace('chev"','chev" style="margin-left:auto"')}</summary>
+      el.innerHTML=`<summary class="card-head">${iconOf(s.icon)}<h3 class="card-title">${safe(s.name)}</h3><span class="tag">${safe(s.region)}</span><span class="tag">武器 ${weps.length}</span>${CHEV.replace('chev"','chev" style="margin-left:auto"')}</summary>
         ${s.items&&s.items.length?`<div class="items">${s.items.map(safe).join(" → ")}</div>`:""}
-        <div class="people">${weps.length?weps.map(x=>`<span class="tag ${x.rarity===5?"r5":"r4"}">${safe(x.name)}</span>`).join(""):'<span class="empty">—</span>'}</div>`;
+        <div class="people">${weps.length?weps.map(x=>`<span class="tag wep ${x.rarity===5?"r5":"r4"}">${iconOf(x.icon)}${safe(x.name)}</span>`).join(""):'<span class="empty">—</span>'}</div>`;
       wList.appendChild(el);
     }
   }
@@ -616,22 +647,22 @@ function renderCharacters(){
     for(const c of arr){
       const books=asArray(c.talentBooks).map(k=>seriesByKey.get(k)).filter(Boolean);
       const a=c.ascension||{};
-      const row=(label,v)=>v?`<div>${label}</div><div>${safe(v)}</div>`:"";
+      const row=(label,v,ic)=>v?`<div>${label}</div><div class="iv">${ic?itemIcon(v):""}${safe(v)}</div>`:"";
       const det=document.createElement("details"); det.className=`card char el-${safe(c.element)}`; det.dataset.char=c.key;
       det.innerHTML=`<summary>
-          <div class="card-head"><h3 class="card-title">${safe(c.name)}</h3>
+          <div class="card-head">${avatar(c,40)}<h3 class="card-title">${safe(c.name)}</h3>
             ${c.rarity?`<span class="tag ${c.rarity===5?"r5":"r4"}">★${c.rarity}</span>`:""}
             ${isOpen(c)?'<span class="tag ok">今日OK</span>':""}
             ${CHEV.replace('chev"','chev" style="margin-left:auto"')}</div>
           <div class="meta"><span class="tag">${ELABEL[c.element]||safe(c.element)||"?"}</span><span class="tag">${WLABEL[c.weapon]||safe(c.weapon)||"?"}</span>${books.map(s=>`<span class="tag">${safe(s.name)} ${daysText(s.days.filter(d=>d!=="Sun"))}</span>`).join("")}</div>
         </summary>
         <div class="kv">
-          ${row("週ボス",c.weeklyBoss)}
-          ${row("天賦 敵素材",c.talentCommon)}
-          ${row("突破 宝石",a.gem)}
-          ${row("突破 ボス",a.boss)}
-          ${row("地域特産",a.local)}
-          ${row("突破 敵素材",a.common)}
+          ${row("週ボス",c.weeklyBoss,true)}
+          ${row("天賦 敵素材",c.talentCommon,true)}
+          ${row("突破 宝石",a.gem,true)}
+          ${row("突破 ボス",a.boss,true)}
+          ${row("地域特産",a.local,true)}
+          ${row("突破 敵素材",a.common,true)}
           ${row("地域",c.region)}
           ${row("実装",c.version?`Ver.${c.version}`:"")}
         </div>`;
@@ -661,22 +692,22 @@ function openCharSheet(key){
   const today=gameDayKey();
   const books=asArray(c.talentBooks).map(k=>seriesByKey.get(k)).filter(Boolean);
   const a=c.ascension||{};
-  const row=(label,v)=>v?`<div>${label}</div><div>${safe(v)}</div>`:"";
+  const row=(label,v,ic)=>v?`<div>${label}</div><div class="iv">${ic?itemIcon(v):""}${safe(v)}</div>`:"";
   const sheet=document.querySelector("#charSheet .sheet");
   sheet.className=`sheet el-${safe(c.element)}`;
   $("#sheetBody").innerHTML=`
-    <div class="card-head"><h3 class="card-title" id="sheetTitle">${safe(c.name)}</h3>
+    <div class="card-head">${avatar(c,52)}<h3 class="card-title" id="sheetTitle">${safe(c.name)}</h3>
       ${c.rarity?`<span class="tag ${c.rarity===5?"r5":"r4"}">★${c.rarity}</span>`:""}
       <button class="icon-x" id="sheetClose" aria-label="閉じる">×</button></div>
     <div class="meta" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><span class="tag">${ELABEL[c.element]||safe(c.element)||"?"}</span><span class="tag">${WLABEL[c.weapon]||safe(c.weapon)||"?"}</span>${c.region?`<span class="tag">${safe(c.region)}</span>`:""}</div>
-    <div class="books">${books.length?books.map(s=>{const open=today==="Sun"||s.days.includes(today);return `<div class="book">天賦本 ${safe(s.name)} ${dayPills(s.days,today)}${open?'<span class="tag ok">今日OK</span>':""}</div>`;}).join(""):'<div class="empty">天賦本：不明</div>'}</div>
+    <div class="books">${books.length?books.map(s=>{const open=today==="Sun"||s.days.includes(today);return `<div class="book">${iconOf(s.icon)}天賦本 ${safe(s.name)} ${dayPills(s.days,today)}${open?'<span class="tag ok">今日OK</span>':""}</div>`;}).join(""):'<div class="empty">天賦本：不明</div>'}</div>
     <div class="kv">
-      ${row("週ボス",c.weeklyBoss)}
-      ${row("天賦 敵素材",c.talentCommon)}
-      ${row("突破 宝石",a.gem)}
-      ${row("突破 ボス",a.boss)}
-      ${row("地域特産",a.local)}
-      ${row("突破 敵素材",a.common)}
+      ${row("週ボス",c.weeklyBoss,true)}
+      ${row("天賦 敵素材",c.talentCommon,true)}
+      ${row("突破 宝石",a.gem,true)}
+      ${row("突破 ボス",a.boss,true)}
+      ${row("地域特産",a.local,true)}
+      ${row("突破 敵素材",a.common,true)}
       ${row("実装",c.version?`Ver.${c.version}`:"")}
     </div>
     <div class="sheet-actions"><button id="sheetGo">キャラ一覧で開く</button><button id="sheetOk" class="primary">閉じる</button></div>`;
@@ -694,7 +725,10 @@ function openCharSheet(key){
 $("#todayTalent").addEventListener("click",(e)=>{ const b=e.target.closest("button.person[data-char]"); if(b) openCharSheet(b.dataset.char); });
 
 /* ===== 画面: 情報 ===== */
+function syncIconSeg(){const v=iconsOn()?"on":"off";document.querySelectorAll("#iconSeg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.icons===v)));}
+document.querySelectorAll("#iconSeg button").forEach(b=>b.onclick=()=>{try{localStorage.setItem(K.ICONS,b.dataset.icons);}catch{} syncIconSeg(); toast(`アイコン: ${b.textContent}`);});
 function renderAbout(){
+  syncIconSeg();
   const d=appData, s=d.source||{};
   const ov=getOverrides();
   const r=(k,v)=>`<div class="row"><span>${k}</span><span>${v}</span></div>`;
