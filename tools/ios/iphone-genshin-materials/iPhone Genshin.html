@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#0d1120">
-<title>原神素材_R0.45</title>
+<title>原神素材_R0.47</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
@@ -119,6 +119,36 @@
   .person{display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 6px;border-radius:999px;background:var(--surface-2);font-size:13px;font-weight:600}
   .person::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--el,var(--muted));box-shadow:0 0 0 3px color-mix(in srgb,var(--el,var(--muted)) 25%,transparent)}
   .person.r5{color:var(--r5);font-weight:700}  /* ★5は金色の文字 */
+  button.person{border:0;font-family:inherit;cursor:pointer;transition:background .15s ease}
+  button.person:hover{background:color-mix(in srgb,var(--accent) 16%,var(--surface-2))}
+  /* キャラ画面に飛んだときの強調 */
+  .card.flash{animation:flash 1.6s ease}
+  @keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--accent),var(--shadow)}100%{box-shadow:var(--shadow)}}
+  /* キャラの必要素材シート（今日画面の上に重ねて表示） */
+  .sheet-back{position:fixed;inset:0;z-index:200;display:flex;align-items:flex-end;justify-content:center;
+    background:rgba(5,8,16,.5);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+    opacity:0;pointer-events:none;transition:opacity .2s ease}
+  .sheet-back.open{opacity:1;pointer-events:auto}
+  .sheet{width:100%;max-width:560px;max-height:82vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-bottom:0;
+    border-radius:22px 22px 0 0;padding:8px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px rgba(0,0,0,.4);
+    border-top:4px solid var(--el,var(--accent));transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+  .sheet-back.open .sheet{transform:none}
+  .grabber{width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 12px;background:color-mix(in srgb,var(--muted) 45%,transparent)}
+  .sheet .card-head{gap:8px}
+  .sheet .card-title{font-size:20px}
+  .sheet .kv{font-size:14px}
+  .sheet .books{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+  .sheet .book{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700}
+  .sheet-actions{display:flex;gap:10px;margin-top:16px}
+  .sheet-actions button{flex:1;padding:11px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);font-weight:700;cursor:pointer}
+  .sheet-actions .primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+  .icon-x{margin-left:auto;width:32px;height:32px;border-radius:10px;border:0;background:var(--surface-2);color:var(--muted);font-size:18px;line-height:1;cursor:pointer}
+  /* PC では画面中央のカード */
+  html.pc .sheet-back{align-items:center;padding:24px}
+  html.pc .sheet{border-radius:20px;border:1px solid var(--line);border-top:4px solid var(--el,var(--accent));max-width:460px;
+    padding:20px 22px;transform:translateY(12px) scale(.98);box-shadow:0 20px 60px rgba(0,0,0,.45)}
+  html.pc .sheet-back.open .sheet{transform:none}
+  html.pc .grabber{display:none}
   .empty{color:var(--muted);font-size:13px;padding:4px 0}
 
   details.card>summary{list-style:none;cursor:pointer}
@@ -277,6 +307,7 @@
       </div>
       <div class="note">自動：画面の幅が広いとき（900px以上）はPC用のレイアウトで表示します。</div>
 
+
       <div class="group-label">データ</div>
       <div class="list-group" id="dataInfo"></div>
       <div class="note">GitHub Actions が毎日 genshin-db から genshin-data.json を自動生成しています。</div>
@@ -291,6 +322,13 @@
       <input id="fileLocal" type="file" accept=".json,application/json" style="display:none" />
     </section>
   </main>
+
+  <div class="sheet-back" id="charSheet" aria-hidden="true">
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <div class="grabber"></div>
+      <div id="sheetBody"></div>
+    </div>
+  </div>
 
   <nav class="tabbar" aria-label="ナビゲーション">
     <div class="brand"><b>原神 曜日素材</b><span>天賦本・武器素材ビュー</span></div>
@@ -336,11 +374,11 @@ const FALLBACK_DATA={schema:1,generatedAt:null,source:{name:"内蔵データ",ve
   weaponSeries:[],characters:[],weapons:[]};
 
 /* ===== ストレージキー ===== */
-const APP_VERSION="R0.45";
+const APP_VERSION="R0.47";
 const K={ DATA:"genshin-data-v4", FETCHED_AT:"genshin-data-fetched-at-v4", FROM:"genshin-data-from-v4", LOCAL_OVERRIDES:"local-overrides-v2", THEME:"theme-pref-v1", FOLD:"fold-state-v1", ORDER:"region-order-v1", LAYOUT:"layout-pref-v1" };
 // 旧バージョンのキャッシュを掃除
 // local-overrides-v1 は旧版が同梱の characters.local.json を自動保存したもの（古い天賦本・旧キー名を含む）なので破棄する
-(function cleanupOld(){try{localStorage.removeItem("genshin-app-v3");localStorage.removeItem("local-overrides-v1");for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith("ambr-avatar-"))localStorage.removeItem(k);}}catch{}})();
+(function cleanupOld(){try{localStorage.removeItem("genshin-app-v3");localStorage.removeItem("local-overrides-v1");localStorage.removeItem("jump-confirm-v1");for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith("ambr-avatar-"))localStorage.removeItem(k);}}catch{}})();
 
 /* ===== ユーティリティ ===== */
 const $=(s)=>document.querySelector(s);
@@ -447,7 +485,7 @@ function makeChips(container,options,onChange){
 }
 const chipValue=(container)=>container.querySelector('.chip[aria-pressed="true"]')?.dataset.value;
 function keepChip(container,value){if(value==null)return;const b=[...container.querySelectorAll(".chip")].find(c=>c.dataset.value===value);if(b){container.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true");}}
-const person=(c)=>`<span class="person el-${safe(c.element)} ${c.rarity===5?"r5":""}">${safe(c.name)}</span>`;
+const person=(c)=>`<button type="button" class="person el-${safe(c.element)} ${c.rarity===5?"r5":""}" data-char="${safe(c.key)}" aria-label="${safe(c.name)}の必要素材を表示">${safe(c.name)}</button>`;
 const dayPills=(days,hl)=>`<span class="days">${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].filter(d=>(days||[]).includes(d)).map(d=>`<i class="${d===hl?"on":""}">${WEEK_JA[d]}</i>`).join("")}</span>`;
 const daysText=(days)=>(days||[]).map(d=>WEEK_JA[d]).join("・");
 const CHEV='<span class="chev">▾</span>';
@@ -555,7 +593,9 @@ function renderCharacters(){
   makeChips(ec,[{value:"All",label:"全元素"},...Object.keys(ELABEL).map(e=>({value:e,cls:`el-${e}`,html:`<span class="dot"></span>${ELABEL[e]}`}))],list);
   makeChips(wc,[{value:"All",label:"全武器"},...Object.keys(WLABEL).map(w=>({value:w,label:WLABEL[w]}))],list);
   makeChips(oc,[{value:"all",label:"すべて"},{value:"today",label:"今日天賦を上げられるキャラ"}],list);
-  keepChip(ec,prevE); keepChip(wc,prevW); keepChip(oc,prevO);
+  const focusKey=pendingFocus; pendingFocus=null;
+  if(focusKey) $("#searchInput").value="";   // 移動時は絞り込みを解除して必ず表示
+  else { keepChip(ec,prevE); keepChip(wc,prevW); keepChip(oc,prevO); }
   $("#searchInput").oninput=()=>list();
   const seriesByKey=new Map(data.talentSeries.map(s=>[s.key,s]));
   const today=gameDayKey();
@@ -577,7 +617,7 @@ function renderCharacters(){
       const books=asArray(c.talentBooks).map(k=>seriesByKey.get(k)).filter(Boolean);
       const a=c.ascension||{};
       const row=(label,v)=>v?`<div>${label}</div><div>${safe(v)}</div>`:"";
-      const det=document.createElement("details"); det.className=`card char el-${safe(c.element)}`;
+      const det=document.createElement("details"); det.className=`card char el-${safe(c.element)}`; det.dataset.char=c.key;
       det.innerHTML=`<summary>
           <div class="card-head"><h3 class="card-title">${safe(c.name)}</h3>
             ${c.rarity?`<span class="tag ${c.rarity===5?"r5":"r4"}">★${c.rarity}</span>`:""}
@@ -599,7 +639,59 @@ function renderCharacters(){
     }
   }
   list();
+  if(focusKey){
+    const det=[...$("#charList").children].find(d=>d.dataset.char===focusKey);
+    if(det){
+      det.open=true;
+      requestAnimationFrame(()=>{
+        const y=det.getBoundingClientRect().top+window.scrollY-(document.querySelector("header").offsetHeight+12);
+        window.scrollTo({top:Math.max(0,y),behavior:"smooth"});
+        det.classList.remove("flash"); void det.offsetWidth; det.classList.add("flash");
+      });
+    }
+  }
 }
+
+/* ===== 「今日」のキャラ名 → 必要素材シートを重ねて表示 ===== */
+let pendingFocus=null;
+function jumpToCharacter(key){ pendingFocus=key; setRoute("characters"); }
+function openCharSheet(key){
+  const data=view(); const c=data.characters.find(x=>x.key===key); if(!c) return;
+  const seriesByKey=new Map(data.talentSeries.map(s=>[s.key,s]));
+  const today=gameDayKey();
+  const books=asArray(c.talentBooks).map(k=>seriesByKey.get(k)).filter(Boolean);
+  const a=c.ascension||{};
+  const row=(label,v)=>v?`<div>${label}</div><div>${safe(v)}</div>`:"";
+  const sheet=document.querySelector("#charSheet .sheet");
+  sheet.className=`sheet el-${safe(c.element)}`;
+  $("#sheetBody").innerHTML=`
+    <div class="card-head"><h3 class="card-title" id="sheetTitle">${safe(c.name)}</h3>
+      ${c.rarity?`<span class="tag ${c.rarity===5?"r5":"r4"}">★${c.rarity}</span>`:""}
+      <button class="icon-x" id="sheetClose" aria-label="閉じる">×</button></div>
+    <div class="meta" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><span class="tag">${ELABEL[c.element]||safe(c.element)||"?"}</span><span class="tag">${WLABEL[c.weapon]||safe(c.weapon)||"?"}</span>${c.region?`<span class="tag">${safe(c.region)}</span>`:""}</div>
+    <div class="books">${books.length?books.map(s=>{const open=today==="Sun"||s.days.includes(today);return `<div class="book">天賦本 ${safe(s.name)} ${dayPills(s.days,today)}${open?'<span class="tag ok">今日OK</span>':""}</div>`;}).join(""):'<div class="empty">天賦本：不明</div>'}</div>
+    <div class="kv">
+      ${row("週ボス",c.weeklyBoss)}
+      ${row("天賦 敵素材",c.talentCommon)}
+      ${row("突破 宝石",a.gem)}
+      ${row("突破 ボス",a.boss)}
+      ${row("地域特産",a.local)}
+      ${row("突破 敵素材",a.common)}
+      ${row("実装",c.version?`Ver.${c.version}`:"")}
+    </div>
+    <div class="sheet-actions"><button id="sheetGo">キャラ一覧で開く</button><button id="sheetOk" class="primary">閉じる</button></div>`;
+  const back=$("#charSheet");
+  back.classList.add("open"); back.setAttribute("aria-hidden","false");
+  document.body.style.overflow="hidden";
+  const close=()=>{ back.classList.remove("open"); back.setAttribute("aria-hidden","true"); document.body.style.overflow=""; document.removeEventListener("keydown",onKey); };
+  const onKey=(e)=>{ if(e.key==="Escape") close(); };
+  document.addEventListener("keydown",onKey);
+  back.onclick=(e)=>{ if(e.target===back) close(); };   // カードの外側をタップで閉じる
+  $("#sheetClose").onclick=close; $("#sheetOk").onclick=close;
+  $("#sheetGo").onclick=()=>{ close(); jumpToCharacter(key); };
+  sheet.scrollTop=0;
+}
+$("#todayTalent").addEventListener("click",(e)=>{ const b=e.target.closest("button.person[data-char]"); if(b) openCharSheet(b.dataset.char); });
 
 /* ===== 画面: 情報 ===== */
 function renderAbout(){
